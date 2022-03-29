@@ -1,7 +1,7 @@
 #ifndef sand_core_module_hh
 #define sand_core_module_hh
 
-#include "sand/core/node.hh"
+#include "sand/core/node.hpp"
 
 namespace sand {
   template <typename T>

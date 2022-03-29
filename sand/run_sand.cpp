@@ -1,6 +1,6 @@
-#include "sand/run_sand.hh"
-#include "sand/core/source.hh"
-#include "sand/core/task_scheduler.hh"
+#include "sand/run_sand.hpp"
+#include "sand/core/source.hpp"
+#include "sand/core/task_scheduler.hpp"
 
 #include <functional>
 #include <iostream>

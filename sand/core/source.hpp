@@ -1,7 +1,7 @@
 #ifndef sand_core_source_hh
 #define sand_core_source_hh
 
-#include "sand/core/node.hh"
+#include "sand/core/node.hpp"
 
 #include <memory>
 

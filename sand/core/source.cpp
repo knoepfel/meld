@@ -1,4 +1,4 @@
-#include "sand/core/source.hh"
+#include "sand/core/source.hpp"
 
 namespace sand {
   source::source(std::size_t const n) : num_nodes_{n} {}
