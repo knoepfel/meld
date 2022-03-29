@@ -3,12 +3,19 @@
 
 #include "sand/core/node.hh"
 
+#include <memory>
+
 namespace sand {
   class source {
   public:
-    virtual ~source() = default;
-    std::unique_ptr<node> next();
+    explicit source(std::size_t n);
+    std::shared_ptr<node>
+    next(); // Replace with unique_ptr, once I figure out how to handle std::function<void()> copyability issues.
+
+  private:
+    std::size_t num_nodes_;
+    std::size_t cursor_{0};
   };
 }
 
-#define
+#endif
