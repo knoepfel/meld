@@ -30,5 +30,5 @@ main(int argc, char* argv[])
     return 0;
   }
 
-  sand::run(num_nodes);
+  sand::run_it(num_nodes);
 }
