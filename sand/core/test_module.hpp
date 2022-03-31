@@ -1,5 +1,5 @@
 #include "sand/core/data_levels.hpp"
-#include "sand/core/module.hpp"
+#include "sand/core/module_owner.hpp"
 
 #include <iostream>
 
@@ -7,16 +7,16 @@ namespace sand::test {
   class user_module {
   public:
     void
-    process(run const&) const
+    process(run const& r) const
     {
-      std::cout << "Processing run in user module.\n";
+      std::cout << "Processing run " << r.id() << " in user module.\n";
     }
 
     void
-    process(subrun const&) const
+    process(subrun const& sr) const
     {
-      std::cout << "Processing subrun in user module.\n";
+      std::cout << "Processing subrun " << sr.id() << " in user module.\n";
     }
   };
-  using module_to_use = module<user_module, run>;
+  using module_to_use = module_owner<user_module, run, subrun>;
 }

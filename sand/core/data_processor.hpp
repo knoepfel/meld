@@ -1,16 +1,17 @@
 #ifndef sand_core_data_processor_h
 #define sand_core_data_processor_h
 
+#include "sand/core/module_worker.hpp"
 #include "sand/core/node.hpp"
 #include "sand/core/task_scheduler.hpp"
-
-#include <iostream>
 
 namespace sand {
   template <typename Source, typename Module>
   class data_processor {
   public:
-    explicit data_processor(std::size_t const n) : source_{n} {}
+    explicit data_processor(std::size_t const n) : source_{n}, worker_{std::make_unique<Module>()}
+    {
+    }
 
     void
     run_to_completion()
@@ -23,9 +24,7 @@ namespace sand {
     void
     process(node& data)
     {
-      std::cout << "Processing data "
-                << "(" << data.id() << ")\n";
-      module_.process(data);
+      worker_->process(data);
     }
 
     void
@@ -38,7 +37,7 @@ namespace sand {
     }
 
     Source source_;
-    Module module_;
+    std::unique_ptr<module_worker> worker_;
     task_scheduler scheduler_{};
   };
 

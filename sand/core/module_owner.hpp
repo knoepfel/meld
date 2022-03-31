@@ -1,13 +1,14 @@
-#ifndef sand_core_module_hh
-#define sand_core_module_hh
+#ifndef sand_core_module_owner_hpp
+#define sand_core_module_owner_hpp
 
+#include "sand/core/module_worker.hpp"
 #include "sand/core/node.hpp"
 
 #include <typeinfo>
 
 namespace sand {
   template <typename T, typename... Ds>
-  class module {
+  class module_owner : public module_worker {
     template <typename D>
     void
     process_(node& data)
@@ -20,7 +21,7 @@ namespace sand {
 
   public:
     void
-    process(node& data)
+    do_process(node& data)
     {
       (process_<Ds>(data), ...);
     }

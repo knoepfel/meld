@@ -3,6 +3,8 @@
 #include "sand/core/source.hpp"
 #include "sand/core/test_module.hpp"
 
+#include "boost/dll/import.hpp"
+
 #include <iostream>
 
 namespace sand {
