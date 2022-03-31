@@ -1,5 +1,5 @@
 #include "sand/core/data_levels.hpp"
-#include "sand/core/module_owner.hpp"
+#include "sand/core/module.hpp"
 
 #include <iostream>
 
@@ -18,5 +18,6 @@ namespace sand::test {
       std::cout << "Processing subrun " << sr.id() << " in user module.\n";
     }
   };
-  using module_to_use = module_owner<user_module, run, subrun>;
+
+  SAND_REGISTER_MODULE(user_module, run, subrun)
 }

@@ -1,4 +1,3 @@
-find_package(Boost REQUIRED)
 find_package(CLI11 REQUIRED)
 find_package(TBB REQUIRED)
 

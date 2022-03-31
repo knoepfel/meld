@@ -3,6 +3,8 @@
 
 #include "sand/core/node.hpp"
 
+#include <memory>
+
 namespace sand {
   class module_worker {
   public:
@@ -16,6 +18,8 @@ namespace sand {
   private:
     virtual void do_process(node&) = 0;
   };
+
+  using module_creator_t = std::unique_ptr<module_worker>();
 }
 
 #endif
