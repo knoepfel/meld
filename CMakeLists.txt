@@ -4,6 +4,7 @@ project(sand VERSION 0.0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+add_compile_options(-Wall -Werror -pedantic)
 
 add_subdirectory(sand)
 
