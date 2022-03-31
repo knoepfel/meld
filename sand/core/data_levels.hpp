@@ -10,7 +10,12 @@
 namespace sand {
   class run : public node {
   public:
-    explicit run(std::size_t const id) : node{id} {}
+    using node::node;
+  };
+
+  class subrun : public node {
+  public:
+    using node::node;
   };
 }
 

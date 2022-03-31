@@ -3,31 +3,30 @@
 
 #include "sand/core/node.hpp"
 
-#include <iostream>
-#include <typeindex>
 #include <typeinfo>
-#include <vector>
 
 namespace sand {
-  template <typename T, typename D>
+  template <typename T, typename... Ds>
   class module {
-  public:
-    module() :supported_data_types{std::type_index(typeid(D))} {}
-
+    template <typename D>
     void
-    process(node& data)
+    process_(node& data)
     {
-      auto it = std::find(
-        cbegin(supported_data_types), cend(supported_data_types), std::type_index(typeid(data)));
-      if (it == cend(supported_data_types)) {
+      if (typeid(data) != typeid(D)) {
         return;
       }
       user_module.process(static_cast<D&>(data));
     }
 
+  public:
+    void
+    process(node& data)
+    {
+      (process_<Ds>(data), ...);
+    }
+
   private:
     T user_module;
-    std::vector<std::type_index> supported_data_types;
   };
 }
 
