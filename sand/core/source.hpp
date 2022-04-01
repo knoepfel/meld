@@ -1,21 +1,11 @@
-#ifndef sand_core_source_hh
-#define sand_core_source_hh
+#ifndef sand_core_module_hpp
+#define sand_core_module_hpp
 
-#include "sand/core/node.hpp"
+#include "sand/core/source_owner.hpp"
 
-#include <memory>
+#include "boost/dll/alias.hpp"
 
-namespace sand {
-  class source {
-  public:
-    explicit source(std::size_t n);
-    std::shared_ptr<node> next(); // Replace with unique_ptr, once I figure out how to
-                                  // handle std::function<void()> copyability issues.
-
-  private:
-    std::size_t num_nodes_;
-    std::size_t cursor_{0};
-  };
-}
+#define SAND_REGISTER_SOURCE(user_source)                                                          \
+  BOOST_DLL_ALIAS(sand::source_owner<user_source>::create, create_source)
 
 #endif

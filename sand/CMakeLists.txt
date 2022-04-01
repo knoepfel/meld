@@ -9,5 +9,6 @@ target_include_directories(run_sand PRIVATE ${PROJECT_SOURCE_DIR})
 
 configure_file(sand.cpp.in sand.cpp @ONLY)
 add_executable(sand sand.cpp)
+#target_link_options(sand PRIVATE -Wl,-export_dynamic)
 target_link_libraries(sand PRIVATE CLI11::CLI11 run_sand)
 target_include_directories(sand PRIVATE ${PROJECT_SOURCE_DIR})

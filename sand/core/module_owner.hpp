@@ -4,6 +4,7 @@
 #include "sand/core/module_worker.hpp"
 #include "sand/core/node.hpp"
 
+#include <cstring>
 #include <memory>
 #include <typeinfo>
 
@@ -22,7 +23,14 @@ namespace sand {
     void
     process_(node& data)
     {
-      if (typeid(data) != typeid(D)) {
+      // FIXME: This is bad, really bad.  I should only need to
+      //        compare typeids.  However, I'm having trouble getting
+      //        the typeids to compare equivalent when creating an
+      //        object of one type in a one plugin (the source) and
+      //        reading that same object in a different plugin (a
+      //        module).  This may something to do with the linker I'm
+      //        using on my macOS (ld).
+      if (strcmp(typeid(data).name(), typeid(D).name()) != 0) {
         return;
       }
       user_module.process(static_cast<D&>(data));

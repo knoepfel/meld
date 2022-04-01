@@ -9,7 +9,7 @@ namespace sand {
   run_it(std::size_t const n)
   {
     std::cout << "Running sand\n";
-    data_processor<source> processor{n};
+    data_processor processor{n};
     processor.run_to_completion();
   }
 }
