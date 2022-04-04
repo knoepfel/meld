@@ -22,4 +22,4 @@ namespace sand {
   using module_creator_t = std::unique_ptr<module_worker>();
 }
 
-#endif
+#endif /* sand_core_module_worker_hpp */

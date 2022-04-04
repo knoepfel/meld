@@ -12,4 +12,4 @@ namespace sand {
   std::unique_ptr<source_worker> load_source(std::string const& spec, std::size_t n);
 }
 
-#endif
+#endif /* sand_core_load_module_hpp */

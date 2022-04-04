@@ -38,4 +38,4 @@ namespace sand {
   };
 }
 
-#endif
+#endif /* sand_core_module_owner_hpp */

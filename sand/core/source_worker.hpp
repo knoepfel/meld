@@ -1,5 +1,5 @@
-#ifndef sand_core_source_worker_hh
-#define sand_core_source_worker_hh
+#ifndef sand_core_source_worker_hpp
+#define sand_core_source_worker_hpp
 
 #include "sand/core/node.hpp"
 
@@ -25,4 +25,4 @@ namespace sand {
   using source_creator_t = std::unique_ptr<source_worker>(std::size_t);
 }
 
-#endif
+#endif /* sand_core_source_worker_hpp */

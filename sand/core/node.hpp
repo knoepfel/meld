@@ -1,5 +1,5 @@
-#ifndef sand_core_node_hh
-#define sand_core_node_hh
+#ifndef sand_core_node_hpp
+#define sand_core_node_hpp
 
 // A node is a processing level (akin to an event).  It is a node
 // because the processing model supports a tree of nodes for
@@ -23,4 +23,4 @@ namespace sand {
   };
 }
 
-#endif
+#endif /* sand_core_node_hpp */

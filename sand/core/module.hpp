@@ -8,4 +8,4 @@
 #define SAND_REGISTER_MODULE(user_module, ...)                                                     \
   BOOST_DLL_ALIAS((sand::module_owner<user_module, __VA_ARGS__>::create), create_module)
 
-#endif
+#endif /* sand_core_module_hpp */

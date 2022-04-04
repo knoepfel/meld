@@ -1,5 +1,5 @@
-#ifndef sand_core_task_scheduler_hh
-#define sand_core_task_scheduler_hh
+#ifndef sand_core_task_scheduler_hpp
+#define sand_core_task_scheduler_hpp
 
 #include "tbb/task_group.h"
 
@@ -47,4 +47,4 @@ namespace sand {
   };
 }
 
-#endif
+#endif /* sand_core_task_scheduler_hpp */

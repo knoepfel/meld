@@ -4,4 +4,4 @@
 namespace sand {
   char const* version();
 }
-#endif
+#endif /* sand_version_hpp */

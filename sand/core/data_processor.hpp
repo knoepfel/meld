@@ -1,5 +1,5 @@
-#ifndef sand_core_data_processor_h
-#define sand_core_data_processor_h
+#ifndef sand_core_data_processor_hpp
+#define sand_core_data_processor_hpp
 
 #include "sand/core/load_module.hpp"
 #include "sand/core/module_owner.hpp"
@@ -61,4 +61,4 @@ namespace sand {
   };
 }
 
-#endif
+#endif /* sand_core_data_processor_hpp */
