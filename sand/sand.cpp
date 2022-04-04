@@ -19,8 +19,12 @@ main(int argc, char* argv[])
   CLI::App app{"sand is a framework to explore processing DUNE data."};
   bool maybe_version{false};
   unsigned num_nodes{1};
+  std::string source;
+  std::string module;
   app.add_flag("--version", maybe_version, "Print version of sand ("s + sand::version() + ")"s);
   app.add_option("-n", num_nodes, "Number of nodes to process (default is 1)");
+  app.add_option("--source", source, "Specification for source plugin to use.")->required();
+  app.add_option("--module", module, "Specification for module plugin to use.")->required();
   CLI11_PARSE(app, argc, argv);
 
   if (maybe_version) {
@@ -28,5 +32,5 @@ main(int argc, char* argv[])
     return 0;
   }
 
-  sand::run_it(num_nodes);
+  sand::run_it(num_nodes, source, module);
 }

@@ -1,7 +1,6 @@
 #ifndef sand_core_data_processor_hpp
 #define sand_core_data_processor_hpp
 
-#include "sand/core/load_module.hpp"
 #include "sand/core/module_owner.hpp"
 #include "sand/core/module_worker.hpp"
 #include "sand/core/node.hpp"
@@ -14,10 +13,10 @@ namespace sand {
   class data_processor {
   public:
     explicit data_processor(std::size_t const n,
-                            std::unique_ptr<source_worker> sworker = nullptr,
-                            std::unique_ptr<module_worker> mworker = nullptr) :
-      source_{sworker ? std::move(sworker) : load_source("test_source", n)},
-      worker_{mworker ? std::move(mworker) : load_module("test_module")}
+                            std::unique_ptr<source_worker> sworker,
+                            std::unique_ptr<module_worker> mworker) :
+      source_{std::move(sworker)},
+      worker_{std::move(mworker)}
     {
     }
 
