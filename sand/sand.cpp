@@ -1,4 +1,5 @@
 #include "sand/run_sand.hpp"
+#include "sand/version.hpp"
 
 #include "CLI/App.hpp"
 #include "CLI/Config.hpp"
@@ -10,9 +11,6 @@
 using namespace std::string_literals;
 
 namespace {
-  // clang-format off
-  constexpr auto version() { return "@CMAKE_PROJECT_VERSION@"; }
-  // clang-format on
 }
 
 int
@@ -21,12 +19,12 @@ main(int argc, char* argv[])
   CLI::App app{"sand is a framework to explore processing DUNE data."};
   bool maybe_version{false};
   unsigned num_nodes{1};
-  app.add_flag("--version", maybe_version, "Print version of sand ("s + version() + ")"s);
+  app.add_flag("--version", maybe_version, "Print version of sand ("s + sand::version() + ")"s);
   app.add_option("-n", num_nodes, "Number of nodes to process (default is 1)");
   CLI11_PARSE(app, argc, argv);
 
   if (maybe_version) {
-    std::cout << "sand " << version() << '\n';
+    std::cout << "sand " << sand::version() << '\n';
     return 0;
   }
 
