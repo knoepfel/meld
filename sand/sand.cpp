@@ -62,11 +62,12 @@ main(int argc, char* argv[])
   }
 
   auto const& config = get<boost::json::value>(result).as_object();
-  std::cerr << serialize(config) << '\n';
-
   sand::configurations_t configurations;
-  configurations.try_emplace("source", config.at("source").as_object());
-  configurations.try_emplace("module", config.at("module").as_object());
+  for (auto const& [key, value] : config) {
+    if (auto obj = value.if_object()) {
+      configurations.try_emplace(std::string(key), *obj);
+    }
+  }
 
   // TODO: Load all required plugins into a manager, and then allow 'run_it' to use the plugin manager.
 
