@@ -1,9 +1,6 @@
 #include "sand/run_sand.hpp"
 #include "sand/version.hpp"
 
-#include "boost/json.hpp"
-#include "boost/json/src.hpp" // FIXME: Yuck...but yet per Boost guidance.
-
 #include "CLI/App.hpp"
 #include "CLI/Config.hpp"
 #include "CLI/Formatter.hpp"
@@ -45,10 +42,10 @@ main(int argc, char* argv[])
 {
   CLI::App app{"sand is a framework to explore processing DUNE data."};
   bool maybe_version{false};
-  unsigned num_nodes{1};
+  // unsigned num_nodes{1};
   std::string config_file;
   app.add_flag("--version", maybe_version, "Print version of sand ("s + sand::version() + ")"s);
-  app.add_option("-n", num_nodes, "Number of nodes to process (default is 1)");
+  // app.add_option("-n", num_nodes, "Number of nodes to process (default is 1)");
   app.add_option("--config", config_file, "Configuration file to use.")->required();
   CLI11_PARSE(app, argc, argv);
 
@@ -66,8 +63,12 @@ main(int argc, char* argv[])
 
   auto const& config = get<boost::json::value>(result).as_object();
   std::cerr << serialize(config) << '\n';
-  auto const source = value_to<std::string>(config.at("source"));
-  auto const module = value_to<std::string>(config.at("module"));
 
-  sand::run_it(num_nodes, source, module);
+  sand::configurations_t configurations;
+  configurations.try_emplace("source", config.at("source").as_object());
+  configurations.try_emplace("module", config.at("module").as_object());
+
+  // TODO: Load all required plugins into a manager, and then allow 'run_it' to use the plugin manager.
+
+  sand::run_it(configurations);
 }

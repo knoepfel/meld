@@ -12,8 +12,7 @@ namespace sand {
 
   class data_processor {
   public:
-    explicit data_processor(std::size_t const n,
-                            std::unique_ptr<source_worker> sworker,
+    explicit data_processor(std::unique_ptr<source_worker> sworker,
                             std::unique_ptr<module_worker> mworker) :
       source_{std::move(sworker)}, worker_{std::move(mworker)}
     {

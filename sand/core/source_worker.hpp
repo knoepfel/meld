@@ -3,6 +3,8 @@
 
 #include "sand/core/node.hpp"
 
+#include "boost/json.hpp"
+
 #include <memory>
 
 namespace sand {
@@ -22,7 +24,7 @@ namespace sand {
     virtual std::shared_ptr<node> data() = 0;
   };
 
-  using source_creator_t = std::unique_ptr<source_worker>(std::size_t);
+  using source_creator_t = std::unique_ptr<source_worker>(boost::json::value const&);
 }
 
 #endif /* sand_core_source_worker_hpp */

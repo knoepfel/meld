@@ -1,4 +1,4 @@
 {
-    "source": "test_source",
-    "module": "test_module"
+    "source": {"plugin": "test_source", "num_nodes": 10},
+    "module": {"plugin": "test_module"}
 }

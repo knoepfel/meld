@@ -4,6 +4,8 @@
 
 #include "boost/algorithm/string.hpp"
 #include "boost/dll/import.hpp"
+#include "boost/json.hpp"
+#include "boost/json/src.hpp" // FIXME: Yuck...but yet per Boost guidance.
 
 #include <functional>
 #include <string>
@@ -45,16 +47,18 @@ namespace sand {
   }
 
   std::unique_ptr<module_worker>
-  load_module(std::string const& spec)
+  load_module(boost::json::value const& config)
   {
+    auto const& spec = value_to<std::string>(config.at("plugin"));
     create_module = plugin_loader<module_creator_t>(spec, "create_module");
-    return create_module();
+    return create_module(config);
   }
 
   std::unique_ptr<source_worker>
-  load_source(std::string const& spec, std::size_t const n)
+  load_source(boost::json::value const& config)
   {
+    auto const& spec = value_to<std::string>(config.at("plugin"));
     create_source = plugin_loader<source_creator_t>(spec, "create_source");
-    return create_source(n);
+    return create_source(config);
   }
 }

@@ -10,12 +10,12 @@ namespace sand {
   template <typename T>
   class source_owner : public source_worker {
   public:
-    explicit source_owner(std::size_t const n) : user_source{n} {}
+    explicit source_owner(boost::json::object const& config) : user_source{config} {}
 
     static std::unique_ptr<source_worker>
-    create(std::size_t const n)
+    create(boost::json::object const& config)
     {
-      return std::make_unique<source_owner<T>>(n);
+      return std::make_unique<source_owner<T>>(config);
     }
 
   private:

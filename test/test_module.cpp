@@ -6,6 +6,8 @@
 namespace sand::test {
   class user_module {
   public:
+    explicit user_module(boost::json::object const&) {}
+
     void
     process(run const& r) const
     {

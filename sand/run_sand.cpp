@@ -6,10 +6,11 @@
 
 namespace sand {
   void
-  run_it(std::size_t const n, std::string const& source, std::string const& module)
+  run_it(configurations_t const& configurations)
   {
     std::cout << "Running sand\n";
-    data_processor processor{n, load_source(source, n), load_module(module)};
+    data_processor processor{load_source(configurations.at("source")),
+                             load_module(configurations.at("module"))};
     processor.run_to_completion();
   }
 }

@@ -6,7 +6,10 @@
 namespace sand::test {
   class my_source {
   public:
-    explicit my_source(std::size_t const n) : num_nodes_{n} {}
+    explicit my_source(boost::json::object const& config) :
+      num_nodes_{config.at("num_nodes").to_number<unsigned>()}
+    {
+    }
 
     std::shared_ptr<node>
     data()

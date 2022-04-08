@@ -4,18 +4,18 @@
 #include "sand/core/module_worker.hpp"
 #include "sand/core/node.hpp"
 
-#include <cstring>
 #include <memory>
-#include <typeinfo>
 
 namespace sand {
   template <typename T, typename... Ds>
   class module_owner : public module_worker {
   public:
+    explicit module_owner(boost::json::object const& config) : user_module{config} {}
+
     static std::unique_ptr<module_worker>
-    create()
+    create(boost::json::object const& config)
     {
-      return std::make_unique<module_owner<T, Ds...>>();
+      return std::make_unique<module_owner<T, Ds...>>(config);
     }
 
   private:
