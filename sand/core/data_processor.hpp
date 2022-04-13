@@ -8,13 +8,15 @@
 #include "sand/core/source_worker.hpp"
 #include "sand/core/task_scheduler.hpp"
 
+#include <vector>
+
 namespace sand {
 
   class data_processor {
   public:
     explicit data_processor(std::unique_ptr<source_worker> sworker,
-                            std::unique_ptr<module_worker> mworker) :
-      source_{std::move(sworker)}, worker_{std::move(mworker)}
+                            std::vector<module_worker_ptr> mworkers) :
+      source_{move(sworker)}, workers_{move(mworkers)}
     {
     }
 
@@ -29,7 +31,9 @@ namespace sand {
     void
     process(node& data)
     {
-      worker_->process(data);
+      for (auto& w : workers_) {
+        w->process(data);
+      }
     }
 
     void
@@ -42,7 +46,7 @@ namespace sand {
     }
 
     std::unique_ptr<source_worker> source_;
-    std::unique_ptr<module_worker> worker_;
+    std::vector<module_worker_ptr> workers_;
     task_scheduler scheduler_{};
   };
 

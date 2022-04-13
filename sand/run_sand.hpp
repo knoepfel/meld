@@ -3,13 +3,8 @@
 
 #include "boost/json.hpp"
 
-#include <cstddef>
-#include <map>
-#include <string>
-
 namespace sand {
-  using configurations_t = std::map<std::string, boost::json::object>;
-  void run_it(configurations_t const& configurations);
+  void run_it(boost::json::value const& configurations);
 }
 
 #endif /* sand_run_sand_hpp */

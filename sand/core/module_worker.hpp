@@ -21,7 +21,8 @@ namespace sand {
     virtual void do_process(node&) = 0;
   };
 
-  using module_creator_t = std::unique_ptr<module_worker>(boost::json::value const&);
+  using module_worker_ptr = std::unique_ptr<module_worker>;
+  using module_creator_t = module_worker_ptr(boost::json::value const&);
 }
 
 #endif /* sand_core_module_worker_hpp */

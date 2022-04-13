@@ -17,7 +17,7 @@ namespace sand {
   namespace {
     // If factory function goes out of scope, then the library is
     // unloaded...and that's bad.
-    std::function<module_creator_t> create_module;
+    std::vector<std::function<module_creator_t>> create_module;
     std::function<source_creator_t> create_source;
 
     template <typename creator_t>
@@ -50,8 +50,9 @@ namespace sand {
   load_module(boost::json::value const& config)
   {
     auto const& spec = value_to<std::string>(config.at("plugin"));
-    create_module = plugin_loader<module_creator_t>(spec, "create_module");
-    return create_module(config);
+    auto& creator =
+      create_module.emplace_back(plugin_loader<module_creator_t>(spec, "create_module"));
+    return creator(config);
   }
 
   std::unique_ptr<source_worker>

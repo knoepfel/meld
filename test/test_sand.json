@@ -1,4 +1,7 @@
 {
     "source": {"plugin": "test_source", "num_nodes": 10},
-    "module": {"plugin": "test_module"}
+    "modules": {
+        "module1": {"plugin": "test_module_multiple_levels"},
+        "module2": {"plugin": "test_module_run"}
+    }
 }
