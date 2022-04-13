@@ -11,7 +11,7 @@ namespace sand::test {
     void
     process(run const& r) const
     {
-      std::cout << "Processing run " << r.id() << " in run-only module.\n";
+      std::cout << "Processing run " << r << " in run-only module.\n";
     }
   };
 

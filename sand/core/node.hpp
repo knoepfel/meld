@@ -6,21 +6,21 @@
 // processing.  A better name is probably appropriate.
 
 #include <cstddef>
+#include <iosfwd>
+#include <vector>
 
 namespace sand {
   class node {
   public:
-    explicit node(std::size_t id) : id_{id} {}
-    virtual ~node() = default; // Ick.  Should be able to type-erase this thing.
-    std::size_t
-    id() const noexcept
-    {
-      return id_;
-    }
+    explicit node(std::size_t id);
+    virtual ~node(); // Ick.  Should be able to type-erase this thing.
+    std::vector<std::size_t> const& id() const noexcept;
 
   private:
-    std::size_t id_;
+    std::vector<std::size_t> id_;
   };
+
+  std::ostream& operator<<(std::ostream&, node const&);
 }
 
 #endif /* sand_core_node_hpp */

@@ -5,17 +5,17 @@
 
 #include "sand/core/node.hpp"
 
-#include <cstddef>
-
 namespace sand {
   class run : public node {
   public:
     using node::node;
+    ~run() final;
   };
 
   class subrun : public node {
   public:
     using node::node;
+    ~subrun() final;
   };
 }
 

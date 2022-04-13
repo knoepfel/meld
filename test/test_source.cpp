@@ -16,7 +16,7 @@ namespace sand::test {
     {
       if (cursor_ < num_nodes_) {
         ++cursor_;
-        if (cursor_ % 2 == 0) {
+        if (cursor_ % 2 != 0) {
           std::cout << "Creating run " << cursor_ << '\n';
           return std::make_shared<run>(cursor_);
         }

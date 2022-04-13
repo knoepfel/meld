@@ -11,13 +11,13 @@ namespace sand::test {
     void
     process(run const& r) const
     {
-      std::cout << "Processing run " << r.id() << " in multiple-levels module.\n";
+      std::cout << "Processing run " << r << " in multiple-levels module.\n";
     }
 
     void
     process(subrun const& sr) const
     {
-      std::cout << "Processing subrun " << sr.id() << " in multiple-levels module.\n";
+      std::cout << "Processing subrun " << sr << " in multiple-levels module.\n";
     }
   };
 

@@ -11,4 +11,5 @@ target_include_directories(run_sand PRIVATE ${PROJECT_SOURCE_DIR})
 
 add_executable(sand sand.cpp)
 target_link_libraries(sand PRIVATE Boost::boost CLI11::CLI11 run_sand sand_core)
+target_link_options(sand PRIVATE -Wl,-export_dynamic)
 target_include_directories(sand PRIVATE ${PROJECT_SOURCE_DIR})
