@@ -18,16 +18,18 @@ namespace sand::test {
         ++cursor_;
         if (cursor_ % 2 != 0) {
           std::cout << "Creating run " << cursor_ << '\n';
-          return std::make_shared<run>(cursor_);
+          run_ = null_node.make_child<run>(cursor_);
+          return run_;
         }
         std::cout << "Creating subrun " << cursor_ << '\n';
-        return std::make_shared<subrun>(cursor_);
+        return run_->make_child<subrun>(cursor_);
       }
       return nullptr;
     }
 
   private:
     std::size_t num_nodes_;
+    std::shared_ptr<run> run_;
     std::size_t cursor_{0};
   };
 

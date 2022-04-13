@@ -1,22 +1,16 @@
 #ifndef sand_core_data_levels_hpp
 #define sand_core_data_levels_hpp
 
+#include "sand/core/data_level.hpp"
+
 // Everything inside of here is considered "experiment-defined".
 
-#include "sand/core/node.hpp"
-
 namespace sand {
-  class run : public node {
-  public:
-    using node::node;
-    ~run() final;
-  };
+  extern template class data_level<>;
+  using run = data_level<>;
 
-  class subrun : public node {
-  public:
-    using node::node;
-    ~subrun() final;
-  };
+  extern template class data_level<run>;
+  using subrun = data_level<run>;
 }
 
 #endif /* sand_core_data_levels_hpp */

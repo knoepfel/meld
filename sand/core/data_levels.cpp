@@ -1,6 +1,6 @@
 #include "sand/core/data_levels.hpp"
 
 namespace sand {
-  run::~run() = default;
-  subrun::~subrun() = default;
+  template class data_level<>;
+  template class data_level<run>;
 }
