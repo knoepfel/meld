@@ -5,7 +5,6 @@
 #include "sand/core/node.hpp"
 
 #include <memory>
-#include <typeinfo>
 
 namespace sand {
   template <typename T, typename... Ds>

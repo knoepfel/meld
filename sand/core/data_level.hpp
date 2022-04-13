@@ -34,7 +34,12 @@ namespace sand {
   Parent const*
   data_level<Parent>::parent() const noexcept
   {
-    return parent_;
+    if constexpr (std::is_same_v<Parent, null_node_t>) {
+      return nullptr;
+    }
+    else {
+      return parent_;
+    }
   }
 
   template <typename Parent>
