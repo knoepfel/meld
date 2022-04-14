@@ -19,32 +19,27 @@ namespace sand {
     explicit node(std::vector<std::size_t> id);
     explicit node(std::vector<std::size_t> parent_ids, std::size_t id);
 
-    template <typename T, typename Parent>
-    std::shared_ptr<T>
-    make_child(Parent const* parent, std::size_t id) const
-    {
-      return std::make_shared<T>(parent, id);
-    };
-
   private:
     std::vector<std::size_t> id_;
   };
 
+  // FIXME: Need better name than null_node
   class null_node_t : public node {
   public:
     null_node_t();
     ~null_node_t() final;
 
+    // Maybe make const-qualified version of this?
     template <typename T>
-    std::shared_ptr<T> make_child(std::size_t id) const;
+    std::shared_ptr<T> make_child(std::size_t id);
   };
-  extern null_node_t const null_node;
+  extern null_node_t null_node;
 
   template <typename T>
   std::shared_ptr<T>
-  null_node_t::make_child(std::size_t id) const
+  null_node_t::make_child(std::size_t id)
   {
-    return node::make_child<T>(&null_node, id);
+    return std::make_shared<T>(&null_node, id);
   }
 
   std::ostream& operator<<(std::ostream&, node const&);

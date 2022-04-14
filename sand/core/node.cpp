@@ -25,7 +25,7 @@ namespace sand {
 
   null_node_t::null_node_t() : node{{}} {}
   null_node_t::~null_node_t() = default;
-  null_node_t const null_node{};
+  null_node_t null_node{};
 
   std::ostream&
   operator<<(std::ostream& os, node const& n)

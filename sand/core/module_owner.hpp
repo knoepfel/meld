@@ -5,8 +5,19 @@
 #include "sand/core/node.hpp"
 
 #include <memory>
+#include <type_traits>
 
 namespace sand {
+  template <typename D, typename... Ds, typename Parent = typename D::parent_type>
+  consteval bool
+  supports_parent()
+  {
+    if (std::is_same<Parent, null_node_t>()) {
+      return false;
+    }
+    return (std::is_same<Parent, Ds>() || ...);
+  }
+
   template <typename T, typename... Ds>
   class module_owner : public module_worker {
   public:
@@ -21,10 +32,20 @@ namespace sand {
   private:
     template <typename D>
     void
+    process_(D* data)
+    {
+      if constexpr (supports_parent<D, Ds...>()) {
+        process_<typename D::parent_type>(data->parent());
+      }
+      user_module.process(*data);
+    }
+
+    template <typename D>
+    void
     process_(node& data)
     {
       if (auto d = dynamic_cast<D*>(&data)) {
-        user_module.process(*d);
+        process_(d);
       }
     }
 
