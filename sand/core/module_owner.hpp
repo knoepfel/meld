@@ -3,6 +3,7 @@
 
 #include "sand/core/module_worker.hpp"
 #include "sand/core/node.hpp"
+#include "sand/core/uses_config.hpp"
 
 #include <memory>
 #include <type_traits>
@@ -21,7 +22,15 @@ namespace sand {
   template <typename T, typename... Ds>
   class module_owner : public module_worker {
   public:
-    explicit module_owner(boost::json::object const& config) : user_module{config} {}
+    template <with_config U = T>
+    explicit module_owner(boost::json::object const& config) : user_module{config}
+    {
+    }
+
+    template <without_config U = T>
+    explicit module_owner(boost::json::object const&) : user_module{}
+    {
+    }
 
     static std::unique_ptr<module_worker>
     create(boost::json::object const& config)

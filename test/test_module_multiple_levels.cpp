@@ -6,8 +6,6 @@
 namespace sand::test {
   class multiple_levels {
   public:
-    explicit multiple_levels(boost::json::object const&) {}
-
     void
     process(run const& r) const
     {

@@ -6,8 +6,6 @@
 namespace sand::test {
   class run_only_module {
   public:
-    explicit run_only_module(boost::json::object const&) {}
-
     void
     process(run const& r) const
     {
