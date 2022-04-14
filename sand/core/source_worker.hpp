@@ -6,6 +6,7 @@
 #include "boost/json.hpp"
 
 #include <memory>
+#include <vector>
 
 namespace sand {
   class source_worker {
@@ -14,14 +15,14 @@ namespace sand {
 
     // Replace with unique_ptr, once I figure out how to handle
     // std::function<void()> copyability issues.
-    std::shared_ptr<node>
+    transition_packages
     next()
     {
-      return data();
+      return next_transitions();
     }
 
   private:
-    virtual std::shared_ptr<node> data() = 0;
+    virtual transition_packages next_transitions() = 0;
   };
 
   using source_creator_t = std::unique_ptr<source_worker>(boost::json::value const&);

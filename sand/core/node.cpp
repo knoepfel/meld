@@ -30,13 +30,7 @@ namespace sand {
   std::ostream&
   operator<<(std::ostream& os, node const& n)
   {
-    auto const& id = n.id();
-    os << '[' << id.front();
-    for (auto b = begin(id) + 1, e = end(id); b != e; ++b) {
-      os << ", " << *b;
-    }
-    os << ']';
-    return os;
+    return os << n.id();
   }
 
 }

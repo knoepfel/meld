@@ -26,35 +26,29 @@ namespace sand {
 
   private:
     void
-    process(node& data)
+    process(transition_packages& packages)
     {
-      for (auto& pr : modules_->modules()) {
-        pr.second->process(data);
+      for (auto& [stage, node] : packages) {
+        for (auto& pr : modules_->modules()) {
+          pr.second->process(stage, *node);
+        }
       }
     }
 
     void
     next()
     {
-      if (auto data = modules_->source().next()) {
-        scheduler_.append_task([d = data, this] { process(*d); });
-        scheduler_.append_task([this] { next(); });
+      auto data = modules_->source().next();
+      if (empty(data)) {
+        return;
       }
+
+      scheduler_.append_task([d = std::move(data), this]() mutable { process(d); });
+      scheduler_.append_task([this] { next(); });
     }
 
     module_manager* modules_;
     task_scheduler scheduler_{};
-  };
-
-  // Intended to help with testing
-  template <typename Source, typename Module>
-  class data_processor_for : public data_processor {
-  public:
-    explicit data_processor_for(std::size_t const n) :
-      data_processor{std::make_unique<source_owner<Module>>(n),
-                     std::make_unique<module_owner<Module>>()}
-    {
-    }
   };
 }
 

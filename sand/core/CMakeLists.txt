@@ -1,4 +1,4 @@
-add_library(sand_core SHARED load_module.cpp module_manager.cpp node.cpp)
+add_library(sand_core SHARED load_module.cpp module_manager.cpp node.cpp transition.cpp)
 target_include_directories(sand_core PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(sand_core PRIVATE Boost::boost)
 

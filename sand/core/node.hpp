@@ -5,23 +5,30 @@
 // because the processing model supports a tree of nodes for
 // processing.  A better name is probably appropriate.
 
-#include <cstddef>
+#include "sand/core/transition.hpp"
+
 #include <iosfwd>
+
+#include <memory>
+#include <utility>
 #include <vector>
 
 namespace sand {
+
   class node {
   public:
     virtual ~node(); // Ick.  Should be able to type-erase this thing.
-    std::vector<std::size_t> const& id() const noexcept;
+    id_t const& id() const noexcept;
 
   protected:
-    explicit node(std::vector<std::size_t> id);
-    explicit node(std::vector<std::size_t> parent_ids, std::size_t id);
+    explicit node(id_t id);
+    explicit node(id_t parent_ids, std::size_t id);
 
   private:
-    std::vector<std::size_t> id_;
+    id_t id_;
   };
+
+  using transition_packages = std::vector<std::pair<stage, std::shared_ptr<node>>>;
 
   // FIXME: Need better name than null_node
   class null_node_t : public node {

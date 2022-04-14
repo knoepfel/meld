@@ -5,15 +5,16 @@
 #include "sand/core/source_worker.hpp"
 #include "sand/core/uses_config.hpp"
 
+#include <iostream>
 #include <memory>
 
 namespace sand {
   template <typename T>
   concept source = requires(T t)
   {
-    {
-      t.data()
-      } -> std::same_as<std::shared_ptr<node>>;
+    // clang-format off
+    {t.data()} -> std::same_as<std::shared_ptr<node>>;
+    // clang-format on
   };
 
   template <source T>
@@ -32,7 +33,6 @@ namespace sand {
     static std::unique_ptr<source_worker>
     create(boost::json::object const& config)
     {
-
       return std::make_unique<source_owner<T>>(config);
     }
 
@@ -43,13 +43,37 @@ namespace sand {
     }
 
   private:
-    std::shared_ptr<node>
-    data() final
+    transition_packages
+    next_transitions() final
     {
-      return user_source.data();
+      if (!more_data) {
+        return {};
+      }
+
+      auto data = user_source.data();
+      id_t id_to_process = data ? data->id() : id_t{};
+
+      if (data) {
+        nodes.emplace(id_to_process, data);
+      }
+      else {
+        more_data = false;
+      }
+
+      auto transitions_to_process = transitions_between(last_processed_level, id_to_process);
+      last_processed_level = id_to_process;
+
+      transition_packages result;
+      for (auto const& [id, stage] : transitions_to_process) {
+        result.emplace_back(stage, nodes.at(id));
+      }
+      return result;
     }
 
     T user_source;
+    id_t last_processed_level{};
+    bool more_data{true};
+    std::map<id_t, std::shared_ptr<node>> nodes;
   };
 }
 

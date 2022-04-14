@@ -12,13 +12,13 @@ namespace sand {
   public:
     virtual ~module_worker() = default;
     void
-    process(node& data)
+    process(stage const s, node& data)
     {
-      do_process(data);
+      do_process(s, data);
     }
 
   private:
-    virtual void do_process(node&) = 0;
+    virtual void do_process(stage, node&) = 0;
   };
 
   using module_worker_ptr = std::unique_ptr<module_worker>;

@@ -1,7 +1,7 @@
 #ifndef sand_core_task_scheduler_hpp
 #define sand_core_task_scheduler_hpp
 
-#include "tbb/task_group.h"
+#include "oneapi/tbb/task_group.h"
 
 #include <functional>
 #include <list>

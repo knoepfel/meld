@@ -19,6 +19,22 @@ namespace sand {
     return (std::is_same<Parent, Ds>() || ...);
   }
 
+  template <typename T, typename D>
+  concept has_process = requires(T t, D const& d)
+  {
+    // clang-format off
+    {t.process(d)} -> std::same_as<void>;
+    // clang-format on
+  };
+
+  template <typename T, typename D>
+  concept has_setup = requires(T t, D const& d)
+  {
+    // clang-format off
+    {t.setup(d)} -> std::same_as<void>;
+    // clang-format on
+  };
+
   template <typename T, typename... Ds>
   class module_owner : public module_worker {
   public:
@@ -46,29 +62,56 @@ namespace sand {
     }
 
   private:
+    // template <typename D>
+    // bool
+    // must_process(D*) const
+    // {
+    //   return false;
+    // }
+
     template <typename D>
-    void
-    process_(D* data)
+    bool
+    setup(node& data)
     {
-      if constexpr (supports_parent<D, Ds...>()) {
-        process_(data->parent());
+      if constexpr (!has_setup<T, D>) {
+        return true;
       }
-      user_module.process(*data);
+      else {
+        if (auto d = dynamic_cast<D*>(&data)) {
+          user_module.setup(*d);
+          return true;
+        }
+        return false;
+      }
     }
 
     template <typename D>
-    void
-    process_(node& data)
+    bool
+    process(node& data)
     {
-      if (auto d = dynamic_cast<D*>(&data)) {
-        process_(d);
+      if constexpr (!has_process<T, D>) {
+        return true;
+      }
+      else {
+        if (auto d = dynamic_cast<D*>(&data)) {
+          user_module.process(*d);
+          return true;
+        }
+        return false;
       }
     }
 
     void
-    do_process(node& data) final
+    do_process(stage const st, node& data) final
     {
-      (process_<Ds>(data), ...);
+      switch (st) {
+        case stage::setup:
+          (setup<Ds>(data) || ...);
+          return;
+        case stage::process:
+          (process<Ds>(data) || ...);
+          return;
+      }
     }
 
     T user_module;

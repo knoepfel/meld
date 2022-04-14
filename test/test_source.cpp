@@ -1,37 +1,3 @@
-#include "sand/core/source.hpp"
-#include "test/data_levels.hpp"
+#include "test/test_source.hpp"
 
-#include <iostream>
-
-namespace sand::test {
-  class my_source {
-  public:
-    explicit my_source(boost::json::object const& config) :
-      num_nodes_{config.at("num_nodes").to_number<unsigned>()}
-    {
-    }
-
-    std::shared_ptr<node>
-    data()
-    {
-      if (cursor_ < num_nodes_) {
-        ++cursor_;
-        if (cursor_ % 2 != 0) {
-          std::cout << "Creating run " << cursor_ << '\n';
-          run_ = null_node.make_child<run>(cursor_);
-          return run_;
-        }
-        std::cout << "Creating subrun " << cursor_ << '\n';
-        return run_->make_child<subrun>(cursor_);
-      }
-      return nullptr;
-    }
-
-  private:
-    std::size_t num_nodes_;
-    std::shared_ptr<run> run_;
-    std::size_t cursor_{0};
-  };
-
-  SAND_REGISTER_SOURCE(my_source)
-}
+SAND_REGISTER_SOURCE(sand::test::my_source)

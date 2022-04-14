@@ -6,11 +6,11 @@
 // Everything inside of here is considered "experiment-defined".
 
 namespace sand {
-  extern template class data_level<>;
   using run = data_level<>;
-
-  extern template class data_level<run>;
   using subrun = data_level<run>;
+
+  extern template class data_level<>;
+  extern template class data_level<run>;
 }
 
 #endif /* test_data_levels_hpp */

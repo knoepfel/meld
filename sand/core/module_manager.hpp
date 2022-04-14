@@ -24,7 +24,7 @@ namespace sand {
     static module_manager make_with_source(boost::json::object const& config = {});
 
     template <typename T, typename... Ds>
-    void add_module(std::string const& module_name, boost::json::object const& config);
+    void add_module(std::string const& module_name, boost::json::object const& config = {});
 
     template <typename T>
     T const& get_source();
