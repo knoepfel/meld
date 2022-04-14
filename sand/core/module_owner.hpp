@@ -35,7 +35,7 @@ namespace sand {
     process_(D* data)
     {
       if constexpr (supports_parent<D, Ds...>()) {
-        process_<typename D::parent_type>(data->parent());
+        process_(data->parent());
       }
       user_module.process(*data);
     }
