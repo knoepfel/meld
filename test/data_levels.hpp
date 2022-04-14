@@ -1,5 +1,5 @@
-#ifndef sand_core_data_levels_hpp
-#define sand_core_data_levels_hpp
+#ifndef test_data_levels_hpp
+#define test_data_levels_hpp
 
 #include "sand/core/data_level.hpp"
 
@@ -13,4 +13,4 @@ namespace sand {
   using subrun = data_level<run>;
 }
 
-#endif /* sand_core_data_levels_hpp */
+#endif /* test_data_levels_hpp */

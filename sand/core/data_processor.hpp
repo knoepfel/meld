@@ -1,6 +1,7 @@
 #ifndef sand_core_data_processor_hpp
 #define sand_core_data_processor_hpp
 
+#include "sand/core/module_manager.hpp"
 #include "sand/core/module_owner.hpp"
 #include "sand/core/module_worker.hpp"
 #include "sand/core/node.hpp"
@@ -14,11 +15,7 @@ namespace sand {
 
   class data_processor {
   public:
-    explicit data_processor(std::unique_ptr<source_worker> sworker,
-                            std::vector<module_worker_ptr> mworkers) :
-      source_{move(sworker)}, workers_{move(mworkers)}
-    {
-    }
+    explicit data_processor(module_manager* modules) : modules_{modules} {}
 
     void
     run_to_completion()
@@ -31,22 +28,21 @@ namespace sand {
     void
     process(node& data)
     {
-      for (auto& w : workers_) {
-        w->process(data);
+      for (auto& pr : modules_->modules()) {
+        pr.second->process(data);
       }
     }
 
     void
     next()
     {
-      if (auto data = source_->next()) {
+      if (auto data = modules_->source().next()) {
         scheduler_.append_task([d = data, this] { process(*d); });
         scheduler_.append_task([this] { next(); });
       }
     }
 
-    std::unique_ptr<source_worker> source_;
-    std::vector<module_worker_ptr> workers_;
+    module_manager* modules_;
     task_scheduler scheduler_{};
   };
 

@@ -1,6 +1,7 @@
 #include "sand/run_sand.hpp"
 #include "sand/core/data_processor.hpp"
 #include "sand/core/load_module.hpp"
+#include "sand/core/module_manager.hpp"
 
 #include <iostream>
 
@@ -10,11 +11,12 @@ namespace sand {
   {
     std::cout << "Running sand\n";
     auto const module_configs = configurations.at("modules").as_object();
-    std::vector<module_worker_ptr> modules;
+    std::map<std::string, module_worker_ptr> modules;
     for (auto const& [key, value] : module_configs) {
-      modules.push_back(load_module(value.as_object()));
+      modules.emplace(std::string(key), load_module(value.as_object()));
     }
-    data_processor processor{load_source(configurations.at("source").as_object()), move(modules)};
+    module_manager manager{load_source(configurations.at("source").as_object()), move(modules)};
+    data_processor processor{&manager};
     processor.run_to_completion();
   }
 }

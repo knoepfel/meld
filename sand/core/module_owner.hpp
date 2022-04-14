@@ -29,6 +29,13 @@ namespace sand {
       return std::make_unique<module_owner<T, Ds...>>(config);
     }
 
+    // For testing
+    T const&
+    module() const noexcept
+    {
+      return user_module;
+    }
+
   private:
     template <typename D>
     void
