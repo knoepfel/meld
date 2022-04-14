@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 add_compile_options(-Wall -Werror -pedantic)
 
 find_package(Boost REQUIRED)
+find_package(TBB REQUIRED)
 
 add_subdirectory(sand)
 

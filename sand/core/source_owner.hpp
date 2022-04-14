@@ -9,6 +9,14 @@
 
 namespace sand {
   template <typename T>
+  concept source = requires(T t)
+  {
+    {
+      t.data()
+      } -> std::same_as<std::shared_ptr<node>>;
+  };
+
+  template <source T>
   class source_owner : public source_worker {
   public:
     template <with_config U = T>
@@ -26,6 +34,12 @@ namespace sand {
     {
 
       return std::make_unique<source_owner<T>>(config);
+    }
+
+    T const&
+    source() const noexcept
+    {
+      return user_source;
     }
 
   private:

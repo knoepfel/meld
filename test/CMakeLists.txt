@@ -1,3 +1,5 @@
+find_package(Catch2 REQUIRED)
+
 add_library(test_levels SHARED data_levels.cpp)
 target_include_directories(test_levels PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(test_levels PRIVATE sand_core)
@@ -14,3 +16,9 @@ create_component(test_module_run)
 create_component(test_source)
 
 add_test(NAME sand_t COMMAND sand --config ${CMAKE_CURRENT_SOURCE_DIR}/test_sand.json)
+
+add_executable(sand_check sand_check_t.cpp)
+target_link_libraries(sand_check PRIVATE sand_core Catch2::Catch2 Boost::boost TBB::tbb)
+target_include_directories(sand_check PRIVATE ${PROJECT_SOURCE_DIR})
+target_compile_definitions(sand_check PRIVATE CATCH_CONFIG_MAIN)
+add_test(NAME sand_check_t COMMAND sand_check)
