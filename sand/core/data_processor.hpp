@@ -26,9 +26,9 @@ namespace sand {
 
   private:
     void
-    process(transition_packages& packages)
+    process(transition_messages& messages)
     {
-      for (auto& [stage, node] : packages) {
+      for (auto& [stage, node] : messages) {
         for (auto& pr : modules_->modules()) {
           pr.second->process(stage, *node);
         }

@@ -43,7 +43,7 @@ namespace sand {
     }
 
   private:
-    transition_packages
+    transition_messages
     next_transitions() final
     {
       if (!more_data) {
@@ -63,7 +63,7 @@ namespace sand {
       auto transitions_to_process = transitions_between(last_processed_level, id_to_process);
       last_processed_level = id_to_process;
 
-      transition_packages result;
+      transition_messages result;
       for (auto const& [id, stage] : transitions_to_process) {
         switch (stage) {
           case stage::setup:

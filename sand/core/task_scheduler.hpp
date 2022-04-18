@@ -23,25 +23,18 @@ namespace sand {
     }
 
   private:
-    std::function<void()>
-    next_()
-    {
-      if (empty(tasks_))
-        return {};
-
-      auto task = tasks_.front();
-      tasks_.pop_front();
-      return task;
-    }
-
     void
     run_()
     {
-      if (auto task = next_()) {
-        task();
-        group_.run([this] { run_(); });
-      }
+      if (empty(tasks_))
+        return;
+
+      auto task = tasks_.front();
+      tasks_.pop_front();
+      task();
+      group_.run([this] { run_(); });
     }
+
     std::list<std::function<void()>> tasks_;
     tbb::task_group group_;
   };

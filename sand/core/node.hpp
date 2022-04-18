@@ -28,7 +28,7 @@ namespace sand {
     id_t id_;
   };
 
-  using transition_packages = std::vector<std::pair<stage, std::shared_ptr<node>>>;
+  using transition_messages = std::vector<std::pair<stage, std::shared_ptr<node>>>;
 
   // FIXME: Need better name than null_node
   class null_node_t : public node {

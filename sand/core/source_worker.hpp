@@ -15,14 +15,14 @@ namespace sand {
 
     // Replace with unique_ptr, once I figure out how to handle
     // std::function<void()> copyability issues.
-    transition_packages
+    transition_messages
     next()
     {
       return next_transitions();
     }
 
   private:
-    virtual transition_packages next_transitions() = 0;
+    virtual transition_messages next_transitions() = 0;
   };
 
   using source_creator_t = std::unique_ptr<source_worker>(boost::json::value const&);
