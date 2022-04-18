@@ -7,7 +7,8 @@
 #include "sand/core/node.hpp"
 #include "sand/core/source_owner.hpp"
 #include "sand/core/source_worker.hpp"
-#include "sand/core/task_scheduler.hpp"
+
+#include "oneapi/tbb/flow_graph.h"
 
 #include <vector>
 
@@ -20,35 +21,42 @@ namespace sand {
     void
     run_to_completion()
     {
-      scheduler_.append_task([this] { next(); });
-      scheduler_.run();
+      auto node = tbb::flow::function_node<transition_messages>{
+        graph_, tbb::flow::serial, [this](auto& messages) { process(messages); }};
+      auto& last_made = engine_nodes_.emplace_back(move(node));
+      make_edge(source_node_, last_made);
+      pull_next();
+      graph_.wait_for_all();
     }
 
   private:
     void
-    process(transition_messages& messages)
-    {
-      for (auto& [stage, node] : messages) {
-        for (auto& pr : modules_->modules()) {
-          pr.second->process(stage, *node);
-        }
-      }
-    }
-
-    void
-    next()
+    pull_next()
     {
       auto data = modules_->source().next();
       if (empty(data)) {
         return;
       }
+      source_node_.try_put(data);
+    }
 
-      scheduler_.append_task([d = std::move(data), this]() mutable { process(d); });
-      scheduler_.append_task([this] { next(); });
+    void
+    process(transition_messages messages)
+    {
+      tbb::flow::graph g;
+      // Probably will be using a dependency graph instead of a data-flow graph here.
+      for (auto& [stage, n] : messages) {
+        for (auto& pr : modules_->modules()) {
+          pr.second->process(stage, *n);
+        }
+      }
+      pull_next();
     }
 
     module_manager* modules_;
-    task_scheduler scheduler_{};
+    tbb::flow::graph graph_{};
+    tbb::flow::buffer_node<transition_messages> source_node_{graph_};
+    std::vector<tbb::flow::function_node<transition_messages>> engine_nodes_{};
   };
 }
 
