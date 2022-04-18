@@ -65,7 +65,15 @@ namespace sand {
 
       transition_packages result;
       for (auto const& [id, stage] : transitions_to_process) {
-        result.emplace_back(stage, nodes.at(id));
+        switch (stage) {
+          case stage::setup:
+            // The source retains the node when the setup stage is executed
+            result.emplace_back(stage, nodes.at(id));
+            continue;
+          case stage::process:
+            // The source releases the node whenever the process stage is executed
+            result.emplace_back(stage, move(nodes.extract(id).mapped()));
+        }
       }
       return result;
     }
