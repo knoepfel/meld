@@ -12,27 +12,22 @@ namespace sand::test {
     void
     setup(run const& r)
     {
-      std::cout << "Setting up run " << r << " in multiple-levels module.\n";
-      setup_runs.push_back(r.id());
+      processed_transitions.emplace_back(r.id(), stage::setup);
     }
 
     void
     process(subrun const& sr)
     {
-      std::cout << "Processing subrun " << sr << " in multiple-levels module.\n";
-      processed_subruns.push_back(sr.id());
+      processed_transitions.emplace_back(sr.id(), stage::process);
     }
 
     void
     process(run const& r)
     {
-      std::cout << "Processing run " << r << " in multiple-levels module.\n";
-      processed_runs.push_back(r.id());
+      processed_transitions.emplace_back(r.id(), stage::process);
     }
 
-    std::vector<id_t> setup_runs;
-    std::vector<id_t> processed_runs;
-    std::vector<id_t> processed_subruns;
+    transitions processed_transitions;
   };
 }
 

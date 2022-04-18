@@ -25,7 +25,13 @@ TEST_CASE("Module called", "[module]")
   CHECK(src.created_subruns == expected_subruns);
 
   auto const& mod = manager.get_module<module, run, subrun>("module");
-  CHECK(mod.setup_runs == expected_runs);
-  CHECK(mod.processed_runs == expected_runs);
-  CHECK(mod.processed_subruns == expected_subruns);
+  transitions const expected_transitions{{"1"_id, stage::setup},
+                                         {"1:2"_id, stage::process},
+                                         {"1"_id, stage::process},
+                                         {"3"_id, stage::setup},
+                                         {"3:4:"_id, stage::process},
+                                         {"3"_id, stage::process},
+                                         {"5"_id, stage::setup},
+                                         {"5"_id, stage::process}};
+  CHECK(mod.processed_transitions == expected_transitions);
 }
