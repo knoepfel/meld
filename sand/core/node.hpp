@@ -10,6 +10,7 @@
 #include <iosfwd>
 
 #include <memory>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -19,6 +20,7 @@ namespace sand {
   public:
     virtual ~node(); // Ick.  Should be able to type-erase this thing.
     id_t const& id() const noexcept;
+    virtual std::string_view level_name() const = 0;
 
   protected:
     explicit node(id_t id);
@@ -28,13 +30,16 @@ namespace sand {
     id_t id_;
   };
 
-  using transition_messages = std::vector<std::pair<stage, std::shared_ptr<node>>>;
+  using node_ptr = std::shared_ptr<node>;
+  using transition_messages = std::vector<std::pair<transition_type, node_ptr>>;
 
   // FIXME: Need better name than null_node
   class null_node_t : public node {
   public:
     null_node_t();
     ~null_node_t() final;
+
+    std::string_view level_name() const final;
 
     // Maybe make const-qualified version of this?
     template <typename T>

@@ -2,6 +2,7 @@
 #include "test/data_levels.hpp"
 
 #include <iostream>
+#include <typeinfo>
 
 namespace sand::test {
   class run_only_module {
@@ -9,7 +10,7 @@ namespace sand::test {
     void
     process(run const& r) const
     {
-      std::cout << "Processing run " << r << " in run-only module.\n";
+      std::cout << "Processing " << r.name() << ' ' << r << " in run-only module.\n";
     }
   };
 

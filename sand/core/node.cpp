@@ -25,6 +25,12 @@ namespace sand {
 
   null_node_t::null_node_t() : node{{}} {}
   null_node_t::~null_node_t() = default;
+  std::string_view
+  null_node_t::level_name() const
+  {
+    return "null-node";
+  }
+
   null_node_t null_node{};
 
   std::ostream&

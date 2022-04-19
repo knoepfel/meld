@@ -8,6 +8,8 @@
 namespace sand {
   using id_t = std::vector<std::size_t>;
   enum class stage { setup, process };
+  // std::string is the demangled name of the node type
+  using transition_type = std::pair<std::string, stage>;
   using transition = std::pair<id_t, stage>;
   using transitions = std::vector<transition>;
 

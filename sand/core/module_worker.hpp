@@ -10,15 +10,15 @@
 namespace sand {
   class module_worker {
   public:
-    virtual ~module_worker() = default;
-    void
-    process(stage const s, node& data)
-    {
-      do_process(s, data);
-    }
+    virtual ~module_worker();
+
+    std::vector<transition_type> supported_transitions() const;
+    void process(stage const s, node& data);
 
   private:
     virtual void do_process(stage, node&) = 0;
+    virtual std::vector<transition_type> supported_setup_transitions() const = 0;
+    virtual std::vector<transition_type> supported_process_transitions() const = 0;
   };
 
   using module_worker_ptr = std::unique_ptr<module_worker>;

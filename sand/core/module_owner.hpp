@@ -26,6 +26,8 @@ namespace sand {
     {t.process(d)} -> std::same_as<void>;
     // clang-format on
   };
+  template <typename T, typename D>
+  constexpr std::string_view has_process_for = has_process<T, D> ? D::name() : "";
 
   template <typename T, typename D>
   concept has_setup = requires(T t, D const& d)
@@ -34,6 +36,8 @@ namespace sand {
     {t.setup(d)} -> std::same_as<void>;
     // clang-format on
   };
+  template <typename T, typename D>
+  constexpr std::string_view has_setup_for = has_setup<T, D> ? D::name() : "";
 
   template <typename T, typename... Ds>
   class module_owner : public module_worker {
@@ -62,6 +66,53 @@ namespace sand {
     }
 
   private:
+    std::vector<transition_type>
+    supported_setup_transitions() const final
+    {
+      std::vector transitions_with_setup{has_setup_for<T, Ds>...};
+      transitions_with_setup.erase(
+        std::remove(begin(transitions_with_setup), end(transitions_with_setup), ""),
+        end(transitions_with_setup));
+      std::vector<transition_type> result;
+      std::transform(begin(transitions_with_setup),
+                     end(transitions_with_setup),
+                     back_inserter(result),
+                     [](auto sv) {
+                       return transition_type{sv, stage::setup};
+                     });
+      return result;
+    }
+
+    std::vector<transition_type>
+    supported_process_transitions() const final
+    {
+      std::vector transitions_with_process{has_process_for<T, Ds>...};
+      transitions_with_process.erase(
+        std::remove(begin(transitions_with_process), end(transitions_with_process), ""),
+        end(transitions_with_process));
+      std::vector<transition_type> result;
+      std::transform(begin(transitions_with_process),
+                     end(transitions_with_process),
+                     back_inserter(result),
+                     [](auto sv) {
+                       return transition_type{sv, stage::process};
+                     });
+      return result;
+    }
+
+    void
+    do_process(stage const st, node& data) final
+    {
+      switch (st) {
+        case stage::setup:
+          (setup<Ds>(data) || ...);
+          return;
+        case stage::process:
+          (process<Ds>(data) || ...);
+          return;
+      }
+    }
+
     // template <typename D>
     // bool
     // must_process(D*) const
@@ -98,19 +149,6 @@ namespace sand {
           return true;
         }
         return false;
-      }
-    }
-
-    void
-    do_process(stage const st, node& data) final
-    {
-      switch (st) {
-        case stage::setup:
-          (setup<Ds>(data) || ...);
-          return;
-        case stage::process:
-          (process<Ds>(data) || ...);
-          return;
       }
     }
 
