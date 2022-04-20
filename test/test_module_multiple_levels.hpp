@@ -4,7 +4,8 @@
 #include "sand/core/module.hpp"
 #include "test/data_levels.hpp"
 
-#include <iostream>
+#include <chrono>
+#include <thread>
 #include <vector>
 
 namespace sand::test {
@@ -24,6 +25,8 @@ namespace sand::test {
     void
     process(run const& r)
     {
+      using namespace std::chrono_literals;
+      std::this_thread::sleep_for(1s);
       processed_transitions.emplace_back(r.id(), stage::process);
     }
 

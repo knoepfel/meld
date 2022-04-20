@@ -17,4 +17,10 @@ namespace sand {
   {
     do_process(s, data);
   }
+
+  std::vector<std::string>
+  module_worker::dependencies() const
+  {
+    return required_dependencies();
+  }
 }

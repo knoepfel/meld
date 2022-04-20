@@ -25,6 +25,7 @@ namespace sand {
     tbb::flow::graph graph_{};
     tbb::flow::broadcast_node<node_ptr> launcher_{graph_};
     std::map<std::string, module_node> nodes_{};
+    std::map<std::string, std::vector<std::string>> module_dependencies_{};
   };
 }
 

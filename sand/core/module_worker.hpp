@@ -14,9 +14,11 @@ namespace sand {
 
     std::vector<transition_type> supported_transitions() const;
     void process(stage const s, node& data);
+    std::vector<std::string> dependencies() const;
 
   private:
     virtual void do_process(stage, node&) = 0;
+    virtual std::vector<std::string> required_dependencies() const = 0;
     virtual std::vector<transition_type> supported_setup_transitions() const = 0;
     virtual std::vector<transition_type> supported_process_transitions() const = 0;
   };

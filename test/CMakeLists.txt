@@ -16,6 +16,7 @@ create_component(test_module_run)
 create_component(test_source)
 
 add_test(NAME sand_t COMMAND sand --config ${CMAKE_CURRENT_SOURCE_DIR}/test_sand.json)
+add_test(NAME sand_with_deps_t COMMAND sand --config ${CMAKE_CURRENT_SOURCE_DIR}/test_sand_with_deps.json)
 
 add_executable(sand_check sand_check_t.cpp)
 target_link_libraries(sand_check PRIVATE sand_core Catch2::Catch2 Boost::boost TBB::tbb test_levels)

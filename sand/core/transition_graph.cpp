@@ -10,6 +10,7 @@ namespace sand {
                                            worker.process(stage_, *n);
                                            return n;
                                          }});
+    module_dependencies_.try_emplace(name, worker.dependencies());
   }
 
   void
@@ -18,10 +19,16 @@ namespace sand {
     if (empty(nodes_))
       return;
 
-    auto first = begin(nodes_);
-    make_edge(launcher_, first->second);
-    for (auto a = first, b = next(a); b != end(nodes_); ++a, ++b) {
-      make_edge(a->second, b->second);
+    for (auto const& [name, deps] : module_dependencies_) {
+      auto& mod_node = nodes_.at(name);
+      if (empty(deps)) {
+        make_edge(launcher_, mod_node);
+        continue;
+      }
+
+      for (auto const& dep : deps) {
+        make_edge(nodes_.at(dep), mod_node);
+      }
     }
   }
 

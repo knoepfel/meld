@@ -45,11 +45,17 @@ namespace sand {
     template <with_config U = T>
     explicit module_owner(boost::json::object const& config) : user_module{config}
     {
+      if (auto deps = config.if_contains("dependencies")) {
+        dependencies = value_to<std::vector<std::string>>(*deps);
+      }
     }
 
     template <without_config U = T>
-    explicit module_owner(boost::json::object const&) : user_module{}
+    explicit module_owner(boost::json::object const& config) : user_module{}
     {
+      if (auto deps = config.if_contains("dependencies")) {
+        dependencies = value_to<std::vector<std::string>>(*deps);
+      }
     }
 
     static std::unique_ptr<module_worker>
@@ -66,6 +72,12 @@ namespace sand {
     }
 
   private:
+    std::vector<std::string>
+    required_dependencies() const final
+    {
+      return dependencies;
+    }
+
     std::vector<transition_type>
     supported_setup_transitions() const final
     {
@@ -153,6 +165,7 @@ namespace sand {
     }
 
     T user_module;
+    std::vector<std::string> dependencies;
   };
 }
 
