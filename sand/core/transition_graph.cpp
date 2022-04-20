@@ -15,10 +15,12 @@ namespace sand {
   void
   transition_graph::calculate_edges()
   {
-    if (size(nodes_) < 2ull)
+    if (empty(nodes_))
       return;
 
-    for (auto a = begin(nodes_), b = next(a); b != end(nodes_); ++a, ++b) {
+    auto first = begin(nodes_);
+    make_edge(launcher_, first->second);
+    for (auto a = first, b = next(a); b != end(nodes_); ++a, ++b) {
       make_edge(a->second, b->second);
     }
   }
@@ -28,7 +30,8 @@ namespace sand {
   {
     if (empty(nodes_))
       return;
-    begin(nodes_)->second.try_put(n);
+
+    launcher_.try_put(n);
     graph_.wait_for_all();
   }
 }

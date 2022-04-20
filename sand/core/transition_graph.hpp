@@ -23,6 +23,7 @@ namespace sand {
     using module_node = tbb::flow::function_node<node_ptr, node_ptr>;
     stage stage_;
     tbb::flow::graph graph_{};
+    tbb::flow::broadcast_node<node_ptr> launcher_{graph_};
     std::map<std::string, module_node> nodes_{};
   };
 }
