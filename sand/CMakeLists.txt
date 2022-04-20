@@ -5,10 +5,8 @@ add_subdirectory(core)
 configure_file(version.cpp.in version.cpp @ONLY)
 
 add_library(run_sand SHARED run_sand.cpp version.cpp)
-target_link_libraries(run_sand PRIVATE Boost::boost TBB::tbb sand_core)
-target_include_directories(run_sand PRIVATE ${PROJECT_SOURCE_DIR})
+target_link_libraries(run_sand PRIVATE Boost::boost TBB::tbb sand::core)
 
 add_executable(sand sand.cpp)
-target_link_libraries(sand PRIVATE Boost::boost CLI11::CLI11 run_sand sand_core)
+target_link_libraries(sand PRIVATE Boost::boost CLI11::CLI11 run_sand sand::core)
 target_link_options(sand PRIVATE -Wl,-export_dynamic)
-target_include_directories(sand PRIVATE ${PROJECT_SOURCE_DIR})

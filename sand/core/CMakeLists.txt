@@ -12,3 +12,12 @@ target_link_libraries(sand_core PRIVATE Boost::boost TBB::tbb)
 
 # We'll use C++17's filesystem insteead of Boost's
 target_compile_definitions(sand_core PRIVATE BOOST_DLL_USE_STD_FS)
+
+# Interface library
+add_library(sand_core_int INTERFACE)
+target_include_directories(sand_core_int INTERFACE
+  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"
+  "$<INSTALL_INTERFACE:include>")
+target_link_libraries(sand_core_int INTERFACE sand_core)
+
+add_library(sand::core ALIAS sand_core_int)
