@@ -15,7 +15,6 @@
 #include <vector>
 
 namespace sand {
-
   class data_processor {
   public:
     explicit data_processor(module_manager* modules);
@@ -28,8 +27,8 @@ namespace sand {
     module_manager* modules_;
     tbb::flow::graph graph_{};
     tbb::flow::input_node<transition_messages> source_node_;
+    tbb::flow::function_node<transition_messages> engine_node_;
     std::map<transition_type, transition_graph> transition_graphs_;
-    std::vector<tbb::flow::function_node<transition_messages>> engine_nodes_{};
   };
 }
 

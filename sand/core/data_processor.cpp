@@ -13,8 +13,11 @@
 namespace sand {
 
   data_processor::data_processor(module_manager* modules) :
-    modules_{modules}, source_node_{graph_, [this](tbb::flow_control& fc) { return pull_next(fc); }}
+    modules_{modules},
+    source_node_{graph_, [this](tbb::flow_control& fc) { return pull_next(fc); }},
+    engine_node_{graph_, tbb::flow::serial, [this](auto& messages) { process(messages); }}
   {
+    make_edge(source_node_, engine_node_);
     for (auto& [name, worker] : modules_->modules()) {
       for (auto const& transition_type : worker->supported_transitions()) {
         auto it = transition_graphs_.find(transition_type);
@@ -39,10 +42,6 @@ namespace sand {
   void
   data_processor::run_to_completion()
   {
-    auto node = tbb::flow::function_node<transition_messages>{
-      graph_, tbb::flow::serial, [this](auto& messages) { process(messages); }};
-    auto& last_made = engine_nodes_.emplace_back(move(node));
-    make_edge(source_node_, last_made);
     source_node_.activate();
     graph_.wait_for_all();
   }
