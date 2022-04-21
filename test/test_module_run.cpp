@@ -1,4 +1,4 @@
-#include "sand/core/module.hpp"
+#include "meld/core/module.hpp"
 #include "test/data_levels.hpp"
 
 #include <chrono>
@@ -6,7 +6,7 @@
 #include <thread>
 #include <typeinfo>
 
-namespace sand::test {
+namespace meld::test {
   class run_only_module {
   public:
     void
@@ -18,5 +18,5 @@ namespace sand::test {
     }
   };
 
-  SAND_REGISTER_MODULE(run_only_module, run)
+  MELD_REGISTER_MODULE(run_only_module, run)
 }

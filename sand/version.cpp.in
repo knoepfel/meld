@@ -1,7 +1,0 @@
-#include "sand/version.hpp"
-
-namespace sand {
-  // clang-format off
-  char const* version() { return "@CMAKE_PROJECT_VERSION@"; }
-  // clang-format on
-}

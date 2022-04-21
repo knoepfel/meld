@@ -1,12 +1,12 @@
 #ifndef test_test_source_hpp
 #define test_test_source_hpp
 
-#include "sand/core/source.hpp"
+#include "meld/core/source.hpp"
 #include "test/data_levels.hpp"
 
 #include <iostream>
 
-namespace sand::test {
+namespace meld::test {
   class my_source {
   public:
     explicit my_source(boost::json::object const& config) :

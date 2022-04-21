@@ -1,0 +1,7 @@
+#include "meld/version.hpp"
+
+namespace meld {
+  // clang-format off
+  char const* version() { return "@CMAKE_PROJECT_VERSION@"; }
+  // clang-format on
+}

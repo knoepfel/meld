@@ -1,12 +1,12 @@
-#include "sand/core/transition.hpp"
+#include "meld/core/transition.hpp"
 
 #include "catch2/catch.hpp"
 
-using namespace sand;
+using namespace meld;
 
 TEST_CASE("Transition string literal", "[transition]")
 {
-  using sand::id_t;
+  using meld::id_t;
   CHECK(""_id == id_t{});
   CHECK("2"_id == id_t{2});
   CHECK("1:2:3:4"_id == id_t{1, 2, 3, 4});

@@ -1,3 +1,3 @@
 #include "test/test_source.hpp"
 
-SAND_REGISTER_SOURCE(sand::test::my_source)
+MELD_REGISTER_SOURCE(meld::test::my_source)
