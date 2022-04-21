@@ -60,7 +60,8 @@ namespace meld {
         more_data = false;
       }
 
-      auto transitions_to_process = transitions_between(last_processed_level, id_to_process);
+      auto transitions_to_process =
+        transitions_between(last_processed_level, id_to_process, counter);
       last_processed_level = id_to_process;
 
       transition_messages result;
@@ -68,13 +69,16 @@ namespace meld {
         auto node = nodes.at(id);
         transition_type const ttype{node->level_name(), stage};
         switch (stage) {
-          case stage::setup:
-            // The source retains the node when the setup stage is executed
-            result.emplace_back(ttype, nodes.at(id));
-            continue;
-          case stage::process:
-            // The source releases the node whenever the process stage is executed
-            result.emplace_back(ttype, move(nodes.extract(id).mapped()));
+        case stage::setup:
+          // The source retains the node when the setup stage is executed
+          result.emplace_back(ttype, nodes.at(id));
+          continue;
+        case stage::process:
+          // The source releases the node whenever the process stage is executed
+          result.emplace_back(ttype, move(nodes.extract(id).mapped()));
+        case stage::flush: {
+        }
+          // FIXME: Not sure what to do here
         }
       }
       return result;
@@ -84,6 +88,7 @@ namespace meld {
     id_t last_processed_level{};
     bool more_data{true};
     std::map<id_t, std::shared_ptr<node>> nodes;
+    level_counter counter;
   };
 }
 

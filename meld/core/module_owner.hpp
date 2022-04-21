@@ -116,12 +116,14 @@ namespace meld {
     do_process(stage const st, node& data) final
     {
       switch (st) {
-        case stage::setup:
-          (setup<Ds>(data) || ...);
-          return;
-        case stage::process:
-          (process<Ds>(data) || ...);
-          return;
+      case stage::setup:
+        (setup<Ds>(data) || ...);
+        return;
+      case stage::process:
+        (process<Ds>(data) || ...);
+        return;
+      case stage::flush:
+        return;
       }
     }
 
