@@ -1,4 +1,5 @@
 #include "meld/core/module.hpp"
+#include "meld/utilities/debug.hpp"
 #include "test/data_levels.hpp"
 
 #include <chrono>
@@ -14,7 +15,7 @@ namespace meld::test {
     {
       using namespace std::chrono_literals;
       std::this_thread::sleep_for(1s);
-      std::cout << "Processing " << r.name() << ' ' << r << " in run-only module.\n";
+      debug("Processing ", r.name(), ' ', r, " in run-only module.");
     }
   };
 

@@ -4,7 +4,9 @@
 #include "meld/core/node.hpp"
 #include "meld/core/source_worker.hpp"
 #include "meld/core/uses_config.hpp"
+#include "meld/utilities/debug.hpp"
 
+#include <cassert>
 #include <iostream>
 #include <memory>
 
@@ -62,23 +64,29 @@ namespace meld {
 
       auto transitions_to_process =
         transitions_between(last_processed_level, id_to_process, counter);
+
+      // FIXME: This is icky
+      if (last_processed_level == ""_id) {
+        nodes.emplace(""_id, std::make_shared<null_node_t>());
+        transitions_to_process.insert(begin(transitions_to_process),
+                                      transition{""_id, stage::setup});
+      }
       last_processed_level = id_to_process;
 
       transition_messages result;
-      for (auto const& [id, stage] : transitions_to_process) {
-        auto node = nodes.at(id);
-        transition_type const ttype{node->level_name(), stage};
-        switch (stage) {
-        case stage::setup:
-          // The source retains the node when the setup stage is executed
-          result.emplace_back(ttype, nodes.at(id));
-          continue;
-        case stage::process:
+      for (auto const& tr : transitions_to_process) {
+        auto const& [id, stage] = tr;
+        if (stage == stage::process) {
           // The source releases the node whenever the process stage is executed
-          result.emplace_back(ttype, move(nodes.extract(id).mapped()));
-        case stage::flush: {
+          result.emplace_back(tr, move(nodes.extract(id).mapped()));
         }
-          // FIXME: Not sure what to do here
+        else if (stage == stage::setup) {
+          // The source retains the node when the setup stage is executed
+          result.emplace_back(tr, nodes.at(id));
+        }
+        else {
+          assert(stage == stage::flush);
+          result.emplace_back(tr, nullptr);
         }
       }
       return result;

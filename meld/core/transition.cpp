@@ -7,6 +7,24 @@
 #include <numeric>
 
 namespace meld {
+  id_t
+  id_for(char const* c_str)
+  {
+    std::vector<std::string> strs;
+    split(strs, c_str, boost::is_any_of(":"));
+
+    strs.erase(std::remove_if(begin(strs), end(strs), [](auto& str) { return empty(str); }),
+               end(strs));
+
+    id_t result;
+    std::transform(begin(strs), end(strs), std::back_inserter(result), [](auto const& str) {
+      return std::stoull(str);
+    });
+    return result;
+  }
+
+  id_t operator"" _id(char const* c_str, std::size_t) { return id_for(c_str); }
+
   bool
   has_parent(id_t const& id)
   {
@@ -85,21 +103,6 @@ namespace meld {
     result.insert(end(result), begin(last_trs), end(last_trs));
     result.emplace_back(counter.value_as_id(""_id), stage::flush);
     result.emplace_back(""_id, stage::process);
-    return result;
-  }
-
-  id_t operator"" _id(char const* c_str, std::size_t)
-  {
-    std::vector<std::string> strs;
-    split(strs, c_str, boost::is_any_of(":"));
-
-    strs.erase(std::remove_if(begin(strs), end(strs), [](auto& str) { return empty(str); }),
-               end(strs));
-
-    id_t result;
-    std::transform(begin(strs), end(strs), std::back_inserter(result), [](auto const& str) {
-      return std::stoull(str);
-    });
     return result;
   }
 

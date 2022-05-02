@@ -31,7 +31,10 @@ namespace meld {
   };
 
   using node_ptr = std::shared_ptr<node>;
-  using transition_messages = std::vector<std::pair<transition_type, node_ptr>>;
+  using transition_message = std::pair<transition, node_ptr>;
+  using transition_messages = std::vector<transition_message>;
+
+  transition_type ttype_for(transition_message const& msg);
 
   // FIXME: Need better name than null_node
   class null_node_t : public node {

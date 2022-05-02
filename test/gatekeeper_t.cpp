@@ -1,12 +1,32 @@
-#include "meld/core/transition.hpp"
+#include "meld/core/gatekeeper_node.hpp"
+#include "meld/core/node.hpp"
+#include "meld/utilities/debug.hpp"
 #include "oneapi/tbb/flow_graph.h"
-#include "test/debug.hpp"
-#include "test/gatekeeper_node.hpp"
 
 #include "catch2/catch.hpp"
 
 using namespace meld;
 using namespace tbb;
+
+namespace {
+  std::vector<std::string> const level_names{"job", "dataset", "run", "subrun", "event"};
+
+  class test_node : public node {
+  public:
+    explicit test_node(meld::id_t const& id, std::string level_name) :
+      node{id}, name{move(level_name)}
+    {
+    }
+
+  private:
+    std::string_view
+    level_name() const final
+    {
+      return name;
+    }
+    std::string name;
+  };
+}
 
 TEST_CASE("Gatekeeper", "[multithreading]")
 {
@@ -25,28 +45,30 @@ TEST_CASE("Gatekeeper", "[multithreading]")
   auto const tr = transitions_for(levels);
 
   flow::graph g;
-  flow::input_node<transition> source{
-    g, [it = begin(tr), stop = end(tr)](flow_control& fc) mutable -> transition {
+  flow::input_node<transition_message> source{
+    g, [it = begin(tr), stop = end(tr)](flow_control& fc) mutable -> transition_message {
       if (it == stop) {
         fc.stop();
         return {};
       }
-      auto old = it++;
-      return *old;
+      auto const& tr = *it++;
+      auto const& id = tr.first;
+      auto const& level_name = level_names[size(id)];
+      return {tr, std::make_shared<test_node>(id, level_name)};
     }};
 
   gatekeeper_node gatekeeper{g};
 
   std::atomic<unsigned> setup_calls{0};
-  flow::function_node setup{g, flow::unlimited, [&setup_calls](transition const& tr) {
+  flow::function_node setup{g, flow::unlimited, [&setup_calls](transition_message const& tr) {
                               ++setup_calls;
-                              test::debug("2.  Setting up ", tr);
+                              debug("2.  Setting up ", tr.first);
                               return tr;
                             }};
   std::atomic<unsigned> process_calls{0};
-  flow::function_node processor{g, flow::unlimited, [&process_calls](transition const& tr) {
+  flow::function_node processor{g, flow::unlimited, [&process_calls](transition_message const& tr) {
                                   ++process_calls;
-                                  test::debug("3.  Processing ", tr);
+                                  debug("3.  Processing ", tr.first);
                                   return tr;
                                 }};
 

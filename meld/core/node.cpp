@@ -23,6 +23,13 @@ namespace meld {
     return id_;
   }
 
+  transition_type
+  ttype_for(transition_message const& msg)
+  {
+    auto const& [tr, node_ptr] = msg;
+    return transition_type{node_ptr->level_name(), tr.second};
+  }
+
   null_node_t::null_node_t() : node{{}} {}
   null_node_t::~null_node_t() = default;
   std::string_view

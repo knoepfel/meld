@@ -1,5 +1,6 @@
 add_library(meld_core SHARED
   data_processor.cpp
+  gatekeeper_node.cpp
   load_module.cpp
   module_manager.cpp
   module_worker.cpp

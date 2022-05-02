@@ -10,6 +10,10 @@
 
 namespace meld {
   using id_t = std::vector<std::size_t>;
+
+  id_t id_for(char const* str);
+  id_t operator"" _id(char const* str, std::size_t);
+
   bool has_parent(id_t const& id);
   id_t parent(id_t id);
   enum class stage { setup, flush, process };
@@ -56,7 +60,6 @@ namespace meld {
   }
   transitions transitions_between(id_t begin, id_t end, level_counter& counter);
   transitions transitions_for(std::vector<id_t> const& ids);
-  id_t operator"" _id(char const* str, std::size_t);
 
   std::string to_string(stage);
   std::ostream& operator<<(std::ostream& os, id_t const& id);

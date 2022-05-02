@@ -15,14 +15,22 @@ namespace meld {
   data_processor::data_processor(module_manager* modules) :
     modules_{modules},
     source_node_{graph_, [this](tbb::flow_control& fc) { return pull_next(fc); }},
-    engine_node_{graph_, tbb::flow::serial, [this](auto& messages) { process(messages); }}
+    setup_{
+      graph_, tbb::flow::unlimited, [this](transition_message const& msg) { return setup(msg); }},
+    process_{
+      graph_, tbb::flow::unlimited, [this](transition_message const& msg) { return process(msg); }}
   {
-    make_edge(source_node_, engine_node_);
+    make_edge(source_node_, input_port<0>(gatekeeper_));
+    make_edge(output_port<0>(gatekeeper_), setup_);
+    make_edge(output_port<1>(gatekeeper_), process_);
+    make_edge(setup_, input_port<1>(gatekeeper_));
+    make_edge(process_, input_port<1>(gatekeeper_));
+
     for (auto& [name, worker] : modules_->modules()) {
       for (auto const& transition_type : worker->supported_transitions()) {
         auto it = transition_graphs_.find(transition_type);
         if (it == cend(transition_graphs_)) {
-          std::cout << "Creaing graph for: " << transition_type.first << ' '
+          std::cout << "Creating graph for: " << transition_type.first << ' '
                     << to_string(transition_type.second) << '\n';
           it = transition_graphs_
                  .emplace(std::piecewise_construct,
@@ -46,27 +54,43 @@ namespace meld {
     graph_.wait_for_all();
   }
 
-  transition_messages
+  transition_message
   data_processor::pull_next(tbb::flow_control& fc)
   {
-    auto data = modules_->source().next();
-    if (empty(data)) {
-      fc.stop();
-      return {};
+    if (queued_messages_.empty()) {
+      auto data = modules_->source().next();
+      for (auto const& d : data) {
+        queued_messages_.push(d);
+      }
     }
-    return data;
+
+    if (transition_message msg; queued_messages_.try_pop(msg)) {
+      return msg;
+    }
+
+    fc.stop();
+    return {};
   }
 
-  void
-  data_processor::process(transition_messages messages)
+  transition_message
+  data_processor::setup(transition_message const& msg)
   {
-    for (auto& [transition_type, n] : messages) {
-      auto it = transition_graphs_.find(transition_type);
-      if (it == end(transition_graphs_)) {
-        // Transition not supported for this job; will skip
-        continue;
-      }
-      it->second.process(n);
+    auto const& [tr, node_ptr] = msg;
+    auto const ttype = ttype_for(msg);
+    if (auto it = transition_graphs_.find(ttype); it != cend(transition_graphs_)) {
+      it->second.process(node_ptr);
     }
+    return msg;
+  }
+
+  transition_message
+  data_processor::process(transition_message const& msg)
+  {
+    auto const& [tr, node_ptr] = msg;
+    auto const ttype = ttype_for(msg);
+    if (auto it = transition_graphs_.find(ttype); it != cend(transition_graphs_)) {
+      it->second.process(node_ptr);
+    }
+    return msg;
   }
 }

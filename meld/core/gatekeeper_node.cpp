@@ -1,10 +1,10 @@
-#include "test/gatekeeper_node.hpp"
+#include "meld/core/gatekeeper_node.hpp"
 
 namespace meld {
   gatekeeper_node::gatekeeper_node(tbb::flow::graph& g) :
-    detail::gatekeeper_node_base{g},
+    base_t{g},
     indexer_{g},
-    multiplexer_{g, tbb::flow::unlimited, [this](detail::msg_t const& msg, auto& outputs) {
+    multiplexer_{g, tbb::flow::unlimited, [this](msg_t const& msg, auto& outputs) {
                    return multiplex(msg, outputs);
                  }}
   {
@@ -48,9 +48,10 @@ namespace meld {
   }
 
   void
-  gatekeeper_node::multiplex(detail::msg_t const& msg, multiplexer_output_ports_type& outputs)
+  gatekeeper_node::multiplex(msg_t const& msg, multiplexer_output_ports_type& outputs)
   {
-    auto tr = msg.cast_to<transition>();
+    auto tr_msg = msg.cast_to<transition_message>();
+    auto const [tr, node_ptr] = tr_msg;
     auto const& [id, stage] = tr;
     if (msg.tag() == 1) {
       if (stage == stage::process) {
@@ -67,19 +68,19 @@ namespace meld {
     switch (stage) {
     case stage::setup: {
       if (is_ready(id)) {
-        initialize.try_put(tr);
+        initialize.try_put(tr_msg);
       }
       else {
-        retry.try_put(tr);
+        retry.try_put(tr_msg);
       }
       break;
     }
     case stage::process: {
       if (is_flush(id)) {
-        process.try_put(tr);
+        process.try_put(tr_msg);
       }
       else {
-        retry.try_put(tr);
+        retry.try_put(tr_msg);
       }
       break;
     }

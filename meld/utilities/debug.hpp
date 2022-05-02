@@ -1,10 +1,10 @@
-#ifndef test_debug_hpp
-#define test_debug_hpp
+#ifndef meld_utilities_debug_hpp
+#define meld_utilities_debug_hpp
 
 #include <iostream>
 #include <sstream>
 
-namespace meld::test {
+namespace meld {
   template <typename... Args>
   void
   debug(Args&&... args)
@@ -15,4 +15,4 @@ namespace meld::test {
   }
 }
 
-#endif /* test_debug_hpp */
+#endif /* meld_utilities_debug_hpp */

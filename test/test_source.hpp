@@ -2,9 +2,8 @@
 #define test_test_source_hpp
 
 #include "meld/core/source.hpp"
+#include "meld/utilities/debug.hpp"
 #include "test/data_levels.hpp"
-
-#include <iostream>
 
 namespace meld::test {
   class my_source {
@@ -21,12 +20,12 @@ namespace meld::test {
         ++cursor_;
         if (cursor_ % 2 != 0) {
           run_ = null_node.make_child<run>(cursor_);
-          std::cout << "Creating run " << *run_ << '\n';
+          debug("Creating run ", *run_);
           created_runs.push_back(run_->id());
           return run_;
         }
         auto srun = run_->make_child<subrun>(cursor_);
-        std::cout << "Creating subrun " << *srun << '\n';
+        debug("Creating subrun ", *srun);
         created_subruns.push_back(srun->id());
         return srun;
       }
