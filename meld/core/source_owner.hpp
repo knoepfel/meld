@@ -67,7 +67,7 @@ namespace meld {
 
       // FIXME: This is icky
       if (last_processed_level == ""_id) {
-        nodes.emplace(""_id, std::make_shared<null_node_t>());
+        nodes.emplace(""_id, root_node);
         transitions_to_process.insert(begin(transitions_to_process),
                                       transition{""_id, stage::setup});
       }

@@ -19,7 +19,7 @@ namespace meld::test {
       if (cursor_ < num_nodes_) {
         ++cursor_;
         if (cursor_ % 2 != 0) {
-          run_ = null_node.make_child<run>(cursor_);
+          run_ = root_node->make_child<run>(cursor_);
           debug("Creating run ", *run_);
           created_runs.push_back(run_->id());
           return run_;

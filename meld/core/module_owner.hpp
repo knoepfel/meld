@@ -13,7 +13,7 @@ namespace meld {
   consteval bool
   supports_parent()
   {
-    if (std::is_same<Parent, null_node_t>()) {
+    if (std::is_same<Parent, root_node_t>()) {
       return false;
     }
     return (std::is_same<Parent, Ds>() || ...);

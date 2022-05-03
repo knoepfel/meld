@@ -37,10 +37,10 @@ namespace meld {
   transition_type ttype_for(transition_message const& msg);
 
   // FIXME: Need better name than null_node
-  class null_node_t : public node {
+  class root_node_t : public node {
   public:
-    null_node_t();
-    ~null_node_t() final;
+    root_node_t();
+    ~root_node_t() final;
 
     std::string_view level_name() const final;
 
@@ -48,13 +48,13 @@ namespace meld {
     template <typename T>
     std::shared_ptr<T> make_child(std::size_t id);
   };
-  extern null_node_t null_node;
+  extern std::shared_ptr<root_node_t> root_node;
 
   template <typename T>
   std::shared_ptr<T>
-  null_node_t::make_child(std::size_t id)
+  root_node_t::make_child(std::size_t id)
   {
-    return std::make_shared<T>(&null_node, id);
+    return std::make_shared<T>(root_node.get(), id);
   }
 
   std::ostream& operator<<(std::ostream&, node const&);

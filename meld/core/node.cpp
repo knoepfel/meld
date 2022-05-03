@@ -21,15 +21,15 @@ namespace meld {
     return transition_type{node_ptr->level_name(), tr.second};
   }
 
-  null_node_t::null_node_t() : node{{}} {}
-  null_node_t::~null_node_t() = default;
+  root_node_t::root_node_t() : node{{}} {}
+  root_node_t::~root_node_t() = default;
   std::string_view
-  null_node_t::level_name() const
+  root_node_t::level_name() const
   {
-    return "null-node";
+    return "root-node";
   }
 
-  null_node_t null_node{};
+  std::shared_ptr<root_node_t> root_node{std::make_shared<root_node_t>()};
 
   std::ostream&
   operator<<(std::ostream& os, node const& n)

@@ -17,7 +17,7 @@ namespace meld {
     };
   }
 
-  template <detail::string_literal Name, typename Parent = null_node_t>
+  template <detail::string_literal Name, typename Parent = root_node_t>
   class data_level : public node {
   public:
     static constexpr std::string_view
@@ -56,7 +56,7 @@ namespace meld {
   Parent*
   data_level<Name, Parent>::parent() noexcept
   {
-    if constexpr (std::is_same_v<Parent, null_node_t>) {
+    if constexpr (std::is_same_v<Parent, root_node_t>) {
       return nullptr;
     }
     else {
@@ -67,7 +67,7 @@ namespace meld {
   Parent const*
   data_level<Name, Parent>::parent() const noexcept
   {
-    if constexpr (std::is_same_v<Parent, null_node_t>) {
+    if constexpr (std::is_same_v<Parent, root_node_t>) {
       return nullptr;
     }
     else {
