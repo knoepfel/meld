@@ -10,20 +10,18 @@
 #include <iostream>
 #include <vector>
 
+using namespace tbb;
+
 namespace meld {
 
   data_processor::data_processor(module_manager* modules) :
     modules_{modules},
-    source_node_{graph_, [this](tbb::flow_control& fc) { return pull_next(fc); }},
-    setup_{
-      graph_, tbb::flow::unlimited, [this](transition_message const& msg) { return setup(msg); }},
+    source_node_{graph_, [this](flow_control& fc) { return pull_next(fc); }},
     process_{
-      graph_, tbb::flow::unlimited, [this](transition_message const& msg) { return process(msg); }}
+      graph_, flow::unlimited, [this](transition_message const& msg) { return process(msg); }}
   {
     make_edge(source_node_, input_port<0>(gatekeeper_));
-    make_edge(output_port<0>(gatekeeper_), setup_);
-    make_edge(output_port<1>(gatekeeper_), process_);
-    make_edge(setup_, input_port<1>(gatekeeper_));
+    make_edge(gatekeeper_, process_);
     make_edge(process_, input_port<1>(gatekeeper_));
 
     for (auto& [name, worker] : modules_->modules()) {
@@ -55,7 +53,7 @@ namespace meld {
   }
 
   transition_message
-  data_processor::pull_next(tbb::flow_control& fc)
+  data_processor::pull_next(flow_control& fc)
   {
     if (queued_messages_.empty()) {
       auto data = modules_->source().next();
@@ -70,17 +68,6 @@ namespace meld {
 
     fc.stop();
     return {};
-  }
-
-  transition_message
-  data_processor::setup(transition_message const& msg)
-  {
-    auto const& [tr, node_ptr] = msg;
-    auto const ttype = ttype_for(msg);
-    if (auto it = transition_graphs_.find(ttype); it != cend(transition_graphs_)) {
-      it->second.process(node_ptr);
-    }
-    return msg;
   }
 
   transition_message

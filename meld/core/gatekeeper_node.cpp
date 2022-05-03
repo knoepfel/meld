@@ -1,19 +1,20 @@
 #include "meld/core/gatekeeper_node.hpp"
 
+using namespace tbb;
+
 namespace meld {
-  gatekeeper_node::gatekeeper_node(tbb::flow::graph& g) :
+  gatekeeper_node::gatekeeper_node(flow::graph& g) :
     base_t{g},
     indexer_{g},
-    multiplexer_{g, tbb::flow::unlimited, [this](msg_t const& msg, auto& outputs) {
+    multiplexer_{g, flow::unlimited, [this](msg_t const& msg, auto& outputs) {
                    return multiplex(msg, outputs);
                  }}
   {
     make_edge(indexer_, multiplexer_);
-    make_edge(output_port<2>(multiplexer_), input_port<0>(indexer_));
+    make_edge(output_port<1>(multiplexer_), input_port<0>(indexer_));
 
-    set_external_ports(
-      input_ports_type{input_port<0>(indexer_), input_port<1>(indexer_)},
-      output_ports_type{output_port<0>(multiplexer_), output_port<1>(multiplexer_)});
+    set_external_ports(input_ports_type{input_port<0>(indexer_), input_port<1>(indexer_)},
+                       output_ports_type{output_port<0>(multiplexer_)});
   }
 
   bool
@@ -63,11 +64,11 @@ namespace meld {
       return;
     }
 
-    auto& [initialize, process, retry] = outputs;
+    auto& [process, retry] = outputs;
     switch (stage) {
     case stage::setup: {
       if (is_ready(id)) {
-        initialize.try_put(tr_msg);
+        process.try_put(tr_msg);
       }
       else {
         retry.try_put(tr_msg);

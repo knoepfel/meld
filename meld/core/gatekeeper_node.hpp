@@ -5,19 +5,30 @@
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"
 
+#include <tuple>
+#include <utility>
+
 namespace meld {
   namespace detail {
-    using msg_2_tuple = std::tuple<transition_message, transition_message>;
-    using msg_3_tuple = std::tuple<transition_message, transition_message, transition_message>;
+    // Infrastructure to allow specification of (e.g.) msg_tuple<4>, which is an alias for
+    // std::tuple<transition, transition, transition, transition>.
+    template <std::size_t>
+    using msg = transition_message;
+
+    template <std::size_t... I>
+    std::tuple<msg<I>...> msg_tuple_for(std::index_sequence<I...>);
+
+    template <std::size_t N>
+    using msg_tuple = decltype(msg_tuple_for(std::make_index_sequence<N>{}));
   }
 
   class gatekeeper_node :
-    public tbb::flow::composite_node<detail::msg_2_tuple, detail::msg_2_tuple> {
+    public tbb::flow::composite_node<detail::msg_tuple<2>, detail::msg_tuple<1>> {
   public:
     explicit gatekeeper_node(tbb::flow::graph& g);
 
   private:
-    using base_t = tbb::flow::composite_node<detail::msg_2_tuple, detail::msg_2_tuple>;
+    using base_t = tbb::flow::composite_node<detail::msg_tuple<2>, detail::msg_tuple<1>>;
     using indexer_node = tbb::flow::indexer_node<transition_message, transition_message>;
     using msg_t = indexer_node::output_type;
 
@@ -25,7 +36,7 @@ namespace meld {
     bool is_initialized(level_id const& id) const;
     bool is_flush(level_id const& id);
 
-    using multiplexer_node = tbb::flow::multifunction_node<msg_t, detail::msg_3_tuple>;
+    using multiplexer_node = tbb::flow::multifunction_node<msg_t, detail::msg_tuple<2>>;
     using multiplexer_output_ports_type = multiplexer_node::output_ports_type;
     void multiplex(msg_t const& msg, multiplexer_output_ports_type& outputs);
 

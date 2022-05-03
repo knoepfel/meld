@@ -24,7 +24,6 @@ namespace meld {
 
   private:
     transition_message pull_next(tbb::flow_control& fc);
-    transition_message setup(transition_message const& msg);
     transition_message process(transition_message const& msg);
 
     module_manager* modules_;
@@ -32,7 +31,6 @@ namespace meld {
     tbb::flow::input_node<transition_message> source_node_;
     tbb::concurrent_queue<transition_message> queued_messages_;
     gatekeeper_node gatekeeper_{graph_};
-    tbb::flow::function_node<transition_message, transition_message> setup_;
     tbb::flow::function_node<transition_message, transition_message> process_;
     std::map<transition_type, transition_graph> transition_graphs_;
   };

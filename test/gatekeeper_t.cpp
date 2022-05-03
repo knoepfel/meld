@@ -37,23 +37,24 @@ TEST_CASE("Gatekeeper", "[multithreading]")
   gatekeeper_node gatekeeper{g};
 
   std::atomic<unsigned> setup_calls{0};
-  flow::function_node setup{g, flow::unlimited, [&setup_calls](transition_message const& msg) {
-                              ++setup_calls;
-                              debug("2.  Setting up ", msg.first);
-                              return msg;
-                            }};
   std::atomic<unsigned> process_calls{0};
   flow::function_node processor{
-    g, flow::unlimited, [&process_calls](transition_message const& msg) {
-      ++process_calls;
-      debug("3.  Processing ", msg.first);
+    g, flow::unlimited, [&setup_calls, &process_calls](transition_message const& msg) {
+      auto const& [id, stage] = msg.first;
+      if (stage == stage::setup) {
+        ++setup_calls;
+        debug("Setting up ", msg.first);
+      }
+      else {
+        assert(stage == stage::process);
+        ++process_calls;
+        debug("Processing ", msg.first);
+      }
       return msg;
     }};
 
   make_edge(source, input_port<0>(gatekeeper));
-  make_edge(output_port<0>(gatekeeper), setup);
-  make_edge(output_port<1>(gatekeeper), processor);
-  make_edge(setup, input_port<1>(gatekeeper));
+  make_edge(gatekeeper, processor);
   make_edge(processor, input_port<1>(gatekeeper));
   source.activate();
   g.wait_for_all();
