@@ -36,6 +36,7 @@ namespace meld {
 
   private:
     std::vector<std::size_t> id_{};
+    std::size_t hash_;
   };
 
   level_id id_for(char const* str);
@@ -58,7 +59,6 @@ namespace meld {
   class level_counter {
   public:
     void record_parent(level_id const& id);
-    std::optional<std::size_t> value_if_present(level_id const& id) const;
     std::size_t value(level_id const& id) const;
     level_id value_as_id(level_id const& id) const;
 

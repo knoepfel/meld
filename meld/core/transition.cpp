@@ -6,11 +6,31 @@
 #include <iostream>
 #include <numeric>
 
+namespace {
+  std::size_t
+  hash_nums(std::vector<std::size_t> const& nums) noexcept
+  {
+    // Pilfered from
+    // https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector#comment126511630_27216842
+    // The std::size() free function is not noexcept, so we use the
+    // std::vector::size() member function.
+    return std::accumulate(
+      cbegin(nums), cend(nums), nums.size(), [](std::size_t h, std::size_t f) noexcept {
+        return h ^= f + 0x9e3779b9 + (h << 6) + (h >> 2);
+      });
+  }
+}
+
 namespace meld {
 
-  level_id::level_id() = default;
-  level_id::level_id(std::initializer_list<std::size_t> numbers) : id_{numbers} {}
-  level_id::level_id(std::vector<std::size_t> numbers) : id_{move(numbers)} {}
+  level_id::level_id() : hash_{hash_nums({})} {}
+  level_id::level_id(std::initializer_list<std::size_t> numbers) :
+    level_id{std::vector<std::size_t>{numbers}}
+  {
+  }
+  level_id::level_id(std::vector<std::size_t> numbers) : id_{move(numbers)}, hash_{hash_nums(id_)}
+  {
+  }
 
   level_id
   level_id::make_child(std::size_t const new_level_number) const
@@ -36,14 +56,7 @@ namespace meld {
   std::size_t
   level_id::hash() const noexcept
   {
-    // Pilfered from
-    // https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector#comment126511630_27216842
-    // The std::size() free function is not noexcept, so we use the
-    // std::vector::size() member function.
-    return std::accumulate(
-      cbegin(id_), cend(id_), id_.size(), [](std::size_t h, std::size_t f) noexcept {
-        return h ^= f + 0x9e3779b9 + (h << 6) + (h >> 2);
-      });
+    return hash_;
   }
 
   bool
@@ -199,15 +212,6 @@ namespace meld {
     else {
       ++a->second;
     }
-  }
-
-  std::optional<size_t>
-  level_counter::value_if_present(level_id const& id) const
-  {
-    if (accessor a; counter_.find(a, id)) {
-      return a->second;
-    }
-    return std::nullopt;
   }
 
   std::size_t
