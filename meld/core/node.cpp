@@ -3,21 +3,12 @@
 #include <ostream>
 
 namespace meld {
-  namespace {
-    std::vector<size_t>
-    appended(std::vector<std::size_t> ids, std::size_t new_id)
-    {
-      ids.push_back(new_id);
-      return ids;
-    }
-  }
-
-  node::node(std::vector<std::size_t> id) : id_{move(id)} {}
-  node::node(std::vector<std::size_t> id, std::size_t new_id) : id_{appended(move(id), new_id)} {}
+  node::node(level_id id) : id_{std::move(id)} {}
+  node::node(level_id const& parent_id, std::size_t new_id) : id_{parent_id.make_child(new_id)} {}
 
   node::~node() = default;
 
-  std::vector<std::size_t> const&
+  level_id const&
   node::id() const noexcept
   {
     return id_;

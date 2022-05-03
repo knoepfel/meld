@@ -7,6 +7,57 @@
 #include <numeric>
 
 namespace meld {
+
+  level_id::level_id() = default;
+  level_id::level_id(std::initializer_list<std::size_t> numbers) : id_{numbers} {}
+  level_id::level_id(std::vector<std::size_t> numbers) : id_{move(numbers)} {}
+
+  level_id
+  level_id::make_child(std::size_t const new_level_number) const
+  {
+    auto numbers = id_;
+    numbers.push_back(new_level_number);
+    return level_id{move(numbers)};
+  }
+
+  bool
+  level_id::has_parent() const noexcept
+  {
+    // Use std::vector::empty member function which is noexcept.
+    return not id_.empty();
+  }
+
+  std::size_t
+  level_id::back() const
+  {
+    return id_.back();
+  }
+
+  std::size_t
+  level_id::hash() const noexcept
+  {
+    // Pilfered from
+    // https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector#comment126511630_27216842
+    // The std::size() free function is not noexcept, so we use the
+    // std::vector::size() member function.
+    return std::accumulate(
+      cbegin(id_), cend(id_), id_.size(), [](std::size_t h, std::size_t f) noexcept {
+        return h ^= f + 0x9e3779b9 + (h << 6) + (h >> 2);
+      });
+  }
+
+  bool
+  level_id::operator==(level_id const& other) const
+  {
+    return id_ == other.id_;
+  }
+
+  bool
+  level_id::operator<(level_id const& other) const
+  {
+    return id_ < other.id_;
+  }
+
   level_id
   id_for(char const* c_str)
   {
@@ -16,39 +67,33 @@ namespace meld {
     strs.erase(std::remove_if(begin(strs), end(strs), [](auto& str) { return empty(str); }),
                end(strs));
 
-    level_id result;
-    std::transform(begin(strs), end(strs), std::back_inserter(result), [](auto const& str) {
+    std::vector<std::size_t> numbers;
+    std::transform(begin(strs), end(strs), back_inserter(numbers), [](auto const& str) {
       return std::stoull(str);
     });
-    return result;
+    return level_id{move(numbers)};
   }
 
   level_id operator"" _id(char const* c_str, std::size_t) { return id_for(c_str); }
 
-  bool
-  has_parent(level_id const& id) noexcept
-  {
-    // Use std::vector::empty member function which is noexcept.
-    return not id.empty();
-  }
-
   level_id
-  parent(level_id id)
+  level_id::parent() const
   {
-    if (not has_parent(id))
+    if (not has_parent())
       throw std::runtime_error("Empty ID does not have a parent.");
+    auto id = id_;
     id.pop_back();
-    return id;
+    return level_id{move(id)};
   }
 
   transitions
-  transitions_between(level_id from, level_id const& to, level_counter& counter)
+  transitions_between(level_id from_id, level_id const& to_id, level_counter& counter)
   {
-    if (from == to) {
+    if (from_id == to_id) {
       return {};
     }
 
-    // std::size_t const to_size = size(to);
+    auto const& [from, to] = std::make_tuple(from_id.id_, to_id.id_);
     auto const from_begin = begin(from);
     auto const from_end = end(from);
     auto const to_end = end(to);
@@ -62,16 +107,16 @@ namespace meld {
     // 'process' stages to call
 
     for (auto i = size(from); i > common_stages; --i) {
-      counter.record_parent(from);
-      result.emplace_back(counter.value_as_id(from), stage::flush);
-      result.emplace_back(from, stage::process);
-      from.pop_back();
+      counter.record_parent(from_id);
+      result.emplace_back(counter.value_as_id(from_id), stage::flush);
+      result.emplace_back(from_id, stage::process);
+      from_id = from_id.parent();
     }
 
     // 'setup' stages to call
     for (; to_it != to_end; ++to_it) {
-      from.push_back(*to_it);
-      result.emplace_back(from, stage::setup);
+      from_id = from_id.make_child(*to_it);
+      result.emplace_back(from_id, stage::setup);
     }
 
     return result;
@@ -123,10 +168,11 @@ namespace meld {
   std::ostream&
   operator<<(std::ostream& os, level_id const& id)
   {
-    if (empty(id))
+    if (not id.has_parent())
       return os << "[]";
-    os << '[' << id.front();
-    for (auto b = begin(id) + 1, e = end(id); b != e; ++b) {
+    auto const& nums = id.id_;
+    os << '[' << nums.front();
+    for (auto b = begin(nums) + 1, e = end(nums); b != e; ++b) {
       os << ", " << *b;
     }
     os << ']';
@@ -139,28 +185,15 @@ namespace meld {
     return os << "ID: " << t.first << " Stage: " << to_string(t.second);
   }
 
-  std::size_t
-  hash_id(level_id const& id) noexcept
-  {
-    // Pilfered from
-    // https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector#comment126511630_27216842
-    // The std::size() free function is not noexcept, so we use the
-    // std::vector::size() member function.
-    return std::accumulate(
-      cbegin(id), cend(id), id.size(), [](std::size_t h, std::size_t f) noexcept {
-        return h ^= f + 0x9e3779b9 + (h << 6) + (h >> 2);
-      });
-  }
-
   void
   level_counter::record_parent(level_id const& id)
   {
-    if (empty(id)) {
+    if (not id.has_parent()) {
       // No parent to record
       return;
     }
     accessor a;
-    if (counter_.insert(a, parent(id))) {
+    if (counter_.insert(a, id.parent())) {
       a->second = 1;
     }
     else {
@@ -169,7 +202,7 @@ namespace meld {
   }
 
   std::optional<size_t>
-  level_counter::value_if_present(level_id const& id)
+  level_counter::value_if_present(level_id const& id) const
   {
     if (accessor a; counter_.find(a, id)) {
       return a->second;
@@ -178,7 +211,7 @@ namespace meld {
   }
 
   std::size_t
-  level_counter::value(level_id const& id)
+  level_counter::value(level_id const& id) const
   {
     if (accessor a; counter_.find(a, id)) {
       return a->second;
@@ -187,10 +220,9 @@ namespace meld {
   }
 
   level_id
-  level_counter::value_as_id(level_id id)
+  level_counter::value_as_id(level_id const& id) const
   {
-    id.push_back(value(id));
-    return id;
+    return id.make_child(value(id));
   }
 
   void

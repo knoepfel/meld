@@ -24,7 +24,7 @@ namespace meld {
 
   protected:
     explicit node(level_id id);
-    explicit node(level_id parent_ids, std::size_t id);
+    explicit node(level_id const& parent_id, std::size_t id);
 
   private:
     level_id id_;

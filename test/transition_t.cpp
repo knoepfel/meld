@@ -13,7 +13,7 @@ TEST_CASE("Transition string literal", "[transition]")
   CHECK("1:2:3:4"_id == level_id{1, 2, 3, 4});
 }
 
-TEST_CASE("Hash IDs", "[transition]") { CHECK(hash_id(""_id) == 0ull); }
+TEST_CASE("Hash IDs", "[transition]") { CHECK(""_id.hash() == 0ull); }
 
 TEST_CASE("Parent counter", "[transition]")
 {

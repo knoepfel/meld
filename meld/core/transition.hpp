@@ -9,22 +9,43 @@
 #include <vector>
 
 namespace meld {
-  using level_id = std::vector<std::size_t>;
+  class level_id;
+  class level_counter;
+  enum class stage { setup, flush, process };
+
+  // std::string is the name of the node type
+  using transition_type = std::pair<std::string, stage>;
+  using transition = std::pair<level_id, stage>;
+  using transitions = std::vector<transition>;
+
+  class level_id {
+  public:
+    level_id();
+    explicit level_id(std::initializer_list<std::size_t> numbers);
+    explicit level_id(std::vector<std::size_t> numbers);
+    level_id make_child(std::size_t new_level_number) const;
+    level_id parent() const;
+    bool has_parent() const noexcept;
+    std::size_t back() const;
+    std::size_t hash() const noexcept;
+    bool operator==(level_id const& other) const;
+    bool operator<(level_id const& other) const;
+
+    friend transitions transitions_between(level_id from, level_id const& to, level_counter& c);
+    friend std::ostream& operator<<(std::ostream& os, level_id const& id);
+
+  private:
+    std::vector<std::size_t> id_{};
+  };
 
   level_id id_for(char const* str);
   level_id operator"" _id(char const* str, std::size_t);
-
-  bool has_parent(level_id const& id) noexcept;
-  level_id parent(level_id id);
-  enum class stage { setup, flush, process };
-
-  std::size_t hash_id(level_id const& id) noexcept;
 
   struct IDHasher {
     std::size_t
     hash(level_id const& id) const noexcept
     {
-      return hash_id(id);
+      return id.hash();
     }
 
     bool
@@ -37,9 +58,9 @@ namespace meld {
   class level_counter {
   public:
     void record_parent(level_id const& id);
-    std::optional<std::size_t> value_if_present(level_id const& id);
-    std::size_t value(level_id const& id);
-    level_id value_as_id(level_id id);
+    std::optional<std::size_t> value_if_present(level_id const& id) const;
+    std::size_t value(level_id const& id) const;
+    level_id value_as_id(level_id const& id) const;
 
     void print() const;
 
@@ -47,11 +68,6 @@ namespace meld {
     tbb::concurrent_hash_map<level_id, unsigned, IDHasher> counter_;
     using accessor = decltype(counter_)::accessor;
   };
-
-  // std::string is the name of the node type
-  using transition_type = std::pair<std::string, stage>;
-  using transition = std::pair<level_id, stage>;
-  using transitions = std::vector<transition>;
 
   transitions transitions_between(level_id begin, level_id const& end, level_counter& counter);
   transitions transitions_for(std::vector<level_id> const& ids);

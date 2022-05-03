@@ -19,15 +19,15 @@ namespace meld {
   bool
   gatekeeper_node::is_ready(meld::level_id const& id) const
   {
-    if (not has_parent(id))
+    if (not id.has_parent())
       return true;
-    return setup_complete.count(parent(id)) == 1ull;
+    return setup_complete.count(id.parent()) == 1ull;
   }
 
   bool
   gatekeeper_node::is_initialized(meld::level_id const& id) const
   {
-    if (not has_parent(id))
+    if (not id.has_parent())
       return true;
     return setup_complete.count(id) == 1ull;
   }
@@ -84,7 +84,7 @@ namespace meld {
       break;
     }
     case stage::flush: {
-      flush_values.emplace(parent(id), id.back());
+      flush_values.emplace(id.parent(), id.back());
     }
     }
   }
