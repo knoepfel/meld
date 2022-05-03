@@ -13,7 +13,7 @@ namespace {
 
   class test_node : public node {
   public:
-    explicit test_node(meld::id_t const& id, std::string level_name) :
+    explicit test_node(level_id const& id, std::string level_name) :
       node{id}, name{move(level_name)}
     {
     }

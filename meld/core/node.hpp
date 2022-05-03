@@ -19,15 +19,15 @@ namespace meld {
   class node {
   public:
     virtual ~node(); // Ick.  Should be able to type-erase this thing.
-    id_t const& id() const noexcept;
+    level_id const& id() const noexcept;
     virtual std::string_view level_name() const = 0;
 
   protected:
-    explicit node(id_t id);
-    explicit node(id_t parent_ids, std::size_t id);
+    explicit node(level_id id);
+    explicit node(level_id parent_ids, std::size_t id);
 
   private:
-    id_t id_;
+    level_id id_;
   };
 
   using node_ptr = std::shared_ptr<node>;

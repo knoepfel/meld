@@ -8,10 +8,9 @@ using namespace meld::test;
 
 TEST_CASE("Transition string literal", "[transition]")
 {
-  using meld::id_t;
-  CHECK(""_id == id_t{});
-  CHECK("2"_id == id_t{2});
-  CHECK("1:2:3:4"_id == id_t{1, 2, 3, 4});
+  CHECK(""_id == level_id{});
+  CHECK("2"_id == level_id{2});
+  CHECK("1:2:3:4"_id == level_id{1, 2, 3, 4});
 }
 
 TEST_CASE("Parent counter", "[transition]")

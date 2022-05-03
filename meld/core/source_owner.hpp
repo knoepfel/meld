@@ -53,7 +53,7 @@ namespace meld {
       }
 
       auto data = user_source.data();
-      id_t id_to_process = data ? data->id() : id_t{};
+      level_id id_to_process = data ? data->id() : level_id{};
 
       if (data) {
         nodes.emplace(id_to_process, data);
@@ -93,9 +93,9 @@ namespace meld {
     }
 
     T user_source;
-    id_t last_processed_level{};
+    level_id last_processed_level{};
     bool more_data{true};
-    std::map<id_t, std::shared_ptr<node>> nodes;
+    std::map<level_id, std::shared_ptr<node>> nodes;
     level_counter counter;
   };
 }

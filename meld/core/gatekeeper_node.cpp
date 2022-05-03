@@ -17,7 +17,7 @@ namespace meld {
   }
 
   bool
-  gatekeeper_node::is_ready(meld::id_t const& id) const
+  gatekeeper_node::is_ready(meld::level_id const& id) const
   {
     if (not has_parent(id))
       return true;
@@ -25,7 +25,7 @@ namespace meld {
   }
 
   bool
-  gatekeeper_node::is_initialized(meld::id_t const& id) const
+  gatekeeper_node::is_initialized(meld::level_id const& id) const
   {
     if (not has_parent(id))
       return true;
@@ -33,7 +33,7 @@ namespace meld {
   }
 
   bool
-  gatekeeper_node::is_flush(meld::id_t const& id)
+  gatekeeper_node::is_flush(meld::level_id const& id)
   {
     if (not is_initialized(id)) {
       return false;

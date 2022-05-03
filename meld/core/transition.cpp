@@ -7,7 +7,7 @@
 #include <numeric>
 
 namespace meld {
-  id_t
+  level_id
   id_for(char const* c_str)
   {
     std::vector<std::string> strs;
@@ -16,23 +16,23 @@ namespace meld {
     strs.erase(std::remove_if(begin(strs), end(strs), [](auto& str) { return empty(str); }),
                end(strs));
 
-    id_t result;
+    level_id result;
     std::transform(begin(strs), end(strs), std::back_inserter(result), [](auto const& str) {
       return std::stoull(str);
     });
     return result;
   }
 
-  id_t operator"" _id(char const* c_str, std::size_t) { return id_for(c_str); }
+  level_id operator"" _id(char const* c_str, std::size_t) { return id_for(c_str); }
 
   bool
-  has_parent(id_t const& id)
+  has_parent(level_id const& id)
   {
     return not empty(id);
   }
 
-  id_t
-  parent(id_t id)
+  level_id
+  parent(level_id id)
   {
     if (not has_parent(id))
       throw std::runtime_error("Empty ID does not have a parent.");
@@ -41,7 +41,7 @@ namespace meld {
   }
 
   transitions
-  transitions_between(id_t from, id_t const to, level_counter& counter)
+  transitions_between(level_id from, level_id const& to, level_counter& counter)
   {
     if (from == to) {
       return {};
@@ -77,7 +77,7 @@ namespace meld {
   }
 
   transitions
-  transitions_for(std::vector<id_t> const& ids)
+  transitions_for(std::vector<level_id> const& ids)
   {
     level_counter counter;
 
@@ -93,7 +93,7 @@ namespace meld {
     auto first_trs = transitions_between({}, *from, counter);
     result.insert(end(result), begin(first_trs), end(first_trs));
 
-    std::map<id_t, unsigned> flush_numbers;
+    std::map<level_id, unsigned> flush_numbers;
     for (auto to = next(from), e = end(ids); to != e; ++from, ++to) {
       auto trs = transitions_between(*from, *to, counter);
       result.insert(end(result), begin(trs), end(trs));
@@ -120,7 +120,7 @@ namespace meld {
   }
 
   std::ostream&
-  operator<<(std::ostream& os, id_t const& id)
+  operator<<(std::ostream& os, level_id const& id)
   {
     if (empty(id))
       return os << "[]";
@@ -139,7 +139,7 @@ namespace meld {
   }
 
   std::size_t
-  hash_id(meld::id_t const& id)
+  hash_id(level_id const& id)
   {
     // Pilfered from https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector#comment126511630_27216842
     return std::accumulate(begin(id), end(id), size(id), [](std::size_t h, std::size_t f) {
@@ -148,7 +148,7 @@ namespace meld {
   }
 
   void
-  level_counter::record_parent(id_t const& id)
+  level_counter::record_parent(level_id const& id)
   {
     if (empty(id)) {
       // No parent to record
@@ -164,7 +164,7 @@ namespace meld {
   }
 
   std::optional<size_t>
-  level_counter::value_if_present(id_t const& id)
+  level_counter::value_if_present(level_id const& id)
   {
     if (accessor a; counter_.find(a, id)) {
       return a->second;
@@ -173,7 +173,7 @@ namespace meld {
   }
 
   std::size_t
-  level_counter::value(id_t const& id)
+  level_counter::value(level_id const& id)
   {
     if (accessor a; counter_.find(a, id)) {
       return a->second;
@@ -181,8 +181,8 @@ namespace meld {
     return 0;
   }
 
-  id_t
-  level_counter::value_as_id(id_t id)
+  level_id
+  level_counter::value_as_id(level_id id)
   {
     id.push_back(value(id));
     return id;

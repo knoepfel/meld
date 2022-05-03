@@ -21,17 +21,17 @@ namespace meld {
     using indexer_node = tbb::flow::indexer_node<transition_message, transition_message>;
     using msg_t = indexer_node::output_type;
 
-    bool is_ready(id_t const& id) const;
-    bool is_initialized(id_t const& id) const;
-    bool is_flush(id_t const& id);
+    bool is_ready(level_id const& id) const;
+    bool is_initialized(level_id const& id) const;
+    bool is_flush(level_id const& id);
 
     using multiplexer_node = tbb::flow::multifunction_node<msg_t, detail::msg_3_tuple>;
     using multiplexer_output_ports_type = multiplexer_node::output_ports_type;
     void multiplex(msg_t const& msg, multiplexer_output_ports_type& outputs);
 
-    tbb::concurrent_hash_map<meld::id_t, bool, IDHasher> setup_complete;
+    tbb::concurrent_hash_map<level_id, bool, IDHasher> setup_complete;
     using setup_accessor = decltype(setup_complete)::accessor;
-    tbb::concurrent_hash_map<meld::id_t, unsigned, IDHasher> flush_values;
+    tbb::concurrent_hash_map<level_id, unsigned, IDHasher> flush_values;
     using accessor = decltype(flush_values)::accessor;
     level_counter counter_;
     indexer_node indexer_;

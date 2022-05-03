@@ -33,8 +33,8 @@ namespace meld::test {
     }
 
     // For testing
-    std::vector<id_t> created_runs;
-    std::vector<id_t> created_subruns;
+    std::vector<level_id> created_runs;
+    std::vector<level_id> created_subruns;
 
   private:
     std::size_t const num_nodes_;
