@@ -51,8 +51,7 @@ namespace meld {
   gatekeeper_node::multiplex(msg_t const& msg, multiplexer_output_ports_type& outputs)
   {
     auto tr_msg = msg.cast_to<transition_message>();
-    auto const [tr, node_ptr] = tr_msg;
-    auto const& [id, stage] = tr;
+    auto const& [id, stage] = tr_msg.first;
     if (msg.tag() == 1) {
       if (stage == stage::process) {
         counter_.record_parent(id);

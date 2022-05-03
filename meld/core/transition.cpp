@@ -26,9 +26,10 @@ namespace meld {
   level_id operator"" _id(char const* c_str, std::size_t) { return id_for(c_str); }
 
   bool
-  has_parent(level_id const& id)
+  has_parent(level_id const& id) noexcept
   {
-    return not empty(id);
+    // Use std::vector::empty member function which is noexcept.
+    return not id.empty();
   }
 
   level_id
@@ -139,12 +140,16 @@ namespace meld {
   }
 
   std::size_t
-  hash_id(level_id const& id)
+  hash_id(level_id const& id) noexcept
   {
-    // Pilfered from https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector#comment126511630_27216842
-    return std::accumulate(begin(id), end(id), size(id), [](std::size_t h, std::size_t f) {
-      return h ^= f + 0x9e3779b9 + (h << 6) + (h >> 2);
-    });
+    // Pilfered from
+    // https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector#comment126511630_27216842
+    // The std::size() free function is not noexcept, so we use the
+    // std::vector::size() member function.
+    return std::accumulate(
+      cbegin(id), cend(id), id.size(), [](std::size_t h, std::size_t f) noexcept {
+        return h ^= f + 0x9e3779b9 + (h << 6) + (h >> 2);
+      });
   }
 
   void

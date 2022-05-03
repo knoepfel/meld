@@ -14,15 +14,15 @@ namespace meld {
   level_id id_for(char const* str);
   level_id operator"" _id(char const* str, std::size_t);
 
-  bool has_parent(level_id const& id);
+  bool has_parent(level_id const& id) noexcept;
   level_id parent(level_id id);
   enum class stage { setup, flush, process };
 
-  std::size_t hash_id(level_id const& id);
+  std::size_t hash_id(level_id const& id) noexcept;
 
   struct IDHasher {
     std::size_t
-    hash(level_id const& id) const
+    hash(level_id const& id) const noexcept
     {
       return hash_id(id);
     }
