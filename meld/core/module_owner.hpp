@@ -1,9 +1,11 @@
 #ifndef meld_core_module_owner_hpp
 #define meld_core_module_owner_hpp
 
+#include "meld/core/concurrency_tags.hpp"
 #include "meld/core/module_worker.hpp"
 #include "meld/core/node.hpp"
 #include "meld/core/uses_config.hpp"
+#include "meld/utilities/debug.hpp"
 
 #include <memory>
 #include <type_traits>
@@ -18,26 +20,6 @@ namespace meld {
     }
     return (std::is_same<Parent, Ds>() || ...);
   }
-
-  template <typename T, typename D>
-  concept has_process = requires(T t, D const& d)
-  {
-    // clang-format off
-    {t.process(d)} -> std::same_as<void>;
-    // clang-format on
-  };
-  template <typename T, typename D>
-  constexpr std::string_view has_process_for = has_process<T, D> ? D::name() : "";
-
-  template <typename T, typename D>
-  concept has_setup = requires(T t, D const& d)
-  {
-    // clang-format off
-    {t.setup(d)} -> std::same_as<void>;
-    // clang-format on
-  };
-  template <typename T, typename D>
-  constexpr std::string_view has_setup_for = has_setup<T, D> ? D::name() : "";
 
   template <typename T, typename... Ds>
   class module_owner : public module_worker {
@@ -72,6 +54,17 @@ namespace meld {
     }
 
   private:
+    std::size_t
+    do_concurrency(transition_type const& tt) const final
+    {
+      auto const& [transition_name, stage] = tt;
+      assert(stage != stage::flush);
+      if (stage == stage::setup) {
+        return setup_concurrencies.get(transition_name).value();
+      }
+      return process_concurrencies.get(transition_name).value();
+    }
+
     std::vector<std::string>
     required_dependencies() const final
     {
@@ -81,34 +74,24 @@ namespace meld {
     std::vector<transition_type>
     supported_setup_transitions() const final
     {
-      std::vector transitions_with_setup{has_setup_for<T, Ds>...};
-      transitions_with_setup.erase(
-        std::remove(begin(transitions_with_setup), end(transitions_with_setup), ""),
-        end(transitions_with_setup));
       std::vector<transition_type> result;
-      std::transform(begin(transitions_with_setup),
-                     end(transitions_with_setup),
-                     back_inserter(result),
-                     [](auto sv) {
-                       return transition_type{sv, stage::setup};
-                     });
+      for (std::size_t i = 0; i < sizeof...(Ds); ++i) {
+        if (auto const [name, has_setup] = setup_concurrencies.get(i); has_setup) {
+          result.emplace_back(name, stage::setup);
+        }
+      }
       return result;
     }
 
     std::vector<transition_type>
     supported_process_transitions() const final
     {
-      std::vector transitions_with_process{has_process_for<T, Ds>...};
-      transitions_with_process.erase(
-        std::remove(begin(transitions_with_process), end(transitions_with_process), ""),
-        end(transitions_with_process));
       std::vector<transition_type> result;
-      std::transform(begin(transitions_with_process),
-                     end(transitions_with_process),
-                     back_inserter(result),
-                     [](auto sv) {
-                       return transition_type{sv, stage::process};
-                     });
+      for (std::size_t i = 0; i < sizeof...(Ds); ++i) {
+        if (auto const [name, has_process] = process_concurrencies.get(i); has_process) {
+          result.emplace_back(name, stage::process);
+        }
+      }
       return result;
     }
 
@@ -127,6 +110,32 @@ namespace meld {
       }
     }
 
+    template <typename D>
+    void
+    setup_data(D const& d)
+    {
+      constexpr auto tag = concurrency_tag_for_setup<T, D>();
+      if constexpr (tag.is_specified) {
+        user_module.setup(d, tag);
+      }
+      else {
+        user_module.setup(d);
+      }
+    }
+
+    template <typename D>
+    void
+    process_data(D const& d)
+    {
+      constexpr auto tag = concurrency_tag_for_process<T, D>();
+      if constexpr (tag.is_specified) {
+        user_module.process(d, tag);
+      }
+      else {
+        user_module.process(d);
+      }
+    }
+
     // template <typename D>
     // bool
     // must_process(D*) const
@@ -138,12 +147,12 @@ namespace meld {
     bool
     setup(node& data)
     {
-      if constexpr (!has_setup<T, D>) {
+      if constexpr (!setup_concurrencies.template supports_level<D>()) {
         return true;
       }
       else {
         if (auto d = dynamic_cast<D*>(&data)) {
-          user_module.setup(*d);
+          setup_data(*d);
           return true;
         }
         return false;
@@ -154,12 +163,12 @@ namespace meld {
     bool
     process(node& data)
     {
-      if constexpr (!has_process<T, D>) {
+      if constexpr (!process_concurrencies.template supports_level<D>()) {
         return true;
       }
       else {
         if (auto d = dynamic_cast<D*>(&data)) {
-          user_module.process(*d);
+          process_data(*d);
           return true;
         }
         return false;
@@ -168,6 +177,8 @@ namespace meld {
 
     T user_module;
     std::vector<std::string> dependencies;
+    static constexpr concurrencies<stage::setup, T, Ds...> setup_concurrencies;
+    static constexpr concurrencies<stage::process, T, Ds...> process_concurrencies;
   };
 }
 

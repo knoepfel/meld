@@ -11,19 +11,19 @@
 namespace meld::test {
   struct multiple_levels {
     void
-    setup(run const& r)
+    setup(run const& r, concurrency::serial)
     {
       processed_transitions.emplace_back(r.id(), stage::setup);
     }
 
     void
-    process(subrun const& sr)
+    process(subrun const& sr, concurrency::serial)
     {
       processed_transitions.emplace_back(sr.id(), stage::process);
     }
 
     void
-    process(run const& r)
+    process(run const& r, concurrency::serial)
     {
       using namespace std::chrono_literals;
       std::this_thread::sleep_for(1s);

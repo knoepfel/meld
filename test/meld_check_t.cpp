@@ -11,23 +11,20 @@ using namespace meld::test;
 
 TEST_CASE("Module called", "[module]")
 {
-  using module = multiple_levels;
-  using source = my_source;
-
   boost::json::object const config{{"num_nodes", 5}};
-  auto manager = module_manager::make_with_source<source>(config);
-  manager.add_module<module, run, subrun>("module");
+  auto manager = module_manager::make_with_source<my_source>(config);
+  manager.add_module<multiple_levels, run, subrun>("module");
 
   data_processor processor{&manager};
   processor.run_to_completion();
 
   std::vector const expected_runs{"1"_id, "3"_id, "5"_id};
   std::vector const expected_subruns{"1:2"_id, "3:4"_id};
-  auto const& src = manager.get_source<source>();
+  auto const& src = manager.get_source<my_source>();
   CHECK(src.created_runs == expected_runs);
   CHECK(src.created_subruns == expected_subruns);
 
-  auto const& mod = manager.get_module<module, run, subrun>("module");
+  auto const& mod = manager.get_module<multiple_levels, run, subrun>("module");
   auto const& processed_trs = mod.processed_transitions;
 
   transitions const expected_transitions{setup("1"),
@@ -38,6 +35,8 @@ TEST_CASE("Module called", "[module]")
                                          process("3"),
                                          setup("5"),
                                          process("5")};
+  REQUIRE(size(processed_trs) == size(expected_transitions));
+
   auto it_for = [&processed_trs](transition const& tr) {
     return std::find(begin(processed_trs), end(processed_trs), tr);
   };

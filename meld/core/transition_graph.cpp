@@ -4,9 +4,12 @@ namespace meld {
   transition_graph::transition_graph(stage const s) : stage_{s} {}
 
   void
-  transition_graph::add_node(std::string const& name, module_worker& worker)
+  transition_graph::add_node(std::string const& name,
+                             transition_type const& tt,
+                             module_worker& worker)
   {
-    nodes_.try_emplace(name, module_node{graph_, tbb::flow::serial, [&worker, this](node_ptr n) {
+    auto const concurrency = worker.concurrency(tt);
+    nodes_.try_emplace(name, module_node{graph_, concurrency, [&worker, this](node_ptr n) {
                                            worker.process(stage_, *n);
                                            return n;
                                          }});

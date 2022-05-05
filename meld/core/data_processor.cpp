@@ -36,7 +36,7 @@ namespace meld {
                           std::forward_as_tuple(transition_type.second))
                  .first;
         }
-        it->second.add_node(name, *worker);
+        it->second.add_node(name, transition_type, *worker);
       }
     }
 

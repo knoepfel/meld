@@ -16,7 +16,7 @@ namespace meld {
   public:
     explicit transition_graph(stage s);
     void process(node_ptr n);
-    void add_node(std::string const& name, module_worker& worker);
+    void add_node(std::string const& name, transition_type const& tt, module_worker& worker);
     void calculate_edges();
 
   private:

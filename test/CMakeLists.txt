@@ -30,3 +30,8 @@ add_executable(gatekeeper_t gatekeeper_t.cpp)
 target_link_libraries(gatekeeper_t PRIVATE Catch2::Catch2 TBB::tbb meld::core test_levels)
 target_compile_definitions(gatekeeper_t PRIVATE CATCH_CONFIG_MAIN)
 add_test(NAME gatekeeper_t COMMAND gatekeeper_t)
+
+add_executable(concurrency_tags_t concurrency_tags_t.cpp)
+target_link_libraries(concurrency_tags_t PRIVATE Catch2::Catch2 meld::core)
+target_compile_definitions(concurrency_tags_t PRIVATE CATCH_CONFIG_MAIN)
+add_test(NAME concurrency_tags_t COMMAND concurrency_tags_t)
