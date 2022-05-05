@@ -8,10 +8,9 @@
 #include <typeinfo>
 
 namespace meld::test {
-  class run_only_module {
-  public:
+  struct run_only_module {
     void
-    process(run const& r) const
+    process(run const& r, concurrency::unlimited) const
     {
       using namespace std::chrono_literals;
       std::this_thread::sleep_for(1s);
