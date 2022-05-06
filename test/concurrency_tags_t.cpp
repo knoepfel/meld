@@ -102,9 +102,9 @@ namespace {
 TEST_CASE("Concurreny tags", "[multithreading]")
 {
   using namespace std::literals;
-  CHECK(a_cons.get(0) == std::pair{"Data"sv, std::optional<int>{}});
-  CHECK(a_cons.get(1) == std::pair{"More"sv, std::optional<int>{1}});
-  CHECK(a_cons.get(2) == std::pair{"Maybe"sv, std::optional<int>{}});
+  CHECK(a_cons.get(0) == concurrency_values{"Data"sv, std::nullopt});
+  CHECK(a_cons.get(1) == concurrency_values{"More"sv, 1});
+  CHECK(a_cons.get(2) == concurrency_values{"Maybe"sv, std::nullopt});
 
   CHECK(a_cons.get("Data") == std::nullopt);
   CHECK(a_cons.get("More").value() == 1);

@@ -118,10 +118,14 @@ namespace meld {
     concurrency::detail::tag<T, D>(&T::setup);
   };
 
+  struct concurrency_values {
+    std::string_view name;
+    std::optional<int> value;
+    constexpr bool operator==(concurrency_values const&) const = default;
+  };
+
   template <typename D>
-  struct level_concurrency {
-    std::string_view name{D::name()};
-    std::optional<int> value{};
+  struct level_concurrency : concurrency_values {
   };
 
   template <typename T, typename D>
@@ -177,7 +181,7 @@ namespace meld {
       return std::get<level_concurrency<D>>(concurrencies_).value;
     }
 
-    constexpr std::pair<std::string_view, std::optional<int>>
+    constexpr concurrency_values
     get(std::size_t i) const noexcept
     {
       assert(i < sizeof...(Args));
@@ -206,18 +210,18 @@ namespace meld {
     std::tuple<level_concurrency<Args>...> concurrencies_{concurrencies_for<s, T, Args...>()};
 
     template <std::size_t I>
-    constexpr std::pair<std::string_view, std::optional<int>>
+    constexpr concurrency_values
     get_element(std::size_t const i) const
     {
       if (i == I) {
         auto const& concurrency = std::get<I>(concurrencies_);
-        return {concurrency.name, concurrency.value};
+        return concurrency;
       }
       return get_element<I + 1>(i);
     }
 
     template <>
-    constexpr std::pair<std::string_view, std::optional<int>>
+    constexpr concurrency_values
     get_element<sizeof...(Args)>(std::size_t) const
     {
       return {};
