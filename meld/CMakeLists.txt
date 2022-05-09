@@ -1,6 +1,7 @@
 find_package(CLI11 REQUIRED)
 
 add_subdirectory(core)
+add_subdirectory(utilities)
 
 configure_file(version.cpp.in version.cpp @ONLY)
 

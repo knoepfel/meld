@@ -1,7 +1,10 @@
 #include "meld/core/transition_graph.hpp"
 
 namespace meld {
-  transition_graph::transition_graph(stage const s) : stage_{s} {}
+  transition_graph::transition_graph(/* gatekeeper_node& gatekeeper, */ stage const s) :
+    /* gatekeeper_{gatekeeper}, */ stage_{s}
+  {
+  }
 
   void
   transition_graph::add_node(std::string const& name,

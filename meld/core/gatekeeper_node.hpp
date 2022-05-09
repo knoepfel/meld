@@ -2,6 +2,7 @@
 #define meld_core_gatekeeper_node_hpp
 
 #include "meld/core/node.hpp"
+#include "meld/utilities/sized_tuple.hpp"
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"
 
@@ -10,16 +11,8 @@
 
 namespace meld {
   namespace detail {
-    // Infrastructure to allow specification of (e.g.) msg_tuple<4>, which is an alias for
-    // std::tuple<transition, transition, transition, transition>.
-    template <std::size_t>
-    using msg = transition_message;
-
-    template <std::size_t... I>
-    std::tuple<msg<I>...> msg_tuple_for(std::index_sequence<I...>);
-
     template <std::size_t N>
-    using msg_tuple = decltype(msg_tuple_for(std::make_index_sequence<N>{}));
+    using msg_tuple = sized_tuple<transition_message, N>;
   }
 
   class gatekeeper_node :

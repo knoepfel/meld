@@ -78,6 +78,7 @@ namespace meld {
     if (auto it = transition_graphs_.find(ttype); it != cend(transition_graphs_)) {
       it->second.process(node_ptr);
     }
+    // graph_.wait_for_all();
     return msg;
   }
 }
