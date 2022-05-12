@@ -1,4 +1,4 @@
-#include "meld/core/module_worker.hpp"
+#include "meld/graph/module_worker.hpp"
 
 // FIXME: Should move this dependency farther up and not at the module level.
 #include "oneapi/tbb/flow_graph.h"

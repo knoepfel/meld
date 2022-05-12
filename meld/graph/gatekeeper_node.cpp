@@ -1,4 +1,4 @@
-#include "meld/core/gatekeeper_node.hpp"
+#include "meld/graph/gatekeeper_node.hpp"
 
 using namespace tbb;
 

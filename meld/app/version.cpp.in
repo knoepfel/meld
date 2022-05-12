@@ -1,4 +1,4 @@
-#include "meld/version.hpp"
+#include "meld/app/version.hpp"
 
 namespace meld {
   // clang-format off

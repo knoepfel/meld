@@ -1,6 +1,6 @@
 #include "meld/core/load_module.hpp"
-#include "meld/core/module_worker.hpp"
 #include "meld/core/source_worker.hpp"
+#include "meld/graph/module_worker.hpp"
 
 #include "boost/algorithm/string.hpp"
 #include "boost/dll/import.hpp"

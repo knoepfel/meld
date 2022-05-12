@@ -1,9 +1,9 @@
 #include "meld/core/data_processor.hpp"
 #include "meld/core/module_owner.hpp"
-#include "meld/core/module_worker.hpp"
 #include "meld/core/node.hpp"
 #include "meld/core/source_owner.hpp"
 #include "meld/core/source_worker.hpp"
+#include "meld/graph/module_worker.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 

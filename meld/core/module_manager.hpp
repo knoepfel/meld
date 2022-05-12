@@ -2,9 +2,9 @@
 #define meld_core_module_manager_hpp
 
 #include "meld/core/module_owner.hpp"
-#include "meld/core/module_worker.hpp"
 #include "meld/core/source_owner.hpp"
 #include "meld/core/source_worker.hpp"
+#include "meld/graph/module_worker.hpp"
 
 #include "boost/json.hpp"
 

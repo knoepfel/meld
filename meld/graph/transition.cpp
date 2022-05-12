@@ -1,4 +1,4 @@
-#include "meld/core/transition.hpp"
+#include "meld/graph/transition.hpp"
 
 #include "boost/algorithm/string.hpp"
 

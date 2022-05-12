@@ -1,5 +1,5 @@
-#ifndef meld_core_gatekeeper_node_hpp
-#define meld_core_gatekeeper_node_hpp
+#ifndef meld_graph_gatekeeper_node_hpp
+#define meld_graph_gatekeeper_node_hpp
 
 #include "meld/core/node.hpp"
 #include "meld/utilities/sized_tuple.hpp"
@@ -44,4 +44,4 @@ namespace meld {
 
 }
 
-#endif /* meld_core_gatekeeper_node_hpp */
+#endif /* meld_graph_gatekeeper_node_hpp */

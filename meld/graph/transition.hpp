@@ -1,5 +1,5 @@
-#ifndef meld_core_transition_hpp
-#define meld_core_transition_hpp
+#ifndef meld_graph_transition_hpp
+#define meld_graph_transition_hpp
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 
@@ -77,4 +77,4 @@ namespace meld {
   std::ostream& operator<<(std::ostream& os, transition const& t);
 }
 
-#endif /* meld_core_transition_hpp */
+#endif /* meld_graph_transition_hpp */

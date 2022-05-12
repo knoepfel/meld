@@ -2,9 +2,9 @@
 #define meld_core_module_owner_hpp
 
 #include "meld/core/concurrency_tags.hpp"
-#include "meld/core/module_worker.hpp"
 #include "meld/core/node.hpp"
 #include "meld/core/uses_config.hpp"
+#include "meld/graph/module_worker.hpp"
 #include "meld/utilities/debug.hpp"
 
 #include <memory>

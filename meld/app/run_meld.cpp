@@ -1,4 +1,4 @@
-#include "meld/run_meld.hpp"
+#include "meld/app/run_meld.hpp"
 #include "meld/core/data_processor.hpp"
 #include "meld/core/load_module.hpp"
 #include "meld/core/module_manager.hpp"

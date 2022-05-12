@@ -1,9 +1,9 @@
-#ifndef meld_core_transition_graph_hpp
-#define meld_core_transition_graph_hpp
+#ifndef meld_graph_transition_graph_hpp
+#define meld_graph_transition_graph_hpp
 
-#include "meld/core/module_worker.hpp"
 #include "meld/core/node.hpp"
-#include "meld/core/transition.hpp"
+#include "meld/graph/module_worker.hpp"
+#include "meld/graph/transition.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -29,4 +29,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_transition_graph_hpp */
+#endif /* meld_graph_transition_graph_hpp */

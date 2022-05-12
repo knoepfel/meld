@@ -1,5 +1,4 @@
-#include "meld/core/gatekeeper_node.hpp"
-#include "meld/core/node.hpp"
+#include "meld/graph/gatekeeper_node.hpp"
 #include "meld/utilities/debug.hpp"
 #include "oneapi/tbb/flow_graph.h"
 

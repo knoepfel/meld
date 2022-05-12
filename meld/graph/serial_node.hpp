@@ -1,5 +1,5 @@
-#ifndef meld_core_serial_node_hpp
-#define meld_core_serial_node_hpp
+#ifndef meld_graph_serial_node_hpp
+#define meld_graph_serial_node_hpp
 
 #include "meld/utilities/sized_tuple.hpp"
 #include "oneapi/tbb/flow_graph.h"
@@ -64,4 +64,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_serial_node_hpp */
+#endif /* meld_graph_serial_node_hpp */

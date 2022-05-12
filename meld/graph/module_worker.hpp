@@ -1,5 +1,5 @@
-#ifndef meld_core_module_worker_hpp
-#define meld_core_module_worker_hpp
+#ifndef meld_graph_module_worker_hpp
+#define meld_graph_module_worker_hpp
 
 #include "meld/core/node.hpp"
 
@@ -29,4 +29,4 @@ namespace meld {
   using module_creator_t = module_worker_ptr(boost::json::value const&);
 }
 
-#endif /* meld_core_module_worker_hpp */
+#endif /* meld_graph_module_worker_hpp */

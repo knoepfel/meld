@@ -1,14 +1,14 @@
 #ifndef meld_core_data_processor_hpp
 #define meld_core_data_processor_hpp
 
-#include "meld/core/gatekeeper_node.hpp"
 #include "meld/core/module_manager.hpp"
 #include "meld/core/module_owner.hpp"
-#include "meld/core/module_worker.hpp"
 #include "meld/core/node.hpp"
 #include "meld/core/source_owner.hpp"
 #include "meld/core/source_worker.hpp"
-#include "meld/core/transition_graph.hpp"
+#include "meld/graph/gatekeeper_node.hpp"
+#include "meld/graph/module_worker.hpp"
+#include "meld/graph/transition_graph.hpp"
 
 #include "oneapi/tbb/concurrent_queue.h"
 #include "oneapi/tbb/flow_graph.h"

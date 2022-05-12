@@ -5,7 +5,7 @@
 // because the processing model supports a tree of nodes for
 // processing.  A better name is probably appropriate.
 
-#include "meld/core/transition.hpp"
+#include "meld/graph/transition.hpp"
 
 #include <iosfwd>
 

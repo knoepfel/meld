@@ -1,8 +1,8 @@
 #ifndef meld_core_load_module_hpp
 #define meld_core_load_module_hpp
 
-#include "meld/core/module_worker.hpp"
 #include "meld/core/source_worker.hpp"
+#include "meld/graph/module_worker.hpp"
 
 #include "boost/json.hpp"
 

@@ -1,9 +1,10 @@
 #ifndef meld_core_concurrency_tags_hpp
 #define meld_core_concurrency_tags_hpp
 
-#include "meld/core/transition.hpp"
+#include "meld/graph/transition.hpp"
 
 #include <optional>
+#include <string_view>
 #include <tuple>
 
 namespace meld::concurrency {

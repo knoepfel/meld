@@ -1,5 +1,4 @@
-#include "meld/core/module_owner.hpp"
-#include "meld/core/serial_node.hpp"
+#include "meld/graph/serial_node.hpp"
 #include "meld/utilities/debug.hpp"
 #include "meld/utilities/thread_counter.hpp"
 
@@ -9,7 +8,7 @@
 using namespace meld;
 using namespace oneapi::tbb;
 
-TEST_CASE("Serialize module based on resource", "[multithreading]")
+TEST_CASE("Serialize functions based on resource", "[multithreading]")
 {
   flow::graph g;
   unsigned int i{};

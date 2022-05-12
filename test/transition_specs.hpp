@@ -1,7 +1,7 @@
 #ifndef test_transition_specs_hpp
 #define test_transition_specs_hpp
 
-#include "meld/core/transition.hpp"
+#include "meld/graph/transition.hpp"
 
 namespace meld::test {
   inline transition

@@ -1,5 +1,5 @@
-#include "meld/run_meld.hpp"
-#include "meld/version.hpp"
+#include "meld/app/run_meld.hpp"
+#include "meld/app/version.hpp"
 
 #include "CLI/App.hpp"
 #include "CLI/Config.hpp"

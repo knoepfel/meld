@@ -1,4 +1,4 @@
-#include "meld/core/transition_graph.hpp"
+#include "meld/graph/transition_graph.hpp"
 
 namespace meld {
   transition_graph::transition_graph(/* gatekeeper_node& gatekeeper, */ stage const s) :
