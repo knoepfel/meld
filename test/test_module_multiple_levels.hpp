@@ -5,6 +5,7 @@
 #include "test/data_levels.hpp"
 
 #include <chrono>
+#include <mutex>
 #include <thread>
 #include <vector>
 
@@ -23,14 +24,16 @@ namespace meld::test {
     }
 
     void
-    process(run const& r, concurrency::serial)
+    process(run const& r, concurrency::unlimited)
     {
       using namespace std::chrono_literals;
       std::this_thread::sleep_for(1s);
+      std::lock_guard lock{m};
       processed_transitions.emplace_back(r.id(), stage::process);
     }
 
     transitions processed_transitions;
+    std::mutex m;
   };
 }
 
