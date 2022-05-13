@@ -2,8 +2,11 @@
 #define meld_core_concurrency_tags_hpp
 
 #include "meld/graph/transition.hpp"
+#include "meld/utilities/string_literal.hpp"
 
+#include <array>
 #include <optional>
+#include <span>
 #include <string_view>
 #include <tuple>
 
@@ -13,8 +16,12 @@ namespace meld::concurrency {
 
   struct serial /* implementation-defined */;
   struct unlimited /* implementation-defined */;
+
   template <int N>
   struct max /* implementation-defined */;
+
+  template <string_literal... Resources>
+  struct serial_for /* implementation-defined */;
 
   // ===========================================================
   // Implementation details
@@ -23,15 +30,25 @@ namespace meld::concurrency {
     constexpr explicit serial(bool const specified) : is_specified{specified} {}
     static constexpr int value = 1;
     bool is_specified;
+    static constexpr std::span<std::string_view> names{};
   };
   struct unlimited {
     static constexpr bool is_specified = true;
     static constexpr int value = 0;
+    static constexpr std::span<std::string_view> names{};
   };
   template <int N>
   struct max {
     static constexpr bool is_specified = true;
     static constexpr int value = N;
+    static constexpr std::span<std::string_view> names{};
+  };
+  template <string_literal... Resources>
+  struct serial_for {
+    static constexpr std::array names_{static_cast<std::string_view>(Resources)...};
+    static constexpr bool is_specified = true;
+    static constexpr int value = 1;
+    static constexpr std::span<std::string_view const> names{names_};
   };
 
   namespace detail {
@@ -89,6 +106,20 @@ namespace meld::concurrency {
     tag(void (T::*)(D const&, max<N>) const)
     {
       return max<N>{};
+    }
+
+    template <typename T, typename D, string_literal... Resources>
+    constexpr auto
+    tag(void (T::*)(D const&, serial_for<Resources...>))
+    {
+      return serial_for<Resources...>{};
+    }
+
+    template <typename T, typename D, string_literal... Resources>
+    constexpr auto
+    tag(void (T::*)(D const&, serial_for<Resources...>) const)
+    {
+      return serial_for<Resources...>{};
     }
   }
 }
@@ -215,8 +246,7 @@ namespace meld {
     get_element(std::size_t const i) const
     {
       if (i == I) {
-        auto const& concurrency = std::get<I>(concurrencies_);
-        return concurrency;
+        return std::get<I>(concurrencies_);
       }
       return get_element<I + 1>(i);
     }
