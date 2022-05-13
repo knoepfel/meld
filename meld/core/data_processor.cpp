@@ -1,9 +1,9 @@
 #include "meld/core/data_processor.hpp"
 #include "meld/core/module_owner.hpp"
-#include "meld/core/node.hpp"
 #include "meld/core/source_owner.hpp"
 #include "meld/core/source_worker.hpp"
 #include "meld/graph/module_worker.hpp"
+#include "meld/graph/node.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -17,8 +17,9 @@ namespace meld {
   data_processor::data_processor(module_manager* modules) :
     modules_{modules},
     source_node_{graph_, [this](flow_control& fc) { return pull_next(fc); }},
-    process_{
-      graph_, flow::unlimited, [this](transition_message const& msg) { return process(msg); }}
+    process_{graph_, flow::unlimited, [this](transition_message const& msg, auto& outputs) {
+               process(msg, outputs);
+             }}
   {
     make_edge(source_node_, input_port<0>(gatekeeper_));
     make_edge(gatekeeper_, process_);
@@ -33,7 +34,7 @@ namespace meld {
           it = transition_graphs_
                  .emplace(std::piecewise_construct,
                           std::forward_as_tuple(transition_type),
-                          std::forward_as_tuple(transition_type.second))
+                          std::forward_as_tuple(graph_, transition_type.second))
                  .first;
         }
         it->second.add_node(name, transition_type, *worker);
@@ -41,7 +42,7 @@ namespace meld {
     }
 
     for (auto& pr : transition_graphs_) {
-      pr.second.calculate_edges();
+      pr.second.calculate_edges(gatekeeper_);
     }
   }
 
@@ -70,15 +71,17 @@ namespace meld {
     return {};
   }
 
-  transition_message
-  data_processor::process(transition_message const& msg)
+  void
+  data_processor::process(transition_message const& msg, process_output_ports_type& outputs)
   {
     auto const& [tr, node_ptr] = msg;
     auto const ttype = ttype_for(msg);
     if (auto it = transition_graphs_.find(ttype); it != cend(transition_graphs_)) {
       it->second.process(node_ptr);
     }
-    // graph_.wait_for_all();
-    return msg;
+    else {
+      // This transition is not supported in this job; return to gatekeeper.
+      std::get<0>(outputs).try_put(msg);
+    }
   }
 }

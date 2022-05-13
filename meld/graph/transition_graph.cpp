@@ -1,8 +1,24 @@
 #include "meld/graph/transition_graph.hpp"
+#include "meld/graph/gatekeeper_node.hpp"
+#include "meld/utilities/debug.hpp"
+
+#include "oneapi/tbb/flow_graph.h"
+
+using namespace tbb;
 
 namespace meld {
-  transition_graph::transition_graph(/* gatekeeper_node& gatekeeper, */ stage const s) :
-    /* gatekeeper_{gatekeeper}, */ stage_{s}
+  transition_graph::transition_graph(flow::graph& g, stage const s) :
+    graph_{g},
+    stage_{s},
+    synchronize_{g, flow::unlimited, [this](node_ptr n, auto& outputs) mutable {
+                   if (decltype(counters_)::accessor a; counters_.find(a, n->id())) {
+                     if (--a->second == 0u) {
+                       transition tr{n->id(), stage_};
+                       std::get<0>(outputs).try_put({tr, n});
+                       counters_.erase(a);
+                     }
+                   }
+                 }}
   {
   }
 
@@ -12,7 +28,10 @@ namespace meld {
                              module_worker& worker)
   {
     auto const concurrency = worker.concurrency(tt);
-    nodes_.try_emplace(name, module_node{graph_, concurrency, [&worker, this](node_ptr n) {
+    // N.B. The value of flow::unlimited is implementation-defined.
+    //      We should therefore not rely on it being 0, although it probably is.
+    auto const conc = concurrency == 0 ? flow::unlimited : concurrency;
+    nodes_.try_emplace(name, module_node{graph_, conc, [&worker, this](node_ptr n) {
                                            worker.process(stage_, *n);
                                            return n;
                                          }});
@@ -20,13 +39,15 @@ namespace meld {
   }
 
   void
-  transition_graph::calculate_edges()
+  transition_graph::calculate_edges(gatekeeper_node& gatekeeper)
   {
     if (empty(nodes_))
       return;
 
+    std::map<std::string, unsigned> successors;
     for (auto const& [name, deps] : module_dependencies_) {
       auto& mod_node = nodes_.at(name);
+      successors[name] = 0;
       if (empty(deps)) {
         make_edge(launcher_, mod_node);
         continue;
@@ -34,8 +55,19 @@ namespace meld {
 
       for (auto const& dep : deps) {
         make_edge(nodes_.at(dep), mod_node);
+        ++successors[dep];
       }
     }
+
+    // Figure out how many end points there are that synchronize must wait for.
+    for (auto const& [name, count] : successors) {
+      if (count == 0) {
+        ++num_end_points_;
+        make_edge(nodes_.at(name), synchronize_);
+      }
+    }
+
+    make_edge(output_port<0>(synchronize_), input_port<1>(gatekeeper));
   }
 
   void
@@ -44,7 +76,8 @@ namespace meld {
     if (empty(nodes_))
       return;
 
+    assert(n);
+    counters_.emplace(n->id(), num_end_points_);
     launcher_.try_put(n);
-    graph_.wait_for_all();
   }
 }

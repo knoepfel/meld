@@ -1,9 +1,9 @@
 #ifndef meld_core_source_owner_hpp
 #define meld_core_source_owner_hpp
 
-#include "meld/core/node.hpp"
 #include "meld/core/source_worker.hpp"
 #include "meld/core/uses_config.hpp"
+#include "meld/graph/node.hpp"
 #include "meld/utilities/debug.hpp"
 
 #include <cassert>

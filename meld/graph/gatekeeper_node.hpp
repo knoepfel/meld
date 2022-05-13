@@ -1,7 +1,7 @@
 #ifndef meld_graph_gatekeeper_node_hpp
 #define meld_graph_gatekeeper_node_hpp
 
-#include "meld/core/node.hpp"
+#include "meld/graph/node.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"

@@ -1,8 +1,8 @@
 #ifndef meld_graph_transition_graph_hpp
 #define meld_graph_transition_graph_hpp
 
-#include "meld/core/node.hpp"
 #include "meld/graph/module_worker.hpp"
+#include "meld/graph/node.hpp"
 #include "meld/graph/transition.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
@@ -11,21 +11,24 @@
 #include <vector>
 
 namespace meld {
-
+  class gatekeeper_node;
   class transition_graph {
   public:
-    explicit transition_graph(stage s);
+    explicit transition_graph(tbb::flow::graph& g, stage s);
     void process(node_ptr n);
     void add_node(std::string const& name, transition_type const& tt, module_worker& worker);
-    void calculate_edges();
+    void calculate_edges(gatekeeper_node& gatekeeper);
 
   private:
     using module_node = tbb::flow::function_node<node_ptr, node_ptr>;
+    tbb::flow::graph& graph_;
     stage stage_;
-    tbb::flow::graph graph_{};
     tbb::flow::broadcast_node<node_ptr> launcher_{graph_};
     std::map<std::string, module_node> nodes_{};
     std::map<std::string, std::vector<std::string>> module_dependencies_{};
+    unsigned num_end_points_{};
+    tbb::concurrent_hash_map<level_id, unsigned, IDHasher> counters_{};
+    tbb::flow::multifunction_node<node_ptr, std::tuple<transition_message>> synchronize_;
   };
 }
 

@@ -1,7 +1,7 @@
 #ifndef meld_core_data_level_hpp
 #define meld_core_data_level_hpp
 
-#include "meld/core/node.hpp"
+#include "meld/graph/node.hpp"
 
 #include <algorithm>
 #include <string_view>

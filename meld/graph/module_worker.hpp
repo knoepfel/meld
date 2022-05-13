@@ -1,7 +1,7 @@
 #ifndef meld_graph_module_worker_hpp
 #define meld_graph_module_worker_hpp
 
-#include "meld/core/node.hpp"
+#include "meld/graph/node.hpp"
 
 #include "boost/json.hpp"
 

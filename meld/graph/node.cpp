@@ -1,4 +1,4 @@
-#include "meld/core/node.hpp"
+#include "meld/graph/node.hpp"
 
 #include <ostream>
 

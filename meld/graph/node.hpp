@@ -1,5 +1,5 @@
-#ifndef meld_core_node_hpp
-#define meld_core_node_hpp
+#ifndef meld_graph_node_hpp
+#define meld_graph_node_hpp
 
 // A node is a processing level (akin to an event).  It is a node
 // because the processing model supports a tree of nodes for
@@ -60,4 +60,4 @@ namespace meld {
   std::ostream& operator<<(std::ostream&, node const&);
 }
 
-#endif /* meld_core_node_hpp */
+#endif /* meld_graph_node_hpp */
