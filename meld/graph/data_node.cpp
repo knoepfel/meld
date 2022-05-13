@@ -1,15 +1,18 @@
-#include "meld/graph/node.hpp"
+#include "meld/graph/data_node.hpp"
 
 #include <ostream>
 
 namespace meld {
-  node::node(level_id id) : id_{std::move(id)} {}
-  node::node(level_id const& parent_id, std::size_t new_id) : id_{parent_id.make_child(new_id)} {}
+  data_node::data_node(level_id id) : id_{std::move(id)} {}
+  data_node::data_node(level_id const& parent_id, std::size_t new_id) :
+    id_{parent_id.make_child(new_id)}
+  {
+  }
 
-  node::~node() = default;
+  data_node::~data_node() = default;
 
   level_id const&
-  node::id() const noexcept
+  data_node::id() const noexcept
   {
     return id_;
   }
@@ -21,7 +24,7 @@ namespace meld {
     return transition_type{node_ptr->level_name(), tr.second};
   }
 
-  root_node_t::root_node_t() : node{{}} {}
+  root_node_t::root_node_t() : data_node{{}} {}
   root_node_t::~root_node_t() = default;
   std::string_view
   root_node_t::level_name() const
@@ -32,7 +35,7 @@ namespace meld {
   std::shared_ptr<root_node_t> root_node{std::make_shared<root_node_t>()};
 
   std::ostream&
-  operator<<(std::ostream& os, node const& n)
+  operator<<(std::ostream& os, data_node const& n)
   {
     return os << n.id();
   }

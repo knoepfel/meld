@@ -2,8 +2,8 @@
 #include "meld/core/module_owner.hpp"
 #include "meld/core/source_owner.hpp"
 #include "meld/core/source_worker.hpp"
+#include "meld/graph/data_node.hpp"
 #include "meld/graph/module_worker.hpp"
-#include "meld/graph/node.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 

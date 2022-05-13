@@ -5,9 +5,9 @@
 #include "meld/core/module_owner.hpp"
 #include "meld/core/source_owner.hpp"
 #include "meld/core/source_worker.hpp"
+#include "meld/graph/data_node.hpp"
 #include "meld/graph/gatekeeper_node.hpp"
 #include "meld/graph/module_worker.hpp"
-#include "meld/graph/node.hpp"
 #include "meld/graph/transition_graph.hpp"
 
 #include "oneapi/tbb/concurrent_queue.h"

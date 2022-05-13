@@ -33,6 +33,7 @@ add_test(NAME meld_with_deps_t COMMAND meld --config ${CMAKE_CURRENT_SOURCE_DIR}
 
 add_unit_test(sized_tuple_t LIBRARIES meld::utilities)
 
+add_catch_test(filter_t LIBRARIES meld::core)
 add_catch_test(meld_check_t LIBRARIES meld::core Boost::boost test_levels)
 add_catch_test(transition_t LIBRARIES meld::core)
 add_catch_test(gatekeeper_t LIBRARIES TBB::tbb meld::core test_levels)

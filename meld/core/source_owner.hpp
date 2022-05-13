@@ -3,7 +3,7 @@
 
 #include "meld/core/source_worker.hpp"
 #include "meld/core/uses_config.hpp"
-#include "meld/graph/node.hpp"
+#include "meld/graph/data_node.hpp"
 #include "meld/utilities/debug.hpp"
 
 #include <cassert>
@@ -15,7 +15,7 @@ namespace meld {
   concept source = requires(T t)
   {
     // clang-format off
-    {t.data()} -> std::same_as<std::shared_ptr<node>>;
+    {t.data()} -> std::same_as<std::shared_ptr<data_node>>;
     // clang-format on
   };
 
@@ -95,7 +95,7 @@ namespace meld {
     T user_source;
     level_id last_processed_level{};
     bool more_data{true};
-    std::map<level_id, std::shared_ptr<node>> nodes;
+    std::map<level_id, std::shared_ptr<data_node>> nodes;
     level_counter counter;
   };
 }

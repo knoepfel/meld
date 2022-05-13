@@ -1,7 +1,7 @@
 #ifndef meld_graph_module_worker_hpp
 #define meld_graph_module_worker_hpp
 
-#include "meld/graph/node.hpp"
+#include "meld/graph/data_node.hpp"
 
 #include "boost/json.hpp"
 
@@ -13,12 +13,12 @@ namespace meld {
     virtual ~module_worker();
 
     std::vector<transition_type> supported_transitions() const;
-    void process(stage s, node& data);
+    void process(stage s, data_node& data);
     std::vector<std::string> dependencies() const;
     std::size_t concurrency(transition_type const& tt) const;
 
   private:
-    virtual void do_process(stage, node&) = 0;
+    virtual void do_process(stage, data_node&) = 0;
     virtual std::size_t do_concurrency(transition_type const&) const = 0;
     virtual std::vector<std::string> required_dependencies() const = 0;
     virtual std::vector<transition_type> supported_setup_transitions() const = 0;

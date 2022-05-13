@@ -22,7 +22,7 @@ namespace meld {
   }
 
   void
-  module_worker::process(stage const s, node& data)
+  module_worker::process(stage const s, data_node& data)
   {
     do_process(s, data);
   }

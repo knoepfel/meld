@@ -10,7 +10,7 @@ namespace meld {
   transition_graph::transition_graph(flow::graph& g, stage const s) :
     graph_{g},
     stage_{s},
-    synchronize_{g, flow::unlimited, [this](node_ptr n, auto& outputs) mutable {
+    synchronize_{g, flow::unlimited, [this](data_node_ptr n, auto& outputs) mutable {
                    if (decltype(counters_)::accessor a; counters_.find(a, n->id())) {
                      if (--a->second == 0u) {
                        transition tr{n->id(), stage_};
@@ -31,7 +31,7 @@ namespace meld {
     // N.B. The value of flow::unlimited is implementation-defined.
     //      We should therefore not rely on it being 0, although it probably is.
     auto const conc = concurrency == 0 ? flow::unlimited : concurrency;
-    nodes_.try_emplace(name, module_node{graph_, conc, [&worker, this](node_ptr n) {
+    nodes_.try_emplace(name, module_node{graph_, conc, [&worker, this](data_node_ptr n) {
                                            worker.process(stage_, *n);
                                            return n;
                                          }});
@@ -71,7 +71,7 @@ namespace meld {
   }
 
   void
-  transition_graph::process(node_ptr n)
+  transition_graph::process(data_node_ptr n)
   {
     if (empty(nodes_))
       return;

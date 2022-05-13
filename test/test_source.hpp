@@ -13,7 +13,7 @@ namespace meld::test {
     {
     }
 
-    std::shared_ptr<node>
+    std::shared_ptr<data_node>
     data()
     {
       if (cursor_ < num_nodes_) {

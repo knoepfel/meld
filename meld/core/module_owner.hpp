@@ -3,8 +3,8 @@
 
 #include "meld/core/concurrency_tags.hpp"
 #include "meld/core/uses_config.hpp"
+#include "meld/graph/data_node.hpp"
 #include "meld/graph/module_worker.hpp"
-#include "meld/graph/node.hpp"
 #include "meld/utilities/debug.hpp"
 
 #include <memory>
@@ -96,7 +96,7 @@ namespace meld {
     }
 
     void
-    do_process(stage const st, node& data) final
+    do_process(stage const st, data_node& data) final
     {
       switch (st) {
       case stage::setup:
@@ -145,7 +145,7 @@ namespace meld {
 
     template <typename D>
     bool
-    setup(node& data)
+    setup(data_node& data)
     {
       if constexpr (!setup_concurrencies.template supports_level<D>()) {
         return true;
@@ -161,7 +161,7 @@ namespace meld {
 
     template <typename D>
     bool
-    process(node& data)
+    process(data_node& data)
     {
       if constexpr (!process_concurrencies.template supports_level<D>()) {
         return true;

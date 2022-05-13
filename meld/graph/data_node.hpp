@@ -1,9 +1,8 @@
-#ifndef meld_graph_node_hpp
-#define meld_graph_node_hpp
+#ifndef meld_graph_data_node_hpp
+#define meld_graph_data_node_hpp
 
-// A node is a processing level (akin to an event).  It is a node
-// because the processing model supports a tree of nodes for
-// processing.  A better name is probably appropriate.
+// A data_node is a processing level (akin to an event).  It is a node
+// because the processing model supports a tree of nodes for processing.
 
 #include "meld/graph/transition.hpp"
 
@@ -16,28 +15,27 @@
 
 namespace meld {
 
-  class node {
+  class data_node {
   public:
-    virtual ~node(); // Ick.  Should be able to type-erase this thing.
+    virtual ~data_node(); // Ick.  Should be able to type-erase this thing.
     level_id const& id() const noexcept;
     virtual std::string_view level_name() const = 0;
 
   protected:
-    explicit node(level_id id);
-    explicit node(level_id const& parent_id, std::size_t id);
+    explicit data_node(level_id id);
+    explicit data_node(level_id const& parent_id, std::size_t id);
 
   private:
     level_id id_;
   };
 
-  using node_ptr = std::shared_ptr<node>;
-  using transition_message = std::pair<transition, node_ptr>;
+  using data_node_ptr = std::shared_ptr<data_node>;
+  using transition_message = std::pair<transition, data_node_ptr>;
   using transition_messages = std::vector<transition_message>;
 
   transition_type ttype_for(transition_message const& msg);
 
-  // FIXME: Need better name than null_node
-  class root_node_t : public node {
+  class root_node_t : public data_node {
   public:
     root_node_t();
     ~root_node_t() final;
@@ -57,7 +55,7 @@ namespace meld {
     return std::make_shared<T>(root_node.get(), id);
   }
 
-  std::ostream& operator<<(std::ostream&, node const&);
+  std::ostream& operator<<(std::ostream&, data_node const&);
 }
 
-#endif /* meld_graph_node_hpp */
+#endif /* meld_graph_data_node_hpp */

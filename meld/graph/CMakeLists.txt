@@ -1,7 +1,7 @@
 add_library(meld_graph SHARED
   gatekeeper_node.cpp
   module_worker.cpp
-  node.cpp
+  data_node.cpp
   transition.cpp
   transition_graph.cpp
   )
