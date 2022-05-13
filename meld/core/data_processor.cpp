@@ -14,18 +14,19 @@ using namespace tbb;
 
 namespace meld {
 
-  data_processor::data_processor(module_manager* modules) :
+  data_processor::data_processor(module_manager& modules) :
     modules_{modules},
     source_node_{graph_, [this](flow_control& fc) { return pull_next(fc); }},
-    process_{graph_, flow::unlimited, [this](transition_message const& msg, auto& outputs) {
-               process(msg, outputs);
-             }}
+    process_{graph_,
+             flow::unlimited,
+             [this](transition_message const& msg, auto& outputs) { process(msg, outputs); }},
+    serializers_{graph_}
   {
     make_edge(source_node_, input_port<0>(gatekeeper_));
     make_edge(gatekeeper_, process_);
     make_edge(process_, input_port<1>(gatekeeper_));
 
-    for (auto& [name, worker] : modules_->modules()) {
+    for (auto& [name, worker] : modules_.modules()) {
       for (auto const& transition_type : worker->supported_transitions()) {
         auto it = transition_graphs_.find(transition_type);
         if (it == cend(transition_graphs_)) {
@@ -37,7 +38,7 @@ namespace meld {
                           std::forward_as_tuple(graph_, transition_type.second))
                  .first;
         }
-        it->second.add_node(name, transition_type, *worker);
+        it->second.add_node(name, transition_type, *worker, serializers_);
       }
     }
 
@@ -49,6 +50,7 @@ namespace meld {
   void
   data_processor::run_to_completion()
   {
+    serializers_.activate();
     source_node_.activate();
     graph_.wait_for_all();
   }
@@ -57,7 +59,7 @@ namespace meld {
   data_processor::pull_next(flow_control& fc)
   {
     if (queued_messages_.empty()) {
-      auto data = modules_->source().next();
+      auto data = modules_.source().next();
       for (auto const& d : data) {
         queued_messages_.push(d);
       }

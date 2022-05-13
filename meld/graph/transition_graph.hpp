@@ -3,6 +3,7 @@
 
 #include "meld/graph/data_node.hpp"
 #include "meld/graph/module_worker.hpp"
+#include "meld/graph/serializer_node.hpp"
 #include "meld/graph/transition.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
@@ -16,15 +17,17 @@ namespace meld {
   public:
     explicit transition_graph(tbb::flow::graph& g, stage s);
     void process(data_node_ptr n);
-    void add_node(std::string const& name, transition_type const& tt, module_worker& worker);
+    void add_node(std::string const& name,
+                  transition_type const& tt,
+                  module_worker& worker,
+                  serializers& serialized_resources);
     void calculate_edges(gatekeeper_node& gatekeeper);
 
   private:
-    using module_node = tbb::flow::function_node<data_node_ptr, data_node_ptr>;
     tbb::flow::graph& graph_;
     stage stage_;
     tbb::flow::broadcast_node<data_node_ptr> launcher_{graph_};
-    std::map<std::string, module_node> nodes_{};
+    std::map<std::string, std::shared_ptr<module_node>> nodes_{};
     std::map<std::string, std::vector<std::string>> module_dependencies_{};
     unsigned num_end_points_{};
     tbb::concurrent_hash_map<level_id, unsigned, IDHasher> counters_{};

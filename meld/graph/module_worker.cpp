@@ -1,7 +1,6 @@
 #include "meld/graph/module_worker.hpp"
 
-// FIXME: Should move this dependency farther up and not at the module level.
-#include "oneapi/tbb/flow_graph.h"
+#include <cassert>
 
 namespace meld {
   module_worker::~module_worker() = default;
@@ -15,16 +14,12 @@ namespace meld {
     return result;
   }
 
-  std::size_t
-  module_worker::concurrency(transition_type const& tt) const
+  std::shared_ptr<module_node>
+  module_worker::create_worker_node(tbb::flow::graph& g,
+                                    transition_type const& tt,
+                                    serializers& serialized_resources)
   {
-    return do_concurrency(tt);
-  }
-
-  void
-  module_worker::process(stage const s, data_node& data)
-  {
-    do_process(s, data);
+    return do_create_worker_node(g, tt, serialized_resources);
   }
 
   std::vector<std::string>

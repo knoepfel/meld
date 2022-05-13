@@ -20,34 +20,32 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
                          return 0u;
                        }};
 
-  serializer_node root_serializer{g};
-  serializer_node genie_serializer{g};
+  serializers serialized_resources{g};
 
   std::atomic<unsigned int> counter{};
-  serial_node<unsigned int, 1> node1{g,
-                                     [&counter](unsigned int const i) {
-                                       thread_counter c{counter};
-                                       debug("Processing from node 1 ", i);
-                                       return i;
-                                     },
-                                     root_serializer};
+  serial_node<unsigned int, 1> node1{
+    g, serialized_resources.get("ROOT"), [&counter](unsigned int const i) {
+      thread_counter c{counter};
+      debug("Processing from node 1 ", i);
+      return i;
+    }};
 
-  serial_node<unsigned int, 2> node2{g,
-                                     [&counter](unsigned int const i) {
-                                       thread_counter c{counter};
-                                       debug("Processing from node 2 ", i);
-                                       return i;
-                                     },
-                                     root_serializer,
-                                     genie_serializer};
+  serial_node<unsigned int, 2> node2{
+    g, serialized_resources.get("ROOT", "GENIE"), [&counter](unsigned int const i) {
+      thread_counter c{counter};
+      debug("Processing from node 2 ", i);
+      return i;
+    }};
 
-  serial_node<unsigned int, 1> node3{g,
-                                     [&counter](unsigned int const i) {
-                                       thread_counter c{counter};
-                                       debug("Processing from node 3 ", i);
-                                       return i;
-                                     },
-                                     genie_serializer};
+  serial_node<unsigned int, 1> node3{
+    g, serialized_resources.get("GENIE"), [&counter](unsigned int const i) {
+      thread_counter c{counter};
+      debug("Processing from node 3 ", i);
+      return i;
+    }};
+
+  serial_node<unsigned int, 0> node4{
+    g, tbb::flow::unlimited, [](unsigned int const i) { return i; }};
 
   flow::function_node<unsigned int, unsigned int> receiving_node_1{
     g, flow::unlimited, [](unsigned int const i) {
@@ -67,13 +65,22 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
       return i;
     }};
 
+  flow::function_node<unsigned int, unsigned int> receiving_node_4{
+    g, flow::unlimited, [](unsigned int const i) {
+      debug("Processed unlimited task ", i);
+      return i;
+    }};
+
   make_edge(src, node1);
   make_edge(src, node2);
   make_edge(src, node3);
+  make_edge(src, node4);
   make_edge(node1, receiving_node_1);
   make_edge(node2, receiving_node_2);
   make_edge(node3, receiving_node_3);
+  make_edge(node4, receiving_node_4);
 
+  serialized_resources.activate();
   src.activate();
   g.wait_for_all();
 }

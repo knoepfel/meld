@@ -15,7 +15,7 @@ TEST_CASE("Module called", "[module]")
   auto manager = module_manager::make_with_source<my_source>(config);
   manager.add_module<multiple_levels, run, subrun>("module");
 
-  data_processor processor{&manager};
+  data_processor processor{manager};
   processor.run_to_completion();
 
   std::vector const expected_runs{"1"_id, "3"_id, "5"_id};

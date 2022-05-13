@@ -16,7 +16,7 @@ namespace meld {
       modules.emplace(std::string(key), load_module(value.as_object()));
     }
     module_manager manager{load_source(configurations.at("source").as_object()), move(modules)};
-    data_processor processor{&manager};
+    data_processor processor{manager};
     processor.run_to_completion();
   }
 }

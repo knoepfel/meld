@@ -5,12 +5,42 @@
 #include "meld/core/uses_config.hpp"
 #include "meld/graph/data_node.hpp"
 #include "meld/graph/module_worker.hpp"
+#include "meld/graph/serial_node.hpp"
 #include "meld/utilities/debug.hpp"
 
 #include <memory>
 #include <type_traits>
 
 namespace meld {
+
+  template <std::size_t... Is>
+  decltype(auto)
+  to_tuple(serializers& serialized_resources,
+           std::span<std::string_view const> names,
+           std::index_sequence<Is...>)
+  {
+    return serialized_resources.get(names[Is]...);
+  }
+
+  template <std::size_t N, typename FT>
+  std::shared_ptr<module_node>
+  module_node_for(tbb::flow::graph& g,
+                  std::size_t concurrency,
+                  FT ft,
+                  serializers& serialized_resources,
+                  std::span<std::string_view const> resource_names)
+  {
+    if constexpr (N == 0) {
+      return std::make_shared<serial_node<data_node_ptr, 0>>(g, concurrency, std::move(ft));
+    }
+    else {
+      return std::make_shared<serial_node<data_node_ptr, N>>(
+        g,
+        to_tuple(serialized_resources, resource_names, std::make_index_sequence<N>{}),
+        std::move(ft));
+    }
+  }
+
   template <typename D, typename... Ds, typename Parent = typename D::parent_type>
   consteval bool
   supports_parent()
@@ -54,15 +84,82 @@ namespace meld {
     }
 
   private:
-    std::size_t
-    do_concurrency(transition_type const& tt) const final
+    std::shared_ptr<module_node>
+    do_create_worker_node(tbb::flow::graph& g,
+                          transition_type const& tt,
+                          serializers& serialized_resources) override
     {
-      auto const& [transition_name, stage] = tt;
-      assert(stage != stage::flush);
+      auto const& [level_name, stage] = tt;
       if (stage == stage::setup) {
-        return setup_concurrencies.get(transition_name).value();
+        return create_setup_node<Ds...>(g, level_name, serialized_resources);
       }
-      return process_concurrencies.get(transition_name).value();
+      return create_process_node<Ds...>(g, level_name, serialized_resources);
+    }
+
+    template <typename Head, typename... Tail>
+    std::shared_ptr<module_node>
+    create_setup_node(tbb::flow::graph& g,
+                      std::string_view const level_name,
+                      serializers& serialized_resources)
+    {
+      constexpr auto concurrency = setup_concurrencies.template get<Head>();
+      constexpr auto num_resources = concurrency.resource_names.size();
+      if constexpr (!concurrency.value) {
+        return nullptr;
+      }
+      else {
+        if (Head::name() == level_name) {
+          auto const [name, value, resource_names] = concurrency;
+          std::size_t concurrency_value = *value == 0 ? tbb::flow::unlimited : *value;
+          return module_node_for<num_resources>(
+            g,
+            concurrency_value,
+            [this](data_node_ptr data_ptr) mutable {
+              auto d = static_pointer_cast<Head>(data_ptr);
+              setup(*d);
+              return data_ptr;
+            },
+            serialized_resources,
+            resource_names);
+        }
+        if constexpr (sizeof...(Tail) > 0) {
+          return create_setup_node<Tail...>(g, level_name, serialized_resources);
+        }
+        return nullptr;
+      }
+    }
+
+    template <typename Head, typename... Tail>
+    std::shared_ptr<module_node>
+    create_process_node(tbb::flow::graph& g,
+                        std::string_view const level_name,
+                        serializers& serialized_resources)
+    {
+      constexpr auto concurrency = process_concurrencies.template get<Head>();
+      constexpr auto num_resources = concurrency.resource_names.size();
+      if constexpr (!concurrency.value) {
+        return nullptr;
+      }
+      else {
+        if (Head::name() == level_name) {
+          auto const [name, value, resource_names] = concurrency;
+          std::size_t concurrency_value = *value == 0 ? tbb::flow::unlimited : *value;
+          return module_node_for<num_resources>(
+            g,
+            concurrency_value,
+            [this](data_node_ptr data_ptr) mutable {
+              auto d = static_pointer_cast<Head>(data_ptr);
+              process(*d);
+              return data_ptr;
+            },
+            serialized_resources,
+            resource_names);
+        }
+        if constexpr (sizeof...(Tail) > 0) {
+          return create_process_node<Tail...>(g, level_name, serialized_resources);
+        }
+        return nullptr;
+      }
     }
 
     std::vector<std::string>
@@ -76,7 +173,7 @@ namespace meld {
     {
       std::vector<transition_type> result;
       for (std::size_t i = 0; i < sizeof...(Ds); ++i) {
-        if (auto const [name, has_setup] = setup_concurrencies.get(i); has_setup) {
+        if (auto const [name, has_setup, _] = setup_concurrencies.get(i); has_setup) {
           result.emplace_back(name, stage::setup);
         }
       }
@@ -88,31 +185,16 @@ namespace meld {
     {
       std::vector<transition_type> result;
       for (std::size_t i = 0; i < sizeof...(Ds); ++i) {
-        if (auto const [name, has_process] = process_concurrencies.get(i); has_process) {
+        if (auto const [name, has_process, _] = process_concurrencies.get(i); has_process) {
           result.emplace_back(name, stage::process);
         }
       }
       return result;
     }
 
-    void
-    do_process(stage const st, data_node& data) final
-    {
-      switch (st) {
-      case stage::setup:
-        (setup<Ds>(data) || ...);
-        return;
-      case stage::process:
-        (process<Ds>(data) || ...);
-        return;
-      case stage::flush:
-        return;
-      }
-    }
-
     template <typename D>
     void
-    setup_data(D const& d)
+    setup(D const& d)
     {
       constexpr auto tag = concurrency_tag_for_setup<T, D>();
       if constexpr (tag.is_specified) {
@@ -125,7 +207,7 @@ namespace meld {
 
     template <typename D>
     void
-    process_data(D const& d)
+    process(D const& d)
     {
       constexpr auto tag = concurrency_tag_for_process<T, D>();
       if constexpr (tag.is_specified) {
@@ -142,38 +224,6 @@ namespace meld {
     // {
     //   return false;
     // }
-
-    template <typename D>
-    bool
-    setup(data_node& data)
-    {
-      if constexpr (!setup_concurrencies.template supports_level<D>()) {
-        return true;
-      }
-      else {
-        if (auto d = dynamic_cast<D*>(&data)) {
-          setup_data(*d);
-          return true;
-        }
-        return false;
-      }
-    }
-
-    template <typename D>
-    bool
-    process(data_node& data)
-    {
-      if constexpr (!process_concurrencies.template supports_level<D>()) {
-        return true;
-      }
-      else {
-        if (auto d = dynamic_cast<D*>(&data)) {
-          process_data(*d);
-          return true;
-        }
-        return false;
-      }
-    }
 
     T user_module;
     std::vector<std::string> dependencies;

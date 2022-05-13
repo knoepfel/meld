@@ -14,12 +14,14 @@ namespace meld::test {
     void
     setup(run const& r, concurrency::serial)
     {
+      std::lock_guard lock{m};
       processed_transitions.emplace_back(r.id(), stage::setup);
     }
 
     void
-    process(subrun const& sr, concurrency::serial)
+    process(subrun const& sr, concurrency::serial_for<"ROOT", "GENIE">)
     {
+      std::lock_guard lock{m};
       processed_transitions.emplace_back(sr.id(), stage::process);
     }
 

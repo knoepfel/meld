@@ -2,6 +2,7 @@ add_library(meld_graph SHARED
   gatekeeper_node.cpp
   module_worker.cpp
   data_node.cpp
+  serializer_node.cpp
   transition.cpp
   transition_graph.cpp
   )

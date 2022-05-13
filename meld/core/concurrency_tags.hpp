@@ -150,9 +150,16 @@ namespace meld {
     concurrency::detail::tag<T, D>(&T::setup);
   };
 
+  constexpr bool
+  operator==(std::span<std::string_view const> a, std::span<std::string_view const> b)
+  {
+    return std::equal(begin(a), end(a), begin(b), end(b));
+  }
+
   struct concurrency_values {
     std::string_view name;
     std::optional<int> value;
+    std::span<std::string_view const> resource_names;
     constexpr bool operator==(concurrency_values const&) const = default;
   };
 
@@ -172,7 +179,8 @@ namespace meld {
   constexpr level_concurrency<D>
   concurrency_for_process()
   {
-    return {D::name(), concurrency_tag_for_process<T, D>().value};
+    auto const tag = concurrency_tag_for_process<T, D>();
+    return {D::name(), tag.value, tag.names};
   }
 
   template <typename T, typename D>
@@ -187,7 +195,8 @@ namespace meld {
   constexpr level_concurrency<D>
   concurrency_for_setup()
   {
-    return {D::name(), concurrency_tag_for_setup<T, D>().value};
+    auto const tag = concurrency_tag_for_setup<T, D>();
+    return {D::name(), tag.value, tag.names};
   }
 
   template <stage s, typename T, typename... Args>
@@ -207,10 +216,10 @@ namespace meld {
   class concurrencies {
   public:
     template <typename D>
-    constexpr std::optional<int>
+    constexpr concurrency_values
     get() const noexcept
     {
-      return std::get<level_concurrency<D>>(concurrencies_).value;
+      return std::get<level_concurrency<D>>(concurrencies_);
     }
 
     constexpr concurrency_values
@@ -232,7 +241,7 @@ namespace meld {
       }
     }
 
-    constexpr std::optional<int>
+    constexpr concurrency_values
     get(std::string const& level_name) const noexcept
     {
       return get_element<0>(level_name);
@@ -259,18 +268,18 @@ namespace meld {
     }
 
     template <std::size_t I>
-    constexpr std::optional<int>
+    constexpr concurrency_values
     get_element(std::string const& level_name) const
     {
       auto const& concurrency = std::get<I>(concurrencies_);
       if (concurrency.name == level_name) {
-        return concurrency.value;
+        return concurrency;
       }
       return get_element<I + 1>(level_name);
     }
 
     template <>
-    constexpr std::optional<int>
+    constexpr concurrency_values
     get_element<sizeof...(Args)>(std::string const&) const
     {
       return {};

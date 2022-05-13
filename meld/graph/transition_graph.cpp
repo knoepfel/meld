@@ -25,16 +25,10 @@ namespace meld {
   void
   transition_graph::add_node(std::string const& name,
                              transition_type const& tt,
-                             module_worker& worker)
+                             module_worker& worker,
+                             serializers& serialized_resources)
   {
-    auto const concurrency = worker.concurrency(tt);
-    // N.B. The value of flow::unlimited is implementation-defined.
-    //      We should therefore not rely on it being 0, although it probably is.
-    auto const conc = concurrency == 0 ? flow::unlimited : concurrency;
-    nodes_.try_emplace(name, module_node{graph_, conc, [&worker, this](data_node_ptr n) {
-                                           worker.process(stage_, *n);
-                                           return n;
-                                         }});
+    nodes_.emplace(name, worker.create_worker_node(graph_, tt, serialized_resources));
     module_dependencies_.try_emplace(name, worker.dependencies());
   }
 
@@ -49,12 +43,12 @@ namespace meld {
       auto& mod_node = nodes_.at(name);
       successors[name] = 0;
       if (empty(deps)) {
-        make_edge(launcher_, mod_node);
+        make_edge(launcher_, *mod_node);
         continue;
       }
 
       for (auto const& dep : deps) {
-        make_edge(nodes_.at(dep), mod_node);
+        make_edge(*nodes_.at(dep), *mod_node);
         ++successors[dep];
       }
     }
@@ -63,7 +57,7 @@ namespace meld {
     for (auto const& [name, count] : successors) {
       if (count == 0) {
         ++num_end_points_;
-        make_edge(nodes_.at(name), synchronize_);
+        make_edge(*nodes_.at(name), synchronize_);
       }
     }
 
