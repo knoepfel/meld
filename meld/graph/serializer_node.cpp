@@ -14,7 +14,6 @@ namespace meld {
   serializers::activate()
   {
     for (auto& [name, serializer] : serializers_) {
-      debug("Activating serializer: ", name, " ", &serializer);
       serializer.activate();
     }
   }

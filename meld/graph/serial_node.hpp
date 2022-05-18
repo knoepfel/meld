@@ -45,6 +45,7 @@ namespace meld {
                              return input;
                            }}
     {
+      // Need way to route null messages around the join.
       make_edge(buffered_msgs_, input_port<0>(join_));
       make_edges(iseq, serializers);
       make_edge(join_, serialized_function_);

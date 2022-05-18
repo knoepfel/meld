@@ -87,3 +87,50 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
   src.activate();
   g.wait_for_all();
 }
+
+TEST_CASE("Serialize functions in sequence", "[multithreading]")
+{
+  flow::graph g;
+  unsigned int i{};
+  flow::input_node src{g, [&i](flow_control& fc) {
+                         if (i < 10) {
+                           return ++i;
+                         }
+                         fc.stop();
+                         return 0u;
+                       }};
+
+  serializers serialized_resources{g};
+
+  std::atomic<unsigned int> root_counter{};
+
+  serial_node<unsigned int, 1> node1{
+    g, serialized_resources.get("ROOT"), [&root_counter](unsigned int const i) {
+      thread_counter c{root_counter};
+      debug("Processing from node 1 ", i);
+      return i;
+    }};
+
+  serial_node<unsigned int, 1> node2{
+    g, serialized_resources.get("ROOT"), [&root_counter](unsigned int const i) {
+      thread_counter c{root_counter};
+      debug("Processing from node 2 ", i);
+      return i;
+    }};
+
+ serial_node<unsigned int, 1> node3{
+    g, serialized_resources.get("ROOT"), [&root_counter](unsigned int const i) {
+      thread_counter c{root_counter};
+      debug("Processing from node 3 ", i);
+      return i;
+    }};
+
+  make_edge(src, node1);
+  make_edge(src, node2);
+  make_edge(node1, node3);
+  make_edge(node2, node3);
+
+  serialized_resources.activate();
+  src.activate();
+  g.wait_for_all();
+}
