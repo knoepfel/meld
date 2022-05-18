@@ -13,13 +13,7 @@ using namespace std::chrono_literals;
 TEST_CASE("Thread counter exception", "[multithreading]")
 {
   thread_counter::counter_type counter{};
-  auto run_loop = [&counter] {
-    tbb::parallel_for(0u, 10u, [&counter](auto) {
-      thread_counter c{counter};
-      std::this_thread::sleep_for(10ms);
-    });
-  };
-  CHECK_THROWS_WITH(run_loop(), Catch::Contains("Too many threads encountered"));
+  CHECK_THROWS_WITH((thread_counter{counter, 0u}), Catch::Contains("Too many threads encountered"));
 }
 
 TEST_CASE("Thread counter in flow graph", "[multithreading]")

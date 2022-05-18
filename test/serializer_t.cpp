@@ -22,24 +22,27 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
 
   serializers serialized_resources{g};
 
-  std::atomic<unsigned int> counter{};
+  std::atomic<unsigned int> root_counter{}, genie_counter{};
+
   serial_node<unsigned int, 1> node1{
-    g, serialized_resources.get("ROOT"), [&counter](unsigned int const i) {
-      thread_counter c{counter};
+    g, serialized_resources.get("ROOT"), [&root_counter](unsigned int const i) {
+      thread_counter c{root_counter};
       debug("Processing from node 1 ", i);
       return i;
     }};
 
-  serial_node<unsigned int, 2> node2{
-    g, serialized_resources.get("ROOT", "GENIE"), [&counter](unsigned int const i) {
-      thread_counter c{counter};
-      debug("Processing from node 2 ", i);
-      return i;
-    }};
+  serial_node<unsigned int, 2> node2{g,
+                                     serialized_resources.get("ROOT", "GENIE"),
+                                     [&root_counter, &genie_counter](unsigned int const i) {
+                                       thread_counter c1{root_counter};
+                                       thread_counter c2{genie_counter};
+                                       debug("Processing from node 2 ", i);
+                                       return i;
+                                     }};
 
   serial_node<unsigned int, 1> node3{
-    g, serialized_resources.get("GENIE"), [&counter](unsigned int const i) {
-      thread_counter c{counter};
+    g, serialized_resources.get("GENIE"), [&genie_counter](unsigned int const i) {
+      thread_counter c{genie_counter};
       debug("Processing from node 3 ", i);
       return i;
     }};

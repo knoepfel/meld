@@ -13,7 +13,7 @@ namespace meld {
     thread_counter(counter_type& counter, value_type const max_value = 1) :
       counter_{counter}, max_{max_value}
     {
-      auto const count = counter_.fetch_add(1);
+      auto const count = ++counter_;
       if (count > max_) {
         throw std::runtime_error("Too many threads encountered: " + std::to_string(count) +
                                  " vs. max allowed of " + std::to_string(max_));
