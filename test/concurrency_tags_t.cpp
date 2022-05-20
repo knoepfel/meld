@@ -109,6 +109,14 @@ namespace {
   static_assert(a_cons.get<Data>().value == std::nullopt);
   static_assert(a_cons.get<More>().value == 1);
   static_assert(a_cons.get<Maybe>().value == std::nullopt);
+
+  template <string_literal... Resources>
+  concept satisfies_serial_for = requires
+  {
+    concurrency::serial_for<Resources...>{};
+  };
+  static_assert(satisfies_serial_for<"A", "B", "CD">);
+  static_assert(not satisfies_serial_for<"A", "B", "A">);
 }
 
 TEST_CASE("Concurrency tags", "[multithreading]")

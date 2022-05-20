@@ -21,6 +21,7 @@ namespace meld::concurrency {
   struct max /* implementation-defined */;
 
   template <string_literal... Resources>
+    requires are_unique<Resources...>
   struct serial_for /* implementation-defined */;
 
   // ===========================================================
@@ -44,7 +45,9 @@ namespace meld::concurrency {
     static constexpr std::span<std::string_view> names{};
   };
   template <string_literal... Resources>
-  struct serial_for {
+    requires are_unique<Resources...>
+  struct serial_for
+  {
     static constexpr std::array names_{static_cast<std::string_view>(Resources)...};
     static constexpr bool is_specified = true;
     static constexpr int value = 1;

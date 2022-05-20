@@ -2,6 +2,7 @@
 #define meld_utilities_string_literal_hpp
 
 #include <algorithm>
+#include <array>
 #include <string_view>
 
 namespace meld {
@@ -11,6 +12,19 @@ namespace meld {
     constexpr operator std::string_view() const { return value; }
     char value[N];
   };
+
+  namespace detail {
+    template <string_literal... Resources>
+    consteval bool unique() {
+      std::array<std::string_view, sizeof...(Resources)> names{std::string_view(Resources)...};
+      auto e = end(names);
+      std::sort(begin(names), e);
+      return std::unique(begin(names), e) == e;
+    }
+  }
+
+  template <string_literal... Resources>
+  concept are_unique = detail::unique<Resources...>();
 }
 
 #endif /* meld_utilities_string_literal_hpp */

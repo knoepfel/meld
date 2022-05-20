@@ -14,7 +14,7 @@
 namespace meld {
 
   template <std::size_t... Is>
-  decltype(auto)
+  auto
   to_tuple(serializers& serialized_resources,
            std::span<std::string_view const> names,
            std::index_sequence<Is...>)

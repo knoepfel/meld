@@ -54,7 +54,7 @@ namespace meld {
     }
 
   public:
-    template <typename FT, typename... Serializers>
+    template <typename FT>
     explicit serial_node(tbb::flow::graph& g, std::size_t concurrency, FT f) :
       serial_node{g, concurrency, std::move(f), std::tuple{}, std::make_index_sequence<0>{}}
     {
