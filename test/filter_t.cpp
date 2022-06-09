@@ -112,11 +112,11 @@ TEST_CASE("Filter node + continue node", "[multithreading]")
 {
   flow::graph g;
   flow::input_node src{g, [i = 0u](flow_control& fc) mutable -> data_msg_t {
-                         if (i < 10) {
+                         if (i < 10u) {
                            return data_msg_t{i, ++i};
                          }
                          fc.stop();
-                         return data_msg_t{};
+                         return {};
                        }};
 
   filter_node<unsigned int> filter{
