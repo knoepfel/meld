@@ -83,7 +83,7 @@ namespace meld {
   template <typename... T>
   auto nodes(T&... ts)
   {
-    return nodes_using([](auto& l, auto& r) { tbb::flow::make_edge(l, r); }, ts...);
+    return nodes_using([](auto& l, auto& r) { make_edge(l, r); }, ts...);
   }
 
 }
