@@ -63,14 +63,11 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
   auto receiving_node_3 = receiving_node_for(g, "GENIE");
   auto receiving_node_4 = receiving_node_for(g, "unlimited");
 
-  make_edge(src, node1);
-  make_edge(src, node2);
-  make_edge(src, node3);
-  make_edge(src, node4);
-  make_edge(node1, receiving_node_1);
-  make_edge(node2, receiving_node_2);
-  make_edge(node3, receiving_node_3);
-  make_edge(node4, receiving_node_4);
+  nodes(src)->nodes(node1, node2, node3, node4);
+  nodes(node1)->nodes(receiving_node_1);
+  nodes(node2)->nodes(receiving_node_2);
+  nodes(node3)->nodes(receiving_node_3);
+  nodes(node4)->nodes(receiving_node_4);
 
   serialized_resources.activate();
   src.activate();
@@ -106,10 +103,7 @@ TEST_CASE("Serialize functions in split/merge graph", "[multithreading]")
   auto node2 = serial_node_for(g, 2);
   auto node3 = serial_node_for(g, 3);
 
-  make_edge(src, node1);
-  make_edge(src, node2);
-  make_edge(node1, node3);
-  make_edge(node2, node3);
+  nodes(src)->nodes(node1, node2)->nodes(node3);
 
   serialized_resources.activate();
   src.activate();

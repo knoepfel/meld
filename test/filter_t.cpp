@@ -140,9 +140,8 @@ TEST_CASE("Filter node + continue node", "[multithreading]")
       return i;
     }};
 
-  make_edge(src, producer2);
-  make_edge(src, filter);
-  make_edge(filter, producer2);
+  // FIXME: This is not quite right.  Producer 2 is always running, and we don't want that.
+  nodes(src)->nodes(filter, producer1)->nodes(producer2);
 
   src.activate();
   g.wait_for_all();

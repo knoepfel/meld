@@ -9,7 +9,7 @@ namespace meld {
   namespace detail {
     template <typename T, typename UTup, typename FT, std::size_t... Is>
     void
-    one_by_n(T const& t, UTup const& utup, FT const& func, std::index_sequence<Is...>)
+    one_by_n(T& t, UTup const& utup, FT const& func, std::index_sequence<Is...>)
     {
       (func(t, std::get<Is>(utup)), ...);
     };
