@@ -76,7 +76,7 @@ namespace meld {
         return;
       }
 
-      joins_.push_back(std::make_shared<detail::join_and_reduce<int>>(graph_, tag_matcher_));
+      joins_.push_back(std::make_shared<detail::join_and_reduce<Input>>(graph_, tag_matcher_));
 
       auto const current_index = size(joins_) - 1;
       auto& current_join_node = *joins_[current_index];
@@ -118,6 +118,12 @@ namespace meld {
 
     template <typename TagMatcher, typename R, typename T>
     T input_for(R (TagMatcher::*)(T));
+
+    template <typename TagMatcher, typename R, typename T>
+    std::remove_const_t<T> input_for(R (TagMatcher::*)(T&) const);
+
+    template <typename TagMatcher, typename R, typename T>
+    std::remove_const_t<T> input_for(R (TagMatcher::*)(T&));
 
     template <typename TagMatcher>
     using input_for_t = decltype(input_for(&TagMatcher::operator()));

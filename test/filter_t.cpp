@@ -1,3 +1,4 @@
+#include "meld/graph/dynamic_join_node.hpp"
 #include "meld/graph/serial_node.hpp"
 #include "meld/utilities/debug.hpp"
 #include "meld/utilities/thread_counter.hpp"
@@ -134,14 +135,14 @@ TEST_CASE("Filter node + continue node", "[multithreading]")
       return i;
     }};
 
+  dynamic_join_node synchronize{g, [](data_msg_t const& msg) { return msg.msg_id(); }};
   producer_node<unsigned int> producer2{
     g, flow::unlimited, [](unsigned int const i) -> unsigned int {
       debug("Producer 2: ", i);
       return i;
     }};
 
-  // FIXME: This is not quite right.  Producer 2 is always running, and we don't want that.
-  nodes(src)->nodes(filter, producer1)->nodes(producer2);
+  nodes(src)->nodes(filter, producer1)->nodes(synchronize)->nodes(producer2);
 
   src.activate();
   g.wait_for_all();
