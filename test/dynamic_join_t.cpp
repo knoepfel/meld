@@ -1,5 +1,6 @@
 #include "meld/graph/dynamic_join_node.hpp"
-#include "meld/graph/serial_node.hpp"
+#include "meld/graph/make_edges.hpp"
+#include "meld/utilities/debug.hpp"
 
 #include "catch2/catch.hpp"
 #include "oneapi/tbb/flow_graph.h"

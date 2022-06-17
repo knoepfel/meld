@@ -4,7 +4,6 @@
 #include "meld/graph/serializer_node.hpp"
 #include "meld/utilities/debug.hpp"
 #include "meld/utilities/sized_tuple.hpp"
-#include "meld/utilities/make_edges.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -79,13 +78,6 @@ namespace meld {
     tbb::flow::join_node<detail::join_tuple<Input, N>, tbb::flow::reserving> join_;
     tbb::flow::function_node<detail::join_tuple<Input, N>, Input> serialized_function_;
   };
-
-  template <typename... T>
-  auto nodes(T&... ts)
-  {
-    return nodes_using([](auto& l, auto& r) { make_edge(l, r); }, ts...);
-  }
-
 }
 
 #endif /* meld_graph_serial_node_hpp */

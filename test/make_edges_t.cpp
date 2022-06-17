@@ -1,4 +1,4 @@
-#include "meld/utilities/make_edges.hpp"
+#include "meld/graph/make_edges.hpp"
 
 #include "catch2/catch.hpp"
 

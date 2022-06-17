@@ -1,3 +1,4 @@
+#include "meld/graph/make_edges.hpp"
 #include "meld/graph/serial_node.hpp"
 #include "meld/utilities/debug.hpp"
 #include "meld/utilities/thread_counter.hpp"

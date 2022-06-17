@@ -1,5 +1,5 @@
-#ifndef meld_utilities_make_edges_hpp
-#define meld_utilities_make_edges_hpp
+#ifndef meld_graph_make_edges_hpp
+#define meld_graph_make_edges_hpp
 
 #include "meld/utilities/cartesian_product.hpp"
 
@@ -60,6 +60,12 @@ namespace meld {
   {
     return detail::node_t<FT, T...>{ft, t...};
   }
+
+  template <typename... T>
+  auto nodes(T&... ts)
+  {
+    return nodes_using([](auto& l, auto& r) { make_edge(l, r); }, ts...);
+  }
 }
 
-#endif /* meld_utilities_make_edges_hpp */
+#endif /* meld_graph_make_edges_hpp */
