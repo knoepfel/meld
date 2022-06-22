@@ -15,7 +15,9 @@ namespace meld {
 
   namespace detail {
     template <string_literal... Resources>
-    consteval bool unique() {
+    consteval bool
+    unique()
+    {
       std::array<std::string_view, sizeof...(Resources)> names{std::string_view(Resources)...};
       auto e = end(names);
       std::sort(begin(names), e);

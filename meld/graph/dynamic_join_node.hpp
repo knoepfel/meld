@@ -5,30 +5,31 @@
 
 namespace meld {
   namespace detail {
-  template <typename Input>
-  using join_and_reduce_base = tbb::flow::composite_node<std::tuple<Input, Input>, std::tuple<Input>>;
+    template <typename Input>
+    using join_and_reduce_base =
+      tbb::flow::composite_node<std::tuple<Input, Input>, std::tuple<Input>>;
 
-  template <typename Input>
-  class join_and_reduce : public join_and_reduce_base<Input> {
-  public:
-    template <typename TagMatcher>
-    explicit join_and_reduce(tbb::flow::graph& g, TagMatcher& ft) :
-      join_and_reduce_base<Input>{g}, join_{g, ft, ft}, reduce_{g, tbb::flow::unlimited, [](auto& pr) {
-                                                                  return get<0>(pr);
-                                                                }}
+    template <typename Input>
+    class join_and_reduce : public join_and_reduce_base<Input> {
+    public:
+      template <typename TagMatcher>
+      explicit join_and_reduce(tbb::flow::graph& g, TagMatcher& ft) :
+        join_and_reduce_base<Input>{g},
+        join_{g, ft, ft},
+        reduce_{g, tbb::flow::unlimited, [](auto& pr) { return get<0>(pr); }}
 
-    {
-      make_edge(join_, reduce_);
-      join_and_reduce_base<Input>::set_external_ports(
-        typename join_and_reduce_base<Input>::input_ports_type{input_port<0>(join_),
-                                                               input_port<1>(join_)},
-        typename join_and_reduce_base<Input>::output_ports_type{reduce_});
-    }
+      {
+        make_edge(join_, reduce_);
+        join_and_reduce_base<Input>::set_external_ports(
+          typename join_and_reduce_base<Input>::input_ports_type{input_port<0>(join_),
+                                                                 input_port<1>(join_)},
+          typename join_and_reduce_base<Input>::output_ports_type{reduce_});
+      }
 
-  private:
-    tbb::flow::join_node<std::tuple<Input, Input>, tbb::flow::tag_matching> join_;
-    tbb::flow::function_node<std::tuple<Input, Input>, Input> reduce_;
-  };
+    private:
+      tbb::flow::join_node<std::tuple<Input, Input>, tbb::flow::tag_matching> join_;
+      tbb::flow::function_node<std::tuple<Input, Input>, Input> reduce_;
+    };
   }
 
   template <typename Input, typename TagMatcher>
@@ -41,14 +42,12 @@ namespace meld {
     }
 
   private:
-
     template <typename In, typename Output, typename Matcher>
-    friend void
-    make_edge(tbb::flow::sender<In>& input, dynamic_join_node<Output, Matcher>& djoin);
+    friend void make_edge(tbb::flow::sender<In>& input, dynamic_join_node<Output, Matcher>& djoin);
 
     template <typename In, typename Matcher, typename Output>
-    friend void
-    make_edge(dynamic_join_node<In, Matcher>& djoin, tbb::flow::receiver<Output>& output);
+    friend void make_edge(dynamic_join_node<In, Matcher>& djoin,
+                          tbb::flow::receiver<Output>& output);
 
     template <typename T>
     void
@@ -130,7 +129,8 @@ namespace meld {
   }
 
   template <typename Graph, typename TagMatcher>
-  dynamic_join_node(Graph&, TagMatcher&&) -> dynamic_join_node<detail::input_for_t<TagMatcher>, TagMatcher>;
+  dynamic_join_node(Graph&, TagMatcher&&)
+    -> dynamic_join_node<detail::input_for_t<TagMatcher>, TagMatcher>;
 }
 
 #endif /* meld_graph_dynamic_join_node_hpp */
