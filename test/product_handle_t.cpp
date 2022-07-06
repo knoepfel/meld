@@ -29,6 +29,8 @@ TEST_CASE("Handle type conversions (run-time checks)", "[data model]")
 
   product<int> const number{3};
   handle const h{number};
+  CHECK(handle<int const>{number} == h);
+
   int const& num_ref = h;
   int const* num_ptr = h;
   CHECK(static_cast<bool>(h));

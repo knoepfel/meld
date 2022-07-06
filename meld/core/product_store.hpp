@@ -22,29 +22,58 @@ namespace meld {
     std::remove_cvref_t<T> obj;
   };
 
+  namespace detail {
+    template <typename T>
+    using handle_type = std::remove_cvref_t<T>;
+
+    template <typename T, typename U>
+    concept same_handle_type = std::same_as<handle_type<T>, handle_type<U>>;
+  }
+
   template <typename T>
   class handle {
   public:
-    using value_type = T;
+    using value_type = detail::handle_type<T>;
+    using const_reference = value_type const&;
+    using const_pointer = value_type const*;
+
     handle() = default;
-    explicit handle(product<T> const& prod) : t_{&prod.obj} {}
-    T const*
+
+    template <typename U>
+    explicit handle(product<U> const& prod) : t_{&prod.obj}
+    {
+    }
+
+    const_pointer
     operator->() const noexcept
     {
       return t_;
     }
-    T const&
+    const_reference
     operator*() const noexcept
     {
       return *t_;
     }
     explicit operator bool() const noexcept { return t_ != nullptr; }
-    operator T const&() const noexcept { return *t_; }
-    operator T const*() const noexcept { return t_; }
+    operator const_reference() const noexcept { return *t_; }
+    operator const_pointer() const noexcept { return t_; }
+
+    template <typename U>
+    friend class handle;
+
+    template <typename U>
+    bool
+    operator==(handle<U> rhs) const noexcept requires detail::same_handle_type<T, U>
+    {
+      return t_ == rhs.t_;
+    }
 
   private:
-    T const* t_{nullptr};
+    const_pointer t_{nullptr};
   };
+
+  template <typename T>
+  handle(product<T> const&) -> handle<T>;
 
   template <typename T>
   struct handle_ {
@@ -90,7 +119,6 @@ namespace meld {
   void
   product_store::add_product(std::string const& key, T const& t)
   {
-    debug("Adding ", demangle_symbol(typeid(std::remove_cvref_t<T>)));
     products_.try_emplace(key, std::make_shared<product<std::remove_cvref_t<T>>>(t));
   }
 
