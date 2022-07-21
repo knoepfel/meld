@@ -17,16 +17,16 @@ namespace meld {
 
   class data_node {
   public:
-    virtual ~data_node(); // Ick.  Should be able to type-erase this thing.
     level_id const& id() const noexcept;
-    virtual std::string_view level_name() const = 0;
+    std::string_view level_name() const noexcept;
 
   protected:
-    explicit data_node(level_id id);
-    explicit data_node(level_id const& parent_id, std::size_t id);
+    explicit data_node(level_id id, std::string_view name);
+    explicit data_node(level_id const& parent_id, std::size_t id, std::string_view name);
 
   private:
     level_id id_;
+    std::string_view name_;
   };
 
   using data_node_ptr = std::shared_ptr<data_node>;
@@ -38,9 +38,6 @@ namespace meld {
   class root_node_t : public data_node {
   public:
     root_node_t();
-    ~root_node_t() final;
-
-    std::string_view level_name() const final;
 
     // Maybe make const-qualified version of this?
     template <typename T>

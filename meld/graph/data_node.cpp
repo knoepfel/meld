@@ -3,18 +3,22 @@
 #include <ostream>
 
 namespace meld {
-  data_node::data_node(level_id id) : id_{std::move(id)} {}
-  data_node::data_node(level_id const& parent_id, std::size_t new_id) :
-    id_{parent_id.make_child(new_id)}
+  data_node::data_node(level_id id, std::string_view name) : id_{std::move(id)}, name_{name} {}
+  data_node::data_node(level_id const& parent_id, std::size_t new_id, std::string_view name) :
+    id_{parent_id.make_child(new_id)}, name_{name}
   {
   }
-
-  data_node::~data_node() = default;
 
   level_id const&
   data_node::id() const noexcept
   {
     return id_;
+  }
+
+  std::string_view
+  data_node::level_name() const noexcept
+  {
+    return name_;
   }
 
   transition_type
@@ -24,13 +28,7 @@ namespace meld {
     return transition_type{node_ptr->level_name(), tr.second};
   }
 
-  root_node_t::root_node_t() : data_node{{}} {}
-  root_node_t::~root_node_t() = default;
-  std::string_view
-  root_node_t::level_name() const
-  {
-    return "root-node";
-  }
+  root_node_t::root_node_t() : data_node{{}, "root-node"} {}
 
   std::shared_ptr<root_node_t> root_node{std::make_shared<root_node_t>()};
 

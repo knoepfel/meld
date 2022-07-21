@@ -20,7 +20,6 @@ namespace meld {
     using parent_type = Parent;
 
     data_level(Parent* parent, std::size_t i);
-    ~data_level() final;
     Parent* parent() noexcept;
     Parent const* parent() const noexcept;
 
@@ -29,7 +28,6 @@ namespace meld {
     std::shared_ptr<Child> make_child(std::size_t i);
 
   private:
-    std::string_view level_name() const final;
     Parent* parent_;
   };
 
@@ -37,12 +35,9 @@ namespace meld {
 
   template <string_literal Name, typename Parent>
   data_level<Name, Parent>::data_level(Parent* parent, std::size_t i) :
-    data_node{parent->id(), i}, parent_{parent}
+    data_node{parent->id(), i, name()}, parent_{parent}
   {
   }
-
-  template <string_literal Name, typename Parent>
-  data_level<Name, Parent>::~data_level() = default;
 
   template <string_literal Name, typename Parent>
   Parent*
@@ -73,13 +68,6 @@ namespace meld {
   data_level<Name, Parent>::make_child(std::size_t i)
   {
     return std::make_shared<Child>(this, i);
-  }
-
-  template <string_literal Name, typename Parent>
-  std::string_view
-  data_level<Name, Parent>::level_name() const
-  {
-    return name();
   }
 
 }
