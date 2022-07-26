@@ -8,9 +8,6 @@
 namespace meld {
   using run = data_level<"run">;
   using subrun = data_level<"subrun", run>;
-
-  extern template class data_level<"run">;
-  extern template class data_level<"subrun", run>;
 }
 
 #endif /* test_data_levels_hpp */
