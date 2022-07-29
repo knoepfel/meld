@@ -29,7 +29,7 @@ namespace meld {
       auto const handles = [ this, &store ]<std::size_t... Is, typename... Ts>(
         std::index_sequence<Is...>, std::tuple<handle<Ts>...>)
       {
-        return std::make_tuple(store.get_product<Ts>(names_[Is])...);
+        return std::make_tuple(store.get_handle<Ts>(names_[Is])...);
       }
       (std::index_sequence_for<Args...>{}, types{});
       return std::apply(ft_, handles);

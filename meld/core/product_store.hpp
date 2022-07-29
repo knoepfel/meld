@@ -32,6 +32,8 @@ namespace meld {
 
   template <typename T>
   class handle {
+    using err_t = std::string;
+
   public:
     using value_type = detail::handle_type<T>;
     using const_reference = value_type const&;
@@ -40,23 +42,29 @@ namespace meld {
     handle() = default;
 
     template <typename U>
-    explicit handle(product<U> const& prod) : t_{&prod.obj}
+    explicit handle(product<U> const& prod) requires detail::same_handle_type<T, U> :
+      rep_{&prod.obj}
     {
     }
 
+    explicit handle(std::string err_msg) : rep_{move(err_msg)} {}
+
     const_pointer
-    operator->() const noexcept
+    operator->() const
     {
-      return t_;
+      if (auto const* err = get_if<err_t>(&rep_)) {
+        throw std::runtime_error(*err);
+      }
+      return get<const_pointer>(rep_);
     }
-    const_reference
-    operator*() const noexcept
+    [[nodiscard]] const_reference
+    operator*() const
     {
-      return *t_;
+      return *operator->();
     }
-    explicit operator bool() const noexcept { return t_ != nullptr; }
-    operator const_reference() const noexcept { return *t_; }
-    operator const_pointer() const noexcept { return t_; }
+    explicit operator bool() const noexcept { return get_if<const_pointer>(&rep_) != nullptr; }
+    operator const_reference() const noexcept { return operator*(); }
+    operator const_pointer() const noexcept { return operator->(); }
 
     template <typename U>
     friend class handle;
@@ -65,11 +73,12 @@ namespace meld {
     bool
     operator==(handle<U> rhs) const noexcept requires detail::same_handle_type<T, U>
     {
-      return t_ == rhs.t_;
+      return rep_ == rhs.rep_;
     }
 
   private:
-    const_pointer t_{nullptr};
+    std::variant<const_pointer, err_t> rep_{"Cannot dereference empty handle of type '" +
+                                            demangle_symbol(typeid(T)) + "'."};
   };
 
   template <typename T>
@@ -108,7 +117,10 @@ namespace meld {
     void add_product(std::string const& key, T const& t);
 
     template <typename T>
-    handle<T> get_product(std::string const& key) const;
+    T const& get_product(std::string const& key) const;
+
+    template <typename T>
+    handle<T> get_handle(std::string const& key) const;
 
   private:
     std::map<std::string, std::shared_ptr<product_base>> products_;
@@ -123,15 +135,25 @@ namespace meld {
   }
 
   template <typename T>
-  handle<T>
-  product_store::get_product(std::string const& key) const
+  [[nodiscard]] handle<T>
+  product_store::get_handle(std::string const& key) const
   {
-    auto& p = products_.at(key);
-    if (auto t = std::dynamic_pointer_cast<product<T>>(p)) {
+    auto it = products_.find(key);
+    if (it == cend(products_)) {
+      return handle<T>{"No product exists with the key '" + key + "'."};
+    }
+    if (auto t = std::dynamic_pointer_cast<product<T>>(it->second)) {
       return handle<T>{*t};
     }
-    throw std::runtime_error("Cannot get product '" + key + "' with type " +
-                             demangle_symbol(typeid(T)));
+    return handle<T>{"Cannot get product '" + key + "' with type '" + demangle_symbol(typeid(T)) +
+                     "'."};
+  }
+
+  template <typename T>
+  [[nodiscard]] T const&
+  product_store::get_product(std::string const& key) const
+  {
+    return *get_handle<T>(key);
   }
 }
 
