@@ -28,6 +28,7 @@ create_component(test_source)
 add_test(NAME meld_t COMMAND meld --config ${CMAKE_CURRENT_SOURCE_DIR}/test_meld.json)
 add_test(NAME meld_with_deps_t COMMAND meld --config ${CMAKE_CURRENT_SOURCE_DIR}/test_meld_with_deps.json)
 
+add_unit_test(iterator_t)
 add_unit_test(sized_tuple_t LIBRARIES meld::utilities)
 add_unit_test(string_literal_t LIBRARIES meld::utilities)
 
