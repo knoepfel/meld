@@ -24,6 +24,7 @@ namespace meld {
     explicit level_id(std::initializer_list<std::size_t> numbers);
     explicit level_id(std::vector<std::size_t> numbers);
     level_id make_child(std::size_t new_level_number) const;
+    std::size_t depth() const noexcept;
     level_id parent() const;
     bool has_parent() const noexcept;
     std::size_t back() const;
@@ -75,6 +76,17 @@ namespace meld {
   std::string to_string(stage);
   std::ostream& operator<<(std::ostream& os, level_id const& id);
   std::ostream& operator<<(std::ostream& os, transition const& t);
+}
+
+namespace std {
+  template <>
+  struct hash<meld::level_id> {
+    std::size_t
+    operator()(meld::level_id const& id) const noexcept
+    {
+      return id.hash();
+    }
+  };
 }
 
 #endif /* meld_graph_transition_hpp */

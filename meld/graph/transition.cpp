@@ -32,6 +32,12 @@ namespace meld {
   {
   }
 
+  std::size_t
+  level_id::depth() const noexcept
+  {
+    return id_.size();
+  }
+
   level_id
   level_id::make_child(std::size_t const new_level_number) const
   {

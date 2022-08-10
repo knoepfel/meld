@@ -111,10 +111,19 @@ namespace meld {
   template <typename T>
   using handle_for = typename handle_<T>::type;
 
+  template <typename T>
+  struct labeled_data {
+    std::string label;
+    T data;
+  };
+
   class product_store {
   public:
     template <typename T>
     void add_product(std::string const& key, T const& t);
+
+    template <typename T>
+    void add_product(labeled_data<T>&& data);
 
     template <typename T>
     T const& get_product(std::string const& key) const;
@@ -126,12 +135,26 @@ namespace meld {
     std::map<std::string, std::shared_ptr<product_base>> products_;
   };
 
+  using product_store_ptr = std::shared_ptr<product_store>;
+  inline auto
+  make_product_store()
+  {
+    return std::make_shared<product_store>();
+  }
+
   // Implementation details
   template <typename T>
   void
   product_store::add_product(std::string const& key, T const& t)
   {
     products_.try_emplace(key, std::make_shared<product<std::remove_cvref_t<T>>>(t));
+  }
+
+  template <typename T>
+  void
+  product_store::add_product(labeled_data<T>&& ldata)
+  {
+    add_product(ldata.label, std::forward<T>(ldata.data));
   }
 
   template <typename T>

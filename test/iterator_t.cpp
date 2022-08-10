@@ -122,7 +122,7 @@ main()
   else {
     // Lazy evaluation
     Record trigger_record(0, n);
-    for (int apa : trigger_record.process<APA>()) {
+    for (int apa : trigger_record.process<int>()) {
       sum += apa;
     }
   }
