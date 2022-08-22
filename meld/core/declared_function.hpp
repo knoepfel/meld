@@ -1,6 +1,7 @@
 #ifndef meld_core_declared_function_hpp
 #define meld_core_declared_function_hpp
 
+#include <cstddef>
 #include <map>
 #include <memory>
 #include <set>
@@ -14,9 +15,13 @@ namespace meld {
   class declared_function {
   public:
     declared_function(std::string name,
+                      std::size_t concurrency,
                       std::vector<std::string> input_keys,
                       std::vector<std::string> output_keys) :
-      name_{move(name)}, input_keys_{move(input_keys)}, output_keys_{move(output_keys)}
+      name_{move(name)},
+      concurrency_{concurrency},
+      input_keys_{move(input_keys)},
+      output_keys_{move(output_keys)}
     {
     }
 
@@ -34,6 +39,12 @@ namespace meld {
       return name_;
     }
 
+    std::size_t
+    concurrency() const noexcept
+    {
+      return concurrency_;
+    }
+
     auto const&
     input() const noexcept
     {
@@ -49,6 +60,7 @@ namespace meld {
     virtual void invoke_(product_store& store) const = 0;
 
     std::string name_;
+    std::size_t concurrency_;
     std::vector<std::string> input_keys_;
     std::vector<std::string> output_keys_;
   };

@@ -88,7 +88,8 @@ namespace {
                  ++cnt; // Increment must happen *after* all work is done
                }
                if (cnt == token_encountered) {
-                 get<0>(outputs).try_put({transition{std::move(parent_id), stage::process}, output.send()});
+                 get<0>(outputs).try_put(
+                   {transition{std::move(parent_id), stage::process}, output.send()});
                  // Reclaim some memory; would be better to erase the entire entry from the map,
                  // but that is not thread-safe.
                  it->second.reset();

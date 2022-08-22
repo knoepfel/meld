@@ -56,30 +56,35 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   SECTION("No framework")
   {
     component.declare_transform("no_framework", &A::no_framework)
+      .concurrency(tbb::flow::unlimited)
       .input(product_names)
       .output(result);
   }
   SECTION("No framework, all references")
   {
     component.declare_transform("no_framework_all_refs", &A::no_framework_all_refs)
+      .concurrency(tbb::flow::unlimited)
       .input(product_names)
       .output(result);
   }
   SECTION("No framework, all pointers")
   {
     component.declare_transform("no_framework_all_ptrs", &A::no_framework_all_ptrs)
+      .concurrency(tbb::flow::unlimited)
       .input(product_names)
       .output(result);
   }
   SECTION("One framework argument")
   {
     component.declare_transform("one_framework_arg", &A::one_framework_arg)
+      .concurrency(tbb::flow::unlimited)
       .input(product_names)
       .output(result);
   }
   SECTION("All framework arguments")
   {
     component.declare_transform("all_framework_args", &A::all_framework_args)
+      .concurrency(tbb::flow::unlimited)
       .input(product_names)
       .output(result);
   }

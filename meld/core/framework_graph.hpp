@@ -76,7 +76,7 @@ namespace meld {
         joins_.try_emplace(join_name_for(name), dynamic_join{graph_, ProductStoreHasher{}});
         // N.B. Capturing 'p' by reference is supported as of C++20.  Apple-Clang 13.1.6 isn't yet up to snuff.
         nodes_.try_emplace(
-          name, user_function_node{graph_, tbb::flow::unlimited, [ptr = p.get()](auto store) {
+          name, user_function_node{graph_, p->concurrency(), [ptr = p.get()](auto store) {
                                      ptr->invoke(*store);
                                      return store;
                                    }});

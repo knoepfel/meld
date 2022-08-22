@@ -49,12 +49,15 @@ TEST_CASE("Call multiple functions", "[programming model]")
   {
     auto component = make_component();
     component.declare_transform("square_numbers", square_numbers)
+      .concurrency(tbb::flow::unlimited)
       .input("numbers")
       .output("squared_numbers");
     component.declare_transform("sum_numbers", sum_numbers)
+      .concurrency(tbb::flow::unlimited)
       .input("squared_numbers")
       .output("summed_numbers");
     component.declare_transform("sqrt_sum_numbers", sqrt_sum_numbers)
+      .concurrency(tbb::flow::unlimited)
       .input("summed_numbers", "offset")
       .output("result");
     graph.merge(component.release_functions());
@@ -64,16 +67,19 @@ TEST_CASE("Call multiple functions", "[programming model]")
   {
     auto a = make_component();
     a.declare_transform("square_numbers", square_numbers)
+      .concurrency(tbb::flow::unlimited)
       .input("numbers")
       .output("squared_numbers");
 
     auto b = make_component();
     b.declare_transform("sum_numbers", sum_numbers)
+      .concurrency(tbb::flow::unlimited)
       .input("squared_numbers")
       .output("summed_numbers");
 
     auto c = make_component();
     c.declare_transform("sqrt_sum_numbers", sqrt_sum_numbers)
+      .concurrency(tbb::flow::unlimited)
       .input("summed_numbers", "offset")
       .output("result");
 
@@ -86,16 +92,19 @@ TEST_CASE("Call multiple functions", "[programming model]")
   {
     auto a = make_component();
     a.declare_transform("square_numbers", square_numbers)
+      .concurrency(tbb::flow::unlimited)
       .input("numbers")
       .output("squared_numbers");
 
     auto b = make_component();
     b.declare_transform("sum_numbers", sum_numbers)
+      .concurrency(tbb::flow::unlimited)
       .input("squared_numbers")
       .output("summed_numbers");
 
     auto c = make_component<A>();
     c.declare_transform("sqrt_sum_numbers", &A::sqrt_sum)
+      .concurrency(tbb::flow::unlimited)
       .input("summed_numbers", "offset")
       .output("result");
 

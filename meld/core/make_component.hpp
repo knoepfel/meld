@@ -38,6 +38,14 @@ namespace meld {
     {
     }
 
+    // Icky?
+    incomplete_function&
+    concurrency(std::size_t concurrency)
+    {
+      concurrency_ = concurrency;
+      return *this;
+    }
+
     // FIXME: Should pick a different parameter type
     auto input(std::vector<std::string> input_keys);
 
@@ -52,6 +60,7 @@ namespace meld {
   private:
     user_functions<T>& funcs_;
     std::string name_;
+    std::size_t concurrency_{tbb::flow::serial};
     std::function<R(Args...)> ft_;
   };
 
@@ -59,10 +68,11 @@ namespace meld {
   class incomplete_function<T, R, Args...>::complete_function : public declared_function {
   public:
     complete_function(std::string name,
+                      std::size_t concurrency,
                       std::function<R(Args...)>&& f,
                       std::vector<std::string> input,
                       std::vector<std::string> output) :
-      declared_function{move(name), move(input), move(output)}, ft_{move(f)}
+      declared_function{move(name), concurrency, move(input), move(output)}, ft_{move(f)}
     {
     }
 
@@ -158,11 +168,13 @@ namespace meld {
   {
     if constexpr (std::same_as<R, void>) {
       funcs_.add_function(
-        name_, std::make_unique<complete_function>(name_, move(ft_), move(input_keys), {}));
+        name_,
+        std::make_unique<complete_function>(name_, concurrency_, move(ft_), move(input_keys), {}));
       return;
     }
     else {
-      return function_requires_output{funcs_, move(name_), move(ft_), move(input_keys)};
+      return function_requires_output{
+        funcs_, move(name_), concurrency_, move(ft_), move(input_keys)};
     }
   }
 
@@ -171,9 +183,14 @@ namespace meld {
   public:
     function_requires_output(user_functions<T>& funcs,
                              std::string name,
+                             std::size_t concurrency,
                              std::function<R(Args...)>&& f,
                              std::vector<std::string> input_keys) :
-      funcs_{funcs}, name_{move(name)}, ft_{move(f)}, input_keys_{move(input_keys)}
+      funcs_{funcs},
+      name_{move(name)},
+      concurrency_{concurrency},
+      ft_{move(f)},
+      input_keys_{move(input_keys)}
     {
     }
 
@@ -182,7 +199,7 @@ namespace meld {
     {
       funcs_.add_function(name_,
                           std::make_unique<complete_function>(
-                            name_, move(ft_), move(input_keys_), move(output_keys)));
+                            name_, concurrency_, move(ft_), move(input_keys_), move(output_keys)));
     }
 
     template <typename... Ts>
@@ -196,6 +213,7 @@ namespace meld {
   private:
     user_functions<T>& funcs_;
     std::string name_;
+    std::size_t concurrency_;
     std::function<R(Args...)> ft_;
     std::vector<std::string> input_keys_;
   };
