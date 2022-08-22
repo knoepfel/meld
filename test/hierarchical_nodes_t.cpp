@@ -8,6 +8,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <concepts>
 #include <string>
 #include <thread>
@@ -73,7 +74,7 @@ namespace {
     reduction_node(flow::graph& g, std::size_t concurrency, FT f) :
       base_t{g, concurrency, [this, user_func = std::move(f)](Input const& data, auto& outputs) {
                auto const& [id, st] = data.tr;
-               auto const parent_id = id.parent();
+               auto parent_id = id.parent();
                auto it = entries_.find(parent_id);
                if (it == entries_.end()) {
                  it = entries_.insert({parent_id, std::make_unique<map_entry>()}).first;
@@ -87,8 +88,10 @@ namespace {
                  ++cnt; // Increment must happen *after* all work is done
                }
                if (cnt == token_encountered) {
-                 get<0>(outputs).try_put({transition{parent_id, stage::process}, output.send()});
-                 entries_.unsafe_erase(it);
+                 get<0>(outputs).try_put({transition{std::move(parent_id), stage::process}, output.send()});
+                 // Reclaim some memory; would be better to erase the entire entry from the map,
+                 // but that is not thread-safe.
+                 it->second.reset();
                }
              }}
     {
