@@ -14,6 +14,6 @@ add_library(meld_core_int INTERFACE)
 target_include_directories(meld_core_int INTERFACE
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"
   "$<INSTALL_INTERFACE:include>")
-target_link_libraries(meld_core_int INTERFACE meld_core meld::graph TBB::tbb)
+target_link_libraries(meld_core_int INTERFACE meld_core meld::graph meld::utilities TBB::tbb)
 
 add_library(meld::core ALIAS meld_core_int)

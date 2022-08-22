@@ -1,8 +1,11 @@
 #ifndef meld_core_product_store_hpp
 #define meld_core_product_store_hpp
 
+#include "meld/graph/transition.hpp"
 #include "meld/utilities/debug.hpp"
 #include "meld/utilities/demangle_symbol.hpp"
+
+#include "oneapi/tbb/concurrent_unordered_map.h"
 
 #include <map>
 #include <memory>
@@ -119,6 +122,14 @@ namespace meld {
 
   class product_store {
   public:
+    explicit product_store(level_id id = {}) : id_{std::move(id)} {}
+
+    auto const&
+    id() const noexcept
+    {
+      return id_;
+    }
+
     template <typename T>
     void add_product(std::string const& key, T const& t);
 
@@ -132,7 +143,8 @@ namespace meld {
     handle<T> get_handle(std::string const& key) const;
 
   private:
-    std::map<std::string, std::shared_ptr<product_base>> products_;
+    level_id id_;
+    tbb::concurrent_unordered_map<std::string, std::shared_ptr<product_base>> products_;
   };
 
   using product_store_ptr = std::shared_ptr<product_store>;
@@ -147,7 +159,7 @@ namespace meld {
   void
   product_store::add_product(std::string const& key, T const& t)
   {
-    products_.try_emplace(key, std::make_shared<product<std::remove_cvref_t<T>>>(t));
+    products_.emplace(key, std::make_shared<product<std::remove_cvref_t<T>>>(t));
   }
 
   template <typename T>
@@ -178,6 +190,15 @@ namespace meld {
   {
     return *get_handle<T>(key);
   }
+
+  struct ProductStoreHasher {
+    auto
+    operator()(product_store_ptr ptr) const
+    {
+      assert(ptr);
+      return ptr->id().hash();
+    }
+  };
 }
 
 #endif /* meld_core_product_store_hpp */

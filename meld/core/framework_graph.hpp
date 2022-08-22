@@ -3,6 +3,7 @@
 
 #include "meld/core/declared_function.hpp"
 #include "meld/core/product_store.hpp"
+#include "meld/graph/dynamic_join_node.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -19,6 +20,13 @@ namespace meld {
   class framework_graph {
     using source_node = tbb::flow::input_node<product_store_ptr>;
     using user_function_node = tbb::flow::function_node<product_store_ptr, product_store_ptr>;
+    using dynamic_join = dynamic_join_node<product_store_ptr, ProductStoreHasher>;
+
+    std::string
+    join_name_for(std::string const& node_name)
+    {
+      return "[join for " + node_name + ']';
+    }
 
   public:
     struct run_once_t {};
@@ -65,6 +73,7 @@ namespace meld {
     finalize()
     {
       for (auto const& [name, p] : funcs_) {
+        joins_.try_emplace(join_name_for(name), dynamic_join{graph_, ProductStoreHasher{}});
         // N.B. Capturing 'p' by reference is supported as of C++20.  Apple-Clang 13.1.6 isn't yet up to snuff.
         nodes_.try_emplace(
           name, user_function_node{graph_, tbb::flow::unlimited, [ptr = p.get()](auto store) {
@@ -81,17 +90,20 @@ namespace meld {
           if (auto it = available_products.find(label); it != cend(available_products)) {
             // FIXME:  THIS LOOKUP ASSUMES ONLY ONE FUNCTION PROVIDES THE PRODUCT
             auto const& candidate_fcns = it->second;
-            if (existing_edges.contains({candidate_fcns[0], fcn_name})) {
+            auto const& sender_name = candidate_fcns[0];
+            if (existing_edges.contains({sender_name, fcn_name})) {
               continue;
             }
-            make_edge(nodes_.at(candidate_fcns[0]), fcn_node);
-            existing_edges.insert({candidate_fcns[0], fcn_name});
+            make_edge(nodes_.at(sender_name), joins_.at(join_name_for(fcn_name)));
+            make_edge(joins_.at(join_name_for(fcn_name)), fcn_node);
+            existing_edges.insert({sender_name, fcn_name});
           }
           else {
             if (existing_edges.contains({"[source]", fcn_name})) {
               continue;
             }
-            make_edge(src_, fcn_node);
+            make_edge(src_, joins_.at(join_name_for(fcn_name)));
+            make_edge(joins_.at(join_name_for(fcn_name)), fcn_node);
             existing_edges.insert({"[source]", fcn_name});
           }
         }
@@ -125,6 +137,7 @@ namespace meld {
 
     tbb::flow::graph graph_{};
     declared_functions funcs_{};
+    std::map<std::string, dynamic_join> joins_{};
     std::map<std::string, user_function_node> nodes_{};
     tbb::flow::input_node<product_store_ptr> src_;
   };
