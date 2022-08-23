@@ -96,7 +96,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   store->add_product("name", std::string{"John"});
 
   framework_graph graph{framework_graph::run_once, store};
-  graph.merge(component.release_functions());
+  graph.merge(component.release_transforms(), component.release_reductions());
   graph.finalize_and_run();
 
   auto const expected = std::make_tuple(3, 98.5, "John");

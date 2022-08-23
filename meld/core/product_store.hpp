@@ -120,14 +120,41 @@ namespace meld {
     T data;
   };
 
-  class product_store {
+  class product_store : public std::enable_shared_from_this<product_store> {
+    using ptr = std::shared_ptr<product_store>;
+
   public:
-    explicit product_store(level_id id = {}) : id_{std::move(id)} {}
+    explicit product_store(level_id id = {}, bool is_flush = false) :
+      id_{std::move(id)}, is_flush_{is_flush}
+    {
+    }
+
+    explicit product_store(std::shared_ptr<product_store> parent,
+                           std::size_t new_level_number,
+                           bool is_flush);
+
+    ptr
+    parent() const noexcept
+    {
+      return parent_;
+    }
+
+    ptr
+    make_child(std::size_t new_level_number, bool is_flush)
+    {
+      return std::make_shared<product_store>(shared_from_this(), new_level_number, is_flush);
+    }
 
     auto const&
     id() const noexcept
     {
       return id_;
+    }
+
+    bool
+    is_flush() const noexcept
+    {
+      return is_flush_;
     }
 
     template <typename T>
@@ -143,15 +170,25 @@ namespace meld {
     handle<T> get_handle(std::string const& key) const;
 
   private:
+    std::shared_ptr<product_store> parent_{nullptr};
+    tbb::concurrent_unordered_map<std::string, std::shared_ptr<product_base>> products_{};
     level_id id_;
-    tbb::concurrent_unordered_map<std::string, std::shared_ptr<product_base>> products_;
+    bool is_flush_;
   };
 
   using product_store_ptr = std::shared_ptr<product_store>;
+
   inline auto
   make_product_store()
   {
     return std::make_shared<product_store>();
+  }
+
+  inline product_store::product_store(std::shared_ptr<product_store> parent,
+                                      std::size_t new_level_number,
+                                      bool is_flush) :
+    parent_{parent}, id_{parent->id().make_child(new_level_number)}, is_flush_{is_flush}
+  {
   }
 
   // Implementation details

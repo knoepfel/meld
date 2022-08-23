@@ -18,7 +18,7 @@ namespace meld {
       if (id == level_id{}) {
         return new_store(std::make_shared<product_store>(id));
       }
-      return new_store(get_store(id.parent())->make_child(id.back(), false));
+      return new_store(get_store(id.parent())->make_child(id.back(), is_flush));
     }
 
   private:

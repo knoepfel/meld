@@ -1,5 +1,8 @@
 add_library(meld_core SHARED
   data_processor.cpp
+  declared_transform.cpp
+  declared_reduction.cpp
+  framework_graph.cpp
   load_module.cpp
   module_manager.cpp
   )

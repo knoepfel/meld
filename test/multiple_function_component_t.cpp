@@ -60,7 +60,7 @@ TEST_CASE("Call multiple functions", "[programming model]")
       .concurrency(tbb::flow::unlimited)
       .input("summed_numbers", "offset")
       .output("result");
-    graph.merge(component.release_functions());
+    graph.merge(component.release_transforms(), component.release_reductions());
   }
 
   SECTION("Multiple components, each with one free function")
@@ -83,9 +83,9 @@ TEST_CASE("Call multiple functions", "[programming model]")
       .input("summed_numbers", "offset")
       .output("result");
 
-    graph.merge(a.release_functions());
-    graph.merge(b.release_functions());
-    graph.merge(c.release_functions());
+    graph.merge(a.release_transforms(), a.release_reductions());
+    graph.merge(b.release_transforms(), b.release_reductions());
+    graph.merge(c.release_transforms(), c.release_reductions());
   }
 
   SECTION("Multiple components, mixed free and member functions")
@@ -108,9 +108,9 @@ TEST_CASE("Call multiple functions", "[programming model]")
       .input("summed_numbers", "offset")
       .output("result");
 
-    graph.merge(a.release_functions());
-    graph.merge(b.release_functions());
-    graph.merge(c.release_functions());
+    graph.merge(a.release_transforms(), a.release_reductions());
+    graph.merge(b.release_transforms(), b.release_reductions());
+    graph.merge(c.release_transforms(), c.release_reductions());
   }
 
   // The following is invoked for *each* section above
