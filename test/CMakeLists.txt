@@ -32,6 +32,7 @@ add_unit_test(iterator_t)
 add_unit_test(sized_tuple_t LIBRARIES meld::utilities)
 add_unit_test(string_literal_t LIBRARIES meld::utilities)
 
+add_catch_test(cached_product_stores_t LIBRARIES meld::core)
 add_catch_test(cartesian_product_t LIBRARIES meld::utilities)
 add_catch_test(class_component_t LIBRARIES meld::core meld::utilities)
 add_catch_test(concurrency_tags_t LIBRARIES meld::core)

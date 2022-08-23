@@ -1,3 +1,4 @@
+#include "meld/core/cached_product_stores.hpp"
 #include "meld/core/product_store.hpp"
 #include "meld/graph/transition.hpp"
 #include "meld/utilities/debug.hpp"
