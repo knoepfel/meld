@@ -52,14 +52,14 @@ namespace meld {
   }
 
   void
-  framework_graph::merge(declared_transforms&& user_fcns, declared_reductions&& user_reductions)
+  framework_graph::merge(declared_callbacks user_functions)
   {
-    funcs_.merge(std::move(user_fcns));
-    reductions_.merge(std::move(user_reductions));
+    transforms_.merge(std::move(user_functions.transforms));
+    reductions_.merge(std::move(user_functions.reductions));
   }
 
   void
-  framework_graph::finalize_and_run()
+  framework_graph::execute()
   {
     finalize();
     run();
@@ -101,7 +101,7 @@ namespace meld {
       reduction_nodes_.try_emplace(name, node_for(p));
     }
 
-    for (auto& [name, p] : funcs_) {
+    for (auto& [name, p] : transforms_) {
       joins_.try_emplace(join_name_for(name), dynamic_join{graph_, ProductStoreHasher{}});
       transform_nodes_.try_emplace(name, node_for(p));
     }
@@ -154,7 +154,7 @@ namespace meld {
   {
     // [product name] <=> [function names]
     std::map<std::string, std::vector<std::string>> result;
-    for (auto const& [_, function] : funcs_) {
+    for (auto const& [_, function] : transforms_) {
       for (auto const& label : function->output()) {
         result[label].push_back(function->name());
       }
@@ -172,7 +172,7 @@ namespace meld {
   {
     // [function name] <=> [product names]
     std::map<std::string, std::vector<std::string>> result;
-    for (auto const& [_, function] : funcs_) {
+    for (auto const& [_, function] : transforms_) {
       result.try_emplace(function->name(), function->input());
     }
     for (auto const& [_, function] : reductions_) {

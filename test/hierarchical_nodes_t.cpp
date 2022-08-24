@@ -6,15 +6,12 @@
 #include "meld/utilities/debug.hpp"
 
 #include "catch2/catch.hpp"
-#include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
 
 #include <atomic>
 #include <chrono>
 #include <cmath>
-#include <concepts>
 #include <string>
-#include <thread>
 #include <tuple>
 #include <vector>
 
@@ -59,7 +56,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     .input("squared_number")
     .output("concat_data");
   c.declare_transform("scale", scale)
-    .concurrency(flow::serial)
+    .concurrency(flow::unlimited)
     .input("concat_data")
     .output("result");
 
@@ -94,12 +91,12 @@ TEST_CASE("Hierarchical nodes", "[graph]")
       return store;
     }};
 
-  graph.merge(c.release_transforms(), c.release_reductions());
-  graph.finalize_and_run();
+  graph.merge(c.release_callbacks());
+  graph.execute();
 
-  // // flow::function_node record_id_time{g, flow::unlimited, [](data_u const& d) -> data_u {
-  // //   if (
-  // // }};
+  // flow::function_node record_id_time{g, flow::unlimited, [](data_u const& d) -> data_u {
+  //   if (
+  // }};
 
   for (auto const& id : {"0"_id, "1"_id}) {
     auto const& store = cached_stores.get_store(id);

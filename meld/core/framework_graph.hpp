@@ -19,11 +19,16 @@ namespace meld {
   class framework_graph {
     using source_node = tbb::flow::input_node<product_store_ptr>;
     using dynamic_join = dynamic_join_node<product_store_ptr, ProductStoreHasher>;
-
-  public:
     using user_function_node = tbb::flow::function_node<product_store_ptr, product_store_ptr>;
     using reduction_node =
       tbb::flow::multifunction_node<product_store_ptr, std::tuple<product_store_ptr>>;
+
+  public:
+    struct declared_callbacks {
+      declared_transforms transforms;
+      declared_reductions reductions;
+    };
+
     struct run_once_t {};
     static constexpr run_once_t run_once{};
 
@@ -34,8 +39,8 @@ namespace meld {
     {
     }
 
-    void merge(declared_transforms&& user_fcns, declared_reductions&& user_reductions);
-    void finalize_and_run();
+    void merge(declared_callbacks user_fcns);
+    void execute();
 
   private:
     user_function_node node_for(declared_transform_ptr& p);
@@ -52,7 +57,7 @@ namespace meld {
     std::map<std::string, std::vector<std::string>> consumed_products() const;
 
     tbb::flow::graph graph_{};
-    declared_transforms funcs_{};
+    declared_transforms transforms_{};
     declared_reductions reductions_{};
     std::map<std::string, dynamic_join> joins_{};
     std::map<std::string, user_function_node> transform_nodes_{};

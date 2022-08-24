@@ -25,24 +25,24 @@ namespace meld {
   // Registering transforms
 
   template <typename T, typename R, typename... Args>
-  class incomplete_function {
-    class complete_function;
-    class function_requires_output;
+  class incomplete_transform {
+    class complete_transform;
+    class transform_requires_output;
 
   public:
-    incomplete_function(user_functions<T>& funcs, std::string name, R (*f)(Args...)) :
+    incomplete_transform(user_functions<T>& funcs, std::string name, R (*f)(Args...)) :
       funcs_{funcs}, name_{move(name)}, ft_{f}
     {
     }
 
     template <typename FT>
-    incomplete_function(user_functions<T>& funcs, std::string name, FT f) :
+    incomplete_transform(user_functions<T>& funcs, std::string name, FT f) :
       funcs_{funcs}, name_{move(name)}, ft_{std::move(f)}
     {
     }
 
     // Icky?
-    incomplete_function&
+    incomplete_transform&
     concurrency(std::size_t concurrency)
     {
       concurrency_ = concurrency;
@@ -71,13 +71,13 @@ namespace meld {
   };
 
   template <typename T, typename R, typename... Args>
-  class incomplete_function<T, R, Args...>::complete_function : public declared_transform {
+  class incomplete_transform<T, R, Args...>::complete_transform : public declared_transform {
   public:
-    complete_function(std::string name,
-                      std::size_t concurrency,
-                      std::function<R(Args...)>&& f,
-                      std::vector<std::string> input,
-                      std::vector<std::string> output) :
+    complete_transform(std::string name,
+                       std::size_t concurrency,
+                       std::function<R(Args...)>&& f,
+                       std::vector<std::string> input,
+                       std::vector<std::string> output) :
       declared_transform{move(name), concurrency, move(input), move(output)}, ft_{move(f)}
     {
     }
@@ -238,7 +238,7 @@ namespace meld {
     declare_transform(std::string name, R (*f)(Args...)) requires std::same_as<T, void_tag>
     {
       assert(not bound_obj_);
-      return incomplete_function{*this, name, f};
+      return incomplete_transform{*this, name, f};
     }
 
     template <typename R, typename... Args>
@@ -246,7 +246,7 @@ namespace meld {
     declare_transform(std::string name, R (T::*f)(Args...))
     {
       assert(bound_obj_);
-      return incomplete_function<T, R, Args...>{
+      return incomplete_transform<T, R, Args...>{
         *this, name, [bound_obj = std::move(*bound_obj_), f](Args const&... args) -> R {
           return (bound_obj.*f)(args...);
         }};
@@ -257,7 +257,7 @@ namespace meld {
     declare_transform(std::string name, R (T::*f)(Args...) const)
     {
       assert(bound_obj_);
-      return incomplete_function<T, R, Args...>{
+      return incomplete_transform<T, R, Args...>{
         *this, name, [bound_obj = std::move(*bound_obj_), f](Args const&... args) -> R {
           return (bound_obj.*f)(args...);
         }};
@@ -304,9 +304,9 @@ namespace meld {
 
     // Expert-use only
     void
-    add_function(std::string const& name, declared_transform_ptr ptr)
+    add_transform(std::string const& name, declared_transform_ptr ptr)
     {
-      funcs_.try_emplace(name, std::move(ptr));
+      transforms_.try_emplace(name, std::move(ptr));
     }
 
     void
@@ -315,51 +315,45 @@ namespace meld {
       reductions_.try_emplace(name, std::move(ptr));
     }
 
-    declared_transforms&&
-    release_transforms()
+    framework_graph::declared_callbacks
+    release_callbacks()
     {
-      return std::move(funcs_);
-    }
-
-    declared_reductions&&
-    release_reductions()
-    {
-      return std::move(reductions_);
+      return {std::move(transforms_), std::move(reductions_)};
     }
 
   private:
     std::optional<T> bound_obj_;
-    declared_transforms funcs_;
+    declared_transforms transforms_;
     declared_reductions reductions_;
   };
 
   // ================================================================
-  // Implementation details of input and function_requires_output
+  // Implementation details of input and transform_requires_output
 
   template <typename T, typename R, typename... Args>
   auto
-  incomplete_function<T, R, Args...>::input(std::vector<std::string> input_keys)
+  incomplete_transform<T, R, Args...>::input(std::vector<std::string> input_keys)
   {
     if constexpr (std::same_as<R, void>) {
-      funcs_.add_function(
+      funcs_.add_transform(
         name_,
-        std::make_unique<complete_function>(name_, concurrency_, move(ft_), move(input_keys), {}));
+        std::make_unique<complete_transform>(name_, concurrency_, move(ft_), move(input_keys), {}));
       return;
     }
     else {
-      return function_requires_output{
+      return transform_requires_output{
         funcs_, move(name_), concurrency_, move(ft_), move(input_keys)};
     }
   }
 
   template <typename T, typename R, typename... Args>
-  class incomplete_function<T, R, Args...>::function_requires_output {
+  class incomplete_transform<T, R, Args...>::transform_requires_output {
   public:
-    function_requires_output(user_functions<T>& funcs,
-                             std::string name,
-                             std::size_t concurrency,
-                             std::function<R(Args...)>&& f,
-                             std::vector<std::string> input_keys) :
+    transform_requires_output(user_functions<T>& funcs,
+                              std::string name,
+                              std::size_t concurrency,
+                              std::function<R(Args...)>&& f,
+                              std::vector<std::string> input_keys) :
       funcs_{funcs},
       name_{move(name)},
       concurrency_{concurrency},
@@ -371,9 +365,9 @@ namespace meld {
     void
     output(std::vector<std::string> output_keys)
     {
-      funcs_.add_function(name_,
-                          std::make_unique<complete_function>(
-                            name_, concurrency_, move(ft_), move(input_keys_), move(output_keys)));
+      funcs_.add_transform(name_,
+                           std::make_unique<complete_transform>(
+                             name_, concurrency_, move(ft_), move(input_keys_), move(output_keys)));
     }
 
     template <typename... Ts>

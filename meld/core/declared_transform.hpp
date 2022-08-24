@@ -38,4 +38,5 @@ namespace meld {
   using declared_transform_ptr = std::unique_ptr<declared_transform>;
   using declared_transforms = std::map<std::string, declared_transform_ptr>;
 }
+
 #endif /* meld_core_declared_transform_hpp */

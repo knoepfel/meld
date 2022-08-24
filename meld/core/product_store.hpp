@@ -1,118 +1,16 @@
 #ifndef meld_core_product_store_hpp
 #define meld_core_product_store_hpp
 
+#include "meld/core/handle.hpp"
 #include "meld/graph/transition.hpp"
-#include "meld/utilities/debug.hpp"
 #include "meld/utilities/demangle_symbol.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 
-#include <map>
 #include <memory>
 #include <string>
-#include <type_traits>
-#include <utility>
 
 namespace meld {
-
-  struct product_base {
-    virtual ~product_base() = default;
-  };
-
-  template <typename T>
-  struct product : product_base {
-    explicit product(T const& prod) : obj{prod} {}
-    std::remove_cvref_t<T> obj;
-  };
-
-  namespace detail {
-    template <typename T>
-    using handle_type = std::remove_cvref_t<T>;
-
-    template <typename T, typename U>
-    concept same_handle_type = std::same_as<handle_type<T>, handle_type<U>>;
-  }
-
-  template <typename T>
-  class handle {
-    using err_t = std::string;
-
-  public:
-    using value_type = detail::handle_type<T>;
-    using const_reference = value_type const&;
-    using const_pointer = value_type const*;
-
-    handle() = default;
-
-    template <typename U>
-    explicit handle(product<U> const& prod) requires detail::same_handle_type<T, U> :
-      rep_{&prod.obj}
-    {
-    }
-
-    explicit handle(std::string err_msg) : rep_{move(err_msg)} {}
-
-    const_pointer
-    operator->() const
-    {
-      if (auto const* err = get_if<err_t>(&rep_)) {
-        throw std::runtime_error(*err);
-      }
-      return get<const_pointer>(rep_);
-    }
-    [[nodiscard]] const_reference
-    operator*() const
-    {
-      return *operator->();
-    }
-    explicit operator bool() const noexcept { return get_if<const_pointer>(&rep_) != nullptr; }
-    operator const_reference() const noexcept { return operator*(); }
-    operator const_pointer() const noexcept { return operator->(); }
-
-    template <typename U>
-    friend class handle;
-
-    template <typename U>
-    bool
-    operator==(handle<U> rhs) const noexcept requires detail::same_handle_type<T, U>
-    {
-      return rep_ == rhs.rep_;
-    }
-
-  private:
-    std::variant<const_pointer, err_t> rep_{"Cannot dereference empty handle of type '" +
-                                            demangle_symbol(typeid(T)) + "'."};
-  };
-
-  template <typename T>
-  handle(product<T> const&) -> handle<T>;
-
-  template <typename T>
-  struct handle_ {
-    using type = handle<std::remove_const_t<T>>;
-  };
-
-  template <typename T>
-  struct handle_<T&> {
-    static_assert(std::is_const_v<T>,
-                  "If template argument to handle_for is a reference, it must be const.");
-    using type = handle<std::remove_const_t<T>>;
-  };
-
-  template <typename T>
-  struct handle_<T*> {
-    static_assert(std::is_const_v<T>,
-                  "If template argument to handle_for is a pointer, the pointee must be const.");
-    using type = handle<std::remove_const_t<T>>;
-  };
-
-  template <typename T>
-  struct handle_<handle<T>> {
-    using type = handle<T>;
-  };
-
-  template <typename T>
-  using handle_for = typename handle_<T>::type;
 
   template <typename T>
   struct labeled_data {
@@ -124,38 +22,15 @@ namespace meld {
     using ptr = std::shared_ptr<product_store>;
 
   public:
-    explicit product_store(level_id id = {}, bool is_flush = false) :
-      id_{std::move(id)}, is_flush_{is_flush}
-    {
-    }
-
+    explicit product_store(level_id id = {}, bool is_flush = false);
     explicit product_store(std::shared_ptr<product_store> parent,
                            std::size_t new_level_number,
                            bool is_flush);
 
-    ptr
-    parent() const noexcept
-    {
-      return parent_;
-    }
-
-    ptr
-    make_child(std::size_t new_level_number, bool is_flush)
-    {
-      return std::make_shared<product_store>(shared_from_this(), new_level_number, is_flush);
-    }
-
-    auto const&
-    id() const noexcept
-    {
-      return id_;
-    }
-
-    bool
-    is_flush() const noexcept
-    {
-      return is_flush_;
-    }
+    ptr parent() const noexcept;
+    ptr make_child(std::size_t new_level_number, bool is_flush);
+    level_id const& id() const noexcept;
+    bool is_flush() const noexcept;
 
     template <typename T>
     void add_product(std::string const& key, T const& t);
@@ -178,18 +53,7 @@ namespace meld {
 
   using product_store_ptr = std::shared_ptr<product_store>;
 
-  inline auto
-  make_product_store()
-  {
-    return std::make_shared<product_store>();
-  }
-
-  inline product_store::product_store(std::shared_ptr<product_store> parent,
-                                      std::size_t new_level_number,
-                                      bool is_flush) :
-    parent_{parent}, id_{parent->id().make_child(new_level_number)}, is_flush_{is_flush}
-  {
-  }
+  product_store_ptr make_product_store();
 
   // Implementation details
   template <typename T>

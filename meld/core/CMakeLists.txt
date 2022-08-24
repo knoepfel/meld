@@ -5,6 +5,7 @@ add_library(meld_core SHARED
   framework_graph.cpp
   load_module.cpp
   module_manager.cpp
+  product_store.cpp
   )
 target_include_directories(meld_core PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(meld_core PRIVATE Boost::boost TBB::tbb meld::graph)

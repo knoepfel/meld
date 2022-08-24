@@ -60,7 +60,7 @@ TEST_CASE("Call multiple functions", "[programming model]")
       .concurrency(tbb::flow::unlimited)
       .input("summed_numbers", "offset")
       .output("result");
-    graph.merge(component.release_transforms(), component.release_reductions());
+    graph.merge(component.release_callbacks());
   }
 
   SECTION("Multiple components, each with one free function")
@@ -83,9 +83,9 @@ TEST_CASE("Call multiple functions", "[programming model]")
       .input("summed_numbers", "offset")
       .output("result");
 
-    graph.merge(a.release_transforms(), a.release_reductions());
-    graph.merge(b.release_transforms(), b.release_reductions());
-    graph.merge(c.release_transforms(), c.release_reductions());
+    graph.merge(a.release_callbacks());
+    graph.merge(b.release_callbacks());
+    graph.merge(c.release_callbacks());
   }
 
   SECTION("Multiple components, mixed free and member functions")
@@ -108,13 +108,13 @@ TEST_CASE("Call multiple functions", "[programming model]")
       .input("summed_numbers", "offset")
       .output("result");
 
-    graph.merge(a.release_transforms(), a.release_reductions());
-    graph.merge(b.release_transforms(), b.release_reductions());
-    graph.merge(c.release_transforms(), c.release_reductions());
+    graph.merge(a.release_callbacks());
+    graph.merge(b.release_callbacks());
+    graph.merge(c.release_callbacks());
   }
 
   // The following is invoked for *each* section above
-  graph.finalize_and_run();
+  graph.execute();
 
   using numbers_t = std::vector<unsigned>;
   numbers_t const expected_squared_numbers{0, 1, 4, 9, 16};

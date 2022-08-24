@@ -96,8 +96,8 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   store->add_product("name", std::string{"John"});
 
   framework_graph graph{framework_graph::run_once, store};
-  graph.merge(component.release_transforms(), component.release_reductions());
-  graph.finalize_and_run();
+  graph.merge(component.release_callbacks());
+  graph.execute();
 
   auto const expected = std::make_tuple(3, 98.5, "John");
   CHECK(store->get_product<result_t>("result") == expected);
