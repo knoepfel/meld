@@ -36,6 +36,9 @@ namespace meld {
     void add_product(std::string const& key, T const& t);
 
     template <typename T>
+    void add_product(std::string const& key, std::unique_ptr<T>&& t);
+
+    template <typename T>
     void add_product(labeled_data<T>&& data);
 
     template <typename T>
@@ -60,7 +63,14 @@ namespace meld {
   void
   product_store::add_product(std::string const& key, T const& t)
   {
-    products_.emplace(key, std::make_unique<product<std::remove_cvref_t<T>>>(t));
+    add_product(key, std::make_unique<product<std::remove_cvref_t<T>>>(t));
+  }
+
+  template <typename T>
+  void
+  product_store::add_product(std::string const& key, std::unique_ptr<T>&& t)
+  {
+    products_.emplace(key, std::move(t));
   }
 
   template <typename T>
