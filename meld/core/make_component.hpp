@@ -114,7 +114,7 @@ namespace meld {
   // ==============================================================================
   // Registering reductions
 
-  template <typename T, typename R, typename... Args>
+  template <typename T, typename R, typename InitTuple, typename... Args>
   class incomplete_reduction {
     class complete_reduction;
     class reduction_requires_output;
@@ -123,7 +123,7 @@ namespace meld {
     incomplete_reduction(user_functions<T>& funcs,
                          std::string name,
                          void (*f)(R&, Args...),
-                         R initializer) :
+                         InitTuple initializer) :
       funcs_{funcs}, name_{move(name)}, ft_{f}, initializer_{std::move(initializer)}
     {
     }
@@ -161,16 +161,17 @@ namespace meld {
     std::string name_;
     std::size_t concurrency_{tbb::flow::serial};
     std::function<void(R&, Args...)> ft_;
-    R initializer_;
+    InitTuple initializer_;
   };
 
-  template <typename T, typename R, typename... Args>
-  class incomplete_reduction<T, R, Args...>::complete_reduction : public declared_reduction {
+  template <typename T, typename R, typename InitTuple, typename... Args>
+  class incomplete_reduction<T, R, InitTuple, Args...>::complete_reduction :
+    public declared_reduction {
   public:
     complete_reduction(std::string name,
                        std::size_t concurrency,
                        std::function<void(R&, Args...)>&& f,
-                       R initializer,
+                       InitTuple initializer,
                        std::vector<std::string> input,
                        std::vector<std::string> output) :
       declared_reduction{move(name), concurrency, move(input), move(output)},
@@ -180,6 +181,13 @@ namespace meld {
     }
 
   private:
+    template <size_t... Is>
+    std::unique_ptr<R>
+    initialized_object(InitTuple&& tuple, std::index_sequence<Is...>) const
+    {
+      return std::unique_ptr<R>{new R{std::get<Is>(tuple)...}};
+    }
+
     void
     call(R& result, product_store const& store) // FIXME: 'icky'
     {
@@ -199,7 +207,13 @@ namespace meld {
       auto const& parent = store.parent();
       auto it = results_.find(parent->id());
       if (it == results_.end()) {
-        it = results_.insert({parent->id(), std::make_unique<R>(initializer_)}).first;
+        it = results_
+               .insert(
+                 {parent->id(),
+                  initialized_object(std::move(initializer_),
+                                     std::make_index_sequence<
+                                       std::tuple_size_v<std::remove_reference_t<InitTuple>>>{})})
+               .first;
       }
       call(*it->second, store);
     }
@@ -208,14 +222,19 @@ namespace meld {
     commit_(product_store& store) override
     {
       auto& result = results_.at(store.id());
-      store.add_product(output()[0], *result);
+      if constexpr (requires { result->send(); }) {
+        store.add_product(output()[0], result->send());
+      }
+      else {
+        store.add_product(output()[0], *result);
+      }
       // Reclaim some memory; would be better to erase the entire entry from the map,
       // but that is not thread-safe.
       result.reset();
     }
 
     std::function<void(R&, Args...)> ft_;
-    R initializer_;
+    InitTuple initializer_;
     tbb::concurrent_unordered_map<level_id, std::unique_ptr<R>> results_;
   };
 
@@ -264,19 +283,20 @@ namespace meld {
     }
 
     // Reductions
-    template <typename R, typename... Args>
+    template <typename R, typename... Args, typename... InitArgs>
     auto
     declare_reduction(std::string name,
                       void (*f)(R&, Args...),
-                      R initializer = {}) requires std::same_as<T, void_tag>
+                      InitArgs&&... init_args) requires std::same_as<T, void_tag>
     {
       assert(not bound_obj_);
-      return incomplete_reduction{*this, name, f, std::move(initializer)};
+      return incomplete_reduction{
+        *this, name, f, std::make_tuple(std::forward<InitArgs>(init_args)...)};
     }
 
-    template <typename R, typename... Args>
+    template <typename R, typename... Args, typename... InitArgs>
     auto
-    declare_reduction(std::string name, void (T::*f)(R&, Args...), R initializer = {})
+    declare_reduction(std::string name, void (T::*f)(R&, Args...), InitArgs&... init_args)
     {
       assert(bound_obj_);
       return incomplete_reduction<T, R, Args...>{
@@ -285,12 +305,12 @@ namespace meld {
         [bound_obj = std::move(*bound_obj_), f](R& result, Args const&... args) {
           return (bound_obj.*f)(result, args...);
         },
-        std::move(initializer)};
+        std::make_tuple(std::forward<InitArgs>(init_args)...)};
     }
 
-    template <typename R, typename... Args>
+    template <typename R, typename... Args, typename... InitArgs>
     auto
-    declare_reduction(std::string name, void (T::*f)(R&, Args...) const, R initializer = {})
+    declare_reduction(std::string name, void (T::*f)(R&, Args...) const, InitArgs&&... init_args)
     {
       assert(bound_obj_);
       return incomplete_reduction<T, R, Args...>{
@@ -299,7 +319,7 @@ namespace meld {
         [bound_obj = std::move(*bound_obj_), f](R& result, Args const&... args) {
           return (bound_obj.*f)(result, args...);
         },
-        std::move(initializer)};
+        std::make_tuple(std::forward<InitArgs>(init_args)...)};
     }
 
     // Expert-use only
@@ -389,9 +409,9 @@ namespace meld {
   // ================================================================
   // Implementation details of input and reduction_requires_output
 
-  template <typename T, typename R, typename... Args>
+  template <typename T, typename R, typename InitTuple, typename... Args>
   auto
-  incomplete_reduction<T, R, Args...>::input(std::vector<std::string> input_keys)
+  incomplete_reduction<T, R, InitTuple, Args...>::input(std::vector<std::string> input_keys)
   {
     if constexpr (std::same_as<R, void>) {
       funcs_.add_reduction(
@@ -406,14 +426,14 @@ namespace meld {
     }
   }
 
-  template <typename T, typename R, typename... Args>
-  class incomplete_reduction<T, R, Args...>::reduction_requires_output {
+  template <typename T, typename R, typename InitTuple, typename... Args>
+  class incomplete_reduction<T, R, InitTuple, Args...>::reduction_requires_output {
   public:
     reduction_requires_output(user_functions<T>& funcs,
                               std::string name,
                               std::size_t concurrency,
                               std::function<void(R&, Args...)>&& f,
-                              R initializer,
+                              InitTuple initializer,
                               std::vector<std::string> input_keys) :
       funcs_{funcs},
       name_{move(name)},
@@ -449,7 +469,7 @@ namespace meld {
     std::string name_;
     std::size_t concurrency_;
     std::function<void(R&, Args...)> ft_;
-    R initializer_;
+    InitTuple initializer_;
     std::vector<std::string> input_keys_;
   };
 

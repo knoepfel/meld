@@ -30,8 +30,18 @@ namespace {
     unsigned int number;
   };
 
+  struct threadsafe_data_for_rms {
+    std::atomic<unsigned int> total;
+    std::atomic<unsigned int> number;
+    data_for_rms
+    send() const
+    {
+      return {total.load(), number.load()};
+    }
+  };
+
   void
-  concat(data_for_rms& redata, unsigned squared_number)
+  concat(threadsafe_data_for_rms& redata, unsigned squared_number)
   {
     redata.total += squared_number;
     ++redata.number;
@@ -51,8 +61,8 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     .concurrency(flow::unlimited)
     .input("number")
     .output("squared_number");
-  c.declare_reduction("concat", concat, data_for_rms{.total = 15})
-    .concurrency(flow::serial)
+  c.declare_reduction("concat", concat, 15u)
+    .concurrency(flow::unlimited)
     .input("squared_number")
     .output("concat_data");
   c.declare_transform("scale", scale)
