@@ -20,17 +20,17 @@ namespace meld {
   void
   declared_reduction::invoke(product_store const& store)
   {
+    auto& parent_id = store.parent()->id();
+    auto it = entries_.find(parent_id);
+    if (it == cend(entries_)) {
+      it = entries_.emplace(parent_id, std::make_unique<map_entry>()).first;
+    }
     if (store.is_flush()) {
       set_flush_value(store.id());
       return;
     }
 
     invoke_(store);
-    auto& parent_id = store.parent()->id();
-    auto it = entries_.find(parent_id);
-    if (it == cend(entries_)) {
-      it = entries_.emplace(parent_id, std::make_unique<map_entry>()).first;
-    }
     ++it->second->count;
   }
 

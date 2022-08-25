@@ -4,12 +4,12 @@
 #include "meld/core/product_store.hpp"
 #include "meld/graph/transition.hpp"
 #include "meld/utilities/debug.hpp"
+#include "meld/utilities/sleep_for.hpp"
 
 #include "catch2/catch.hpp"
 #include "oneapi/tbb/flow_graph.h"
 
 #include <atomic>
-#include <chrono>
 #include <cmath>
 #include <string>
 #include <tuple>
@@ -44,6 +44,7 @@ namespace {
   concat(threadsafe_data_for_rms& redata, unsigned squared_number)
   {
     redata.total += squared_number;
+    sleep_for(0.5s);
     ++redata.number;
   }
 

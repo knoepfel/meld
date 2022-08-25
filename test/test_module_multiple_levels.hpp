@@ -2,11 +2,10 @@
 #define test_test_module_multiple_levels_hpp
 
 #include "meld/core/module.hpp"
+#include "meld/utilities/sleep_for.hpp"
 #include "test/data_levels.hpp"
 
-#include <chrono>
 #include <mutex>
-#include <thread>
 #include <vector>
 
 namespace meld::test {
@@ -28,8 +27,7 @@ namespace meld::test {
     void
     process(run const& r, concurrency::unlimited)
     {
-      using namespace std::chrono_literals;
-      std::this_thread::sleep_for(1s);
+      sleep_for(1s);
       std::lock_guard lock{m};
       processed_transitions.emplace_back(r.id(), stage::process);
     }

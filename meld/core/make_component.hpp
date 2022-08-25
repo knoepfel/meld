@@ -129,7 +129,7 @@ namespace meld {
     }
 
     template <typename FT>
-    incomplete_reduction(user_functions<T>& funcs, std::string name, FT f, R initializer) :
+    incomplete_reduction(user_functions<T>& funcs, std::string name, FT f, InitTuple initializer) :
       funcs_{funcs}, name_{move(name)}, ft_{std::move(f)}, initializer_{std::move(initializer)}
     {
     }
@@ -185,7 +185,8 @@ namespace meld {
     std::unique_ptr<R>
     initialized_object(InitTuple&& tuple, std::index_sequence<Is...>) const
     {
-      return std::unique_ptr<R>{new R{std::get<Is>(tuple)...}};
+      return std::unique_ptr<R>{
+        new R{std::forward<std::tuple_element_t<Is, InitTuple>>(std::get<Is>(tuple))...}};
     }
 
     void
