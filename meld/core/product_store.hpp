@@ -46,7 +46,7 @@ namespace meld {
 
   private:
     std::shared_ptr<product_store> parent_{nullptr};
-    tbb::concurrent_unordered_map<std::string, std::shared_ptr<product_base>> products_{};
+    tbb::concurrent_unordered_map<std::string, std::unique_ptr<product_base>> products_{};
     level_id id_;
     bool is_flush_;
   };
@@ -60,7 +60,7 @@ namespace meld {
   void
   product_store::add_product(std::string const& key, T const& t)
   {
-    products_.emplace(key, std::make_shared<product<std::remove_cvref_t<T>>>(t));
+    products_.emplace(key, std::make_unique<product<std::remove_cvref_t<T>>>(t));
   }
 
   template <typename T>
@@ -78,7 +78,7 @@ namespace meld {
     if (it == cend(products_)) {
       return handle<T>{"No product exists with the key '" + key + "'."};
     }
-    if (auto t = std::dynamic_pointer_cast<product<T>>(it->second)) {
+    if (auto t = dynamic_cast<product<T> const*>(it->second.get())) {
       return handle<T>{*t};
     }
     return handle<T>{"Cannot get product '" + key + "' with type '" + demangle_symbol(typeid(T)) +
