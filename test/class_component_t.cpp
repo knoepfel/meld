@@ -1,13 +1,14 @@
-#include "meld/core/make_component.hpp"
+#include "meld/core/framework_graph.hpp"
 #include "meld/core/product_store.hpp"
 #include "meld/utilities/debug.hpp"
 
 #include "catch2/catch.hpp"
 
+#include <array>
 #include <string>
 #include <tuple>
-#include <vector>
 
+using namespace std::string_literals;
 using namespace meld;
 
 namespace {
@@ -44,15 +45,27 @@ namespace {
       return std::make_tuple(*num, *temp, *name);
     }
   };
+
+  void
+  verify_results(std::tuple<int, double, std::string> const& result)
+  {
+    auto const expected = std::make_tuple(3, 98.5, "John");
+    CHECK(result == expected);
+  }
 }
 
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
-  using result_t = std::tuple<int, double, std::string>;
-  std::vector<std::string> const product_names{"number", "temperature", "name"};
-  std::vector<std::string> const result{"result"};
+  std::array const product_names{"number"s, "temperature"s, "name"s};
+  std::array const result{"result"s};
 
-  auto component = make_component<A>();
+  auto store = make_product_store();
+  store->add_product("number", 3);
+  store->add_product("temperature", 98.5);
+  store->add_product("name", std::string{"John"});
+
+  framework_graph graph{framework_graph::run_once, store};
+  auto component = graph.make_component<A>();
   SECTION("No framework")
   {
     component.declare_transform("no_framework", &A::no_framework)
@@ -88,17 +101,13 @@ TEST_CASE("Call non-framework functions", "[programming model]")
       .input(product_names)
       .output(result);
   }
-
   // The following is invoked for *each* section above
-  auto store = make_product_store();
-  store->add_product("number", 3);
-  store->add_product("temperature", 98.5);
-  store->add_product("name", std::string{"John"});
+  auto check_results = graph.make_component();
+  check_results.declare_transform("verify_results", verify_results)
+    .concurrency(tbb::flow::unlimited)
+    .input("result");
 
-  framework_graph graph{framework_graph::run_once, store};
   graph.merge(component.release_callbacks());
+  graph.merge(check_results.release_callbacks());
   graph.execute();
-
-  auto const expected = std::make_tuple(3, 98.5, "John");
-  CHECK(store->get_product<result_t>("result") == expected);
 }

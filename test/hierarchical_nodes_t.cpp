@@ -1,6 +1,5 @@
 #include "meld/core/cached_product_stores.hpp"
 #include "meld/core/framework_graph.hpp"
-#include "meld/core/make_component.hpp"
 #include "meld/core/product_store.hpp"
 #include "meld/graph/transition.hpp"
 #include "meld/utilities/debug.hpp"
@@ -8,9 +7,11 @@
 
 #include "catch2/catch.hpp"
 #include "oneapi/tbb/flow_graph.h"
+#include "oneapi/tbb/global_control.h"
 
 #include <atomic>
 #include <cmath>
+#include <ctime>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -53,30 +54,30 @@ namespace {
   {
     return std::sqrt(static_cast<double>(data.total) / data.number);
   }
+
+  void
+  print_result(double result)
+  {
+    debug(result);
+  }
+
+  std::string strtime [[maybe_unused]] (std::time_t tm)
+  {
+    char buffer[32];
+    std::strncpy(buffer, std::ctime(&tm), 26);
+    return buffer;
+  }
 }
 
 TEST_CASE("Hierarchical nodes", "[graph]")
 {
-  auto c = make_component();
-  c.declare_transform("square", square)
-    .concurrency(flow::unlimited)
-    .input("number")
-    .output("squared_number");
-  c.declare_reduction("concat", concat, 15u)
-    .concurrency(flow::unlimited)
-    .input("squared_number")
-    .output("concat_data");
-  c.declare_transform("scale", scale)
-    .concurrency(flow::unlimited)
-    .input("concat_data")
-    .output("result");
-
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
   std::vector<transition> transitions;
   transitions.reserve(index_limit * (number_limit + 1u));
   for (unsigned i = 0u; i != index_limit; ++i) {
     level_id const id{i};
+    //    transitions.emplace_back(id, stage::process);
     for (unsigned j = 0u; j != number_limit; ++j) {
       transitions.emplace_back(id.make_child(j), stage::process);
     }
@@ -92,25 +93,42 @@ TEST_CASE("Hierarchical nodes", "[graph]")
         return {};
       }
       auto const& [id, st] = *it++;
-      bool const is_flush = st == stage::flush;
+      auto processing_action = action::process;
+      if (st == stage::flush) {
+        processing_action = action::flush;
+      }
 
-      auto store = cached_stores.get_store(id, is_flush);
+      auto store = cached_stores.get_store(id, processing_action);
       debug("Starting ", id, " with stage ", to_string(st));
-      if (not is_flush) {
+      if (id.depth() == 1ull) {
+        debug("Adding time");
+        store->add_product<std::time_t>("time", std::time(nullptr));
+      }
+      else if (processing_action == action::process) {
         store->add_product<unsigned>("number", id.back() + id.parent().back());
       }
       return store;
     }};
 
+  auto c = graph.make_component();
+  // c.declare_transform("get_the_time", strtime)
+  //   .concurrency(flow::serial)
+  //   .input("time")
+  //   .output("strtime");
+  c.declare_transform("square", square)
+    .concurrency(flow::unlimited)
+    .input("number")
+    .output("squared_number");
+  c.declare_reduction("concat", concat, 15u)
+    .concurrency(flow::unlimited)
+    .input("squared_number")
+    .output("concat_data");
+  c.declare_transform("scale", scale)
+    .concurrency(flow::unlimited)
+    .input("concat_data")
+    .output("result");
+  c.declare_transform("print_result", print_result).concurrency(flow::unlimited).input("result");
+
   graph.merge(c.release_callbacks());
   graph.execute();
-
-  // flow::function_node record_id_time{g, flow::unlimited, [](data_u const& d) -> data_u {
-  //   if (
-  // }};
-
-  for (auto const& id : {"0"_id, "1"_id}) {
-    auto const& store = cached_stores.get_store(id);
-    debug("  ID: ", id, " RMS: ", store->get_product<double>("result"));
-  }
 }

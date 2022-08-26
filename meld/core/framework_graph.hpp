@@ -4,11 +4,13 @@
 #include "meld/core/declared_reduction.hpp"
 #include "meld/core/declared_transform.hpp"
 #include "meld/core/product_store.hpp"
+#include "meld/core/user_functions.hpp"
 #include "meld/graph/dynamic_join_node.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
 #include <map>
+#include <set>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -16,53 +18,56 @@
 
 namespace meld {
 
+  using dynamic_join = dynamic_join_node<product_store_ptr, ProductStoreHasher>;
   class framework_graph {
     using source_node = tbb::flow::input_node<product_store_ptr>;
-    using dynamic_join = dynamic_join_node<product_store_ptr, ProductStoreHasher>;
-    using user_function_node = tbb::flow::function_node<product_store_ptr, product_store_ptr>;
-    using reduction_node =
-      tbb::flow::multifunction_node<product_store_ptr, std::tuple<product_store_ptr>>;
 
   public:
-    struct declared_callbacks {
-      declared_transforms transforms;
-      declared_reductions reductions;
-    };
-
     struct run_once_t {};
     static constexpr run_once_t run_once{};
 
     explicit framework_graph(run_once_t, product_store_ptr store);
 
     template <typename FT>
-    explicit framework_graph(FT ft) : src_{graph_, std::move(ft)}
+    explicit framework_graph(FT ft) :
+      src_{graph_, std::move(ft)},
+      multiplexer_{graph_,
+                   tbb::flow::serial, // FIXME: Change this when necessary
+                   [this](product_store_ptr const& store) -> tbb::flow::continue_msg {
+                     return multiplex(store);
+                   }}
+
     {
     }
 
     void merge(declared_callbacks user_fcns);
     void execute();
 
-  private:
-    user_function_node node_for(declared_transform_ptr& p);
-    reduction_node node_for(declared_reduction_ptr& p);
+    template <typename T = void_tag>
+    auto
+    make_component()
+    {
+      if constexpr (std::same_as<T, void_tag>) {
+        return user_functions<void_tag>{graph_};
+      }
+      else {
+        return user_functions<T>{graph_};
+      }
+    }
 
+  private:
     void run();
     void finalize();
 
-    tbb::flow::sender<product_store_ptr>& sender_for(std::string const& name);
-    tbb::flow::receiver<product_store_ptr>& receiver_for(std::string const& name);
-    dynamic_join& join_for(std::string const& name);
-
-    std::map<std::string, std::vector<std::string>> produced_products() const;
-    std::map<std::string, std::vector<std::string>> consumed_products() const;
+    tbb::flow::continue_msg multiplex(product_store_ptr const& ptr);
 
     tbb::flow::graph graph_{};
     declared_transforms transforms_{};
     declared_reductions reductions_{};
-    std::map<std::string, dynamic_join> joins_{};
-    std::map<std::string, user_function_node> transform_nodes_{};
-    std::map<std::string, reduction_node> reduction_nodes_{};
+    std::map<std::string, tbb::flow::receiver<product_store_ptr>*> head_nodes_;
     tbb::flow::input_node<product_store_ptr> src_;
+    tbb::flow::function_node<product_store_ptr> multiplexer_;
+    std::map<level_id, std::set<tbb::flow::receiver<product_store_ptr>*>> flushes_required_;
   };
 }
 

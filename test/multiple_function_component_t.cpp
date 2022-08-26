@@ -1,4 +1,4 @@
-#include "meld/core/make_component.hpp"
+#include "meld/core/framework_graph.hpp"
 #include "meld/core/product_store.hpp"
 
 #include "catch2/catch.hpp"
@@ -20,12 +20,15 @@ namespace {
   auto
   sum_numbers(std::vector<unsigned> const& squared_numbers)
   {
+    std::vector<unsigned> const expected_squared_numbers{0, 1, 4, 9, 16};
+    CHECK(squared_numbers == expected_squared_numbers);
     return accumulate(begin(squared_numbers), end(squared_numbers), 0u);
   }
 
   double
   sqrt_sum_numbers(unsigned summed_numbers, unsigned offset)
   {
+    CHECK(summed_numbers == 30u);
     return std::sqrt(static_cast<double>(summed_numbers + offset));
   }
 
@@ -36,6 +39,12 @@ namespace {
       return sqrt_sum_numbers(summed_numbers, offset);
     }
   };
+
+  void
+  verify_result(double result)
+  {
+    CHECK(result == 6.);
+  }
 }
 
 TEST_CASE("Call multiple functions", "[programming model]")
@@ -47,7 +56,7 @@ TEST_CASE("Call multiple functions", "[programming model]")
 
   SECTION("One component, all free functions")
   {
-    auto component = make_component();
+    auto component = graph.make_component();
     component.declare_transform("square_numbers", square_numbers)
       .concurrency(tbb::flow::unlimited)
       .input("numbers")
@@ -65,19 +74,19 @@ TEST_CASE("Call multiple functions", "[programming model]")
 
   SECTION("Multiple components, each with one free function")
   {
-    auto a = make_component();
+    auto a = graph.make_component();
     a.declare_transform("square_numbers", square_numbers)
       .concurrency(tbb::flow::unlimited)
       .input("numbers")
       .output("squared_numbers");
 
-    auto b = make_component();
+    auto b = graph.make_component();
     b.declare_transform("sum_numbers", sum_numbers)
       .concurrency(tbb::flow::unlimited)
       .input("squared_numbers")
       .output("summed_numbers");
 
-    auto c = make_component();
+    auto c = graph.make_component();
     c.declare_transform("sqrt_sum_numbers", sqrt_sum_numbers)
       .concurrency(tbb::flow::unlimited)
       .input("summed_numbers", "offset")
@@ -90,19 +99,19 @@ TEST_CASE("Call multiple functions", "[programming model]")
 
   SECTION("Multiple components, mixed free and member functions")
   {
-    auto a = make_component();
+    auto a = graph.make_component();
     a.declare_transform("square_numbers", square_numbers)
       .concurrency(tbb::flow::unlimited)
       .input("numbers")
       .output("squared_numbers");
 
-    auto b = make_component();
+    auto b = graph.make_component();
     b.declare_transform("sum_numbers", sum_numbers)
       .concurrency(tbb::flow::unlimited)
       .input("squared_numbers")
       .output("summed_numbers");
 
-    auto c = make_component<A>();
+    auto c = graph.make_component<A>();
     c.declare_transform("sqrt_sum_numbers", &A::sqrt_sum)
       .concurrency(tbb::flow::unlimited)
       .input("summed_numbers", "offset")
@@ -114,11 +123,8 @@ TEST_CASE("Call multiple functions", "[programming model]")
   }
 
   // The following is invoked for *each* section above
+  auto check_result = graph.make_component();
+  check_result.declare_transform("verify_result", verify_result).input("result");
+  graph.merge(check_result.release_callbacks());
   graph.execute();
-
-  using numbers_t = std::vector<unsigned>;
-  numbers_t const expected_squared_numbers{0, 1, 4, 9, 16};
-  CHECK(store->get_product<numbers_t>("squared_numbers") == expected_squared_numbers);
-  CHECK(store->get_product<unsigned>("summed_numbers") == 30u);
-  CHECK(store->get_product<double>("result") == 6.);
 }

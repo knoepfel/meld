@@ -9,7 +9,7 @@ namespace meld {
   class cached_product_stores {
   public:
     product_store_ptr
-    get_store(level_id const& id, bool is_flush = false)
+    get_store(level_id const& id, action processing_action = action::process)
     {
       auto it = product_stores_.find(id);
       if (it != cend(product_stores_)) {
@@ -18,7 +18,7 @@ namespace meld {
       if (id == level_id{}) {
         return new_store(std::make_shared<product_store>(id));
       }
-      return new_store(get_store(id.parent())->make_child(id.back(), is_flush));
+      return new_store(get_store(id.parent())->make_child(id.back(), processing_action));
     }
 
   private:

@@ -12,6 +12,9 @@ namespace meld {
   template <typename T, std::size_t>
   using type_t = T;
 
+  template <typename T, typename>
+  using type_for_t = T;
+
   template <typename T, std::size_t... I>
   std::tuple<type_t<T, I>...> sized_tuple_for(std::index_sequence<I...>);
 

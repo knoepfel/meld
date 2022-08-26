@@ -4,8 +4,10 @@
 #include "meld/core/handle.hpp"
 #include "meld/graph/transition.hpp"
 #include "meld/utilities/demangle_symbol.hpp"
+#include "meld/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
+#include "oneapi/tbb/flow_graph.h" // <-- belongs somewhere else
 
 #include <memory>
 #include <string>
@@ -22,15 +24,29 @@ namespace meld {
     using ptr = std::shared_ptr<product_store>;
 
   public:
-    explicit product_store(level_id id = {}, bool is_flush = false);
+    explicit product_store(level_id id = {}, action processing_action = action::process);
+    explicit product_store(std::shared_ptr<product_store> current, action processing_action);
     explicit product_store(std::shared_ptr<product_store> parent,
                            std::size_t new_level_number,
-                           bool is_flush);
+                           action processing_action);
 
-    ptr parent() const noexcept;
-    ptr make_child(std::size_t new_level_number, bool is_flush);
+    auto
+    begin() const noexcept
+    {
+      return products_.begin();
+    }
+    auto
+    end() const noexcept
+    {
+      return products_.end();
+    }
+
+    ptr const& parent() const noexcept;
+    ptr make_child(std::size_t new_level_number, action a);
+    ptr extend(action a);
     level_id const& id() const noexcept;
-    bool is_flush() const noexcept;
+    std::size_t message_id() const noexcept;
+    bool has(action a) const noexcept;
 
     template <typename T>
     void add_product(std::string const& key, T const& t);
@@ -51,12 +67,37 @@ namespace meld {
     std::shared_ptr<product_store> parent_{nullptr};
     tbb::concurrent_unordered_map<std::string, std::unique_ptr<product_base>> products_{};
     level_id id_;
-    bool is_flush_;
+    // std::size_t port_hash_{};
+    action action_;
   };
 
   using product_store_ptr = std::shared_ptr<product_store>;
 
   product_store_ptr make_product_store();
+
+  template <std::size_t N>
+  using stores_t = sized_tuple<product_store_ptr, N>;
+
+  struct ProductStoreHasher {
+    std::size_t operator()(product_store_ptr ptr) const noexcept;
+  };
+
+  inline namespace put_somplace_else {
+    template <std::size_t N>
+    using join_product_stores_t = tbb::flow::join_node<stores_t<N>, tbb::flow::tag_matching>;
+
+    struct no_join {
+      no_join(tbb::flow::graph& g, ProductStoreHasher) :
+        pass_through{
+          g, tbb::flow::unlimited, [](product_store_ptr const& store) { return std::tuple{store}; }}
+      {
+      }
+      tbb::flow::function_node<product_store_ptr, stores_t<1ull>> pass_through;
+    };
+  }
+
+  template <std::size_t N>
+  using join_or_none_t = std::conditional_t<N == 1ull, no_join, join_product_stores_t<N>>;
 
   // Implementation details
   template <typename T>
@@ -101,15 +142,6 @@ namespace meld {
   {
     return *get_handle<T>(key);
   }
-
-  struct ProductStoreHasher {
-    auto
-    operator()(product_store_ptr ptr) const
-    {
-      assert(ptr);
-      return ptr->id().hash();
-    }
-  };
 }
 
 #endif /* meld_core_product_store_hpp */
