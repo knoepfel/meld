@@ -81,4 +81,13 @@ namespace meld {
     assert(ptr);
     return ptr->message_id();
   }
+
+  product_store_ptr const&
+  more_derived(product_store_ptr const& a, product_store_ptr const& b)
+  {
+    if (a->id().depth() > b->id().depth()) {
+      return a;
+    }
+    return b;
+  }
 }

@@ -86,6 +86,35 @@ namespace meld {
     std::size_t operator()(product_store_ptr ptr) const noexcept;
   };
 
+  product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b);
+
+  template <std::size_t I, typename Tuple>
+  product_store_ptr const&
+  get_most_derived(Tuple const& tup, product_store_ptr const& store)
+  {
+    constexpr auto N = std::tuple_size_v<Tuple>;
+    if constexpr (I == N - 1) {
+      return more_derived(store, std::get<I>(tup));
+    }
+    else {
+      return get_most_derived<I + 1>(tup, more_derived(store, std::get<I>(tup)));
+    }
+  }
+
+  template <typename Tuple>
+  product_store_ptr const&
+  most_derived_store(Tuple const& tup)
+  {
+    constexpr auto N = std::tuple_size_v<Tuple>;
+    static_assert(N > 0ull);
+    if constexpr (N == 1ull) {
+      return std::get<0>(tup);
+    }
+    else {
+      return get_most_derived<1ull>(tup, std::get<0>(tup));
+    }
+  }
+
   inline namespace put_somplace_else {
     template <std::size_t N>
     using join_product_stores_t = tbb::flow::join_node<stores_t<N>, tbb::flow::tag_matching>;
