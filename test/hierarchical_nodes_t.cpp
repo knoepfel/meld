@@ -45,7 +45,6 @@ namespace {
   concat(threadsafe_data_for_rms& redata, unsigned squared_number)
   {
     redata.total += squared_number;
-    sleep_for(0.5s);
     ++redata.number;
   }
 

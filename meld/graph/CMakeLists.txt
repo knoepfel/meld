@@ -1,10 +1,6 @@
 add_library(meld_graph SHARED
-  gatekeeper_node.cpp
-  module_worker.cpp
-  data_node.cpp
   serializer_node.cpp
   transition.cpp
-  transition_graph.cpp
   )
 target_include_directories(meld_graph PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(meld_graph PRIVATE TBB::tbb Boost::boost)
