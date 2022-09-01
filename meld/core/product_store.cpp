@@ -6,20 +6,27 @@
 
 namespace meld {
 
-  product_store::product_store(level_id id, action processing_action) :
-    id_{std::move(id)}, action_{processing_action}
+  product_store::product_store(level_id id, action processing_action, std::size_t message_id) :
+    id_{std::move(id)}, action_{processing_action}, message_id_{message_id}
   {
   }
 
   product_store::product_store(std::shared_ptr<product_store> parent,
                                std::size_t new_level_number,
-                               action processing_action) :
-    parent_{parent}, id_{parent->id().make_child(new_level_number)}, action_{processing_action}
+                               action processing_action,
+                               std::size_t message_id) :
+    parent_{parent},
+    id_{parent->id().make_child(new_level_number)},
+    action_{processing_action},
+    message_id_{message_id}
   {
   }
 
-  product_store::product_store(std::shared_ptr<product_store> current, action processing_action) :
-    parent_{current->parent()}, id_{current->id()}, action_{processing_action}
+  product_store::product_store(product_store const& current, action processing_action) :
+    parent_{current.parent()},
+    id_{current.id()},
+    action_{processing_action},
+    message_id_{current.message_id()}
   {
   }
 
@@ -30,15 +37,18 @@ namespace meld {
   }
 
   product_store_ptr
-  product_store::make_child(std::size_t new_level_number, action processing_action)
+  product_store::make_child(std::size_t new_level_number,
+                            action processing_action,
+                            std::size_t message_id)
   {
-    return std::make_shared<product_store>(shared_from_this(), new_level_number, processing_action);
+    return std::make_shared<product_store>(
+      shared_from_this(), new_level_number, processing_action, message_id);
   }
 
   product_store_ptr
   product_store::extend(action processing_action)
   {
-    return std::make_shared<product_store>(shared_from_this(), processing_action);
+    return std::make_shared<product_store>(*this, processing_action);
   }
 
   level_id const&
@@ -50,7 +60,7 @@ namespace meld {
   std::size_t
   product_store::message_id() const noexcept
   {
-    return id_.hash();
+    return message_id_;
   }
 
   bool

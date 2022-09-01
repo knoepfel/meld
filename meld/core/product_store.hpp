@@ -6,9 +6,9 @@
 #include "meld/utilities/demangle_symbol.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 
-#include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h" // <-- belongs somewhere else
 
+#include <map>
 #include <memory>
 #include <string>
 
@@ -24,11 +24,14 @@ namespace meld {
     using ptr = std::shared_ptr<product_store>;
 
   public:
-    explicit product_store(level_id id = {}, action processing_action = action::process);
-    explicit product_store(std::shared_ptr<product_store> current, action processing_action);
+    explicit product_store(level_id id = {},
+                           action processing_action = action::process,
+                           std::size_t message_id = 0ull);
+    explicit product_store(product_store const& current, action processing_action);
     explicit product_store(std::shared_ptr<product_store> parent,
                            std::size_t new_level_number,
-                           action processing_action);
+                           action processing_action,
+                           std::size_t message_id);
 
     auto
     begin() const noexcept
@@ -42,12 +45,19 @@ namespace meld {
     }
 
     ptr const& parent() const noexcept;
-    ptr make_child(std::size_t new_level_number, action a);
+    ptr make_child(std::size_t new_level_number, action a, std::size_t message_id);
     ptr extend(action a);
     level_id const& id() const noexcept;
     std::size_t message_id() const noexcept;
     bool has(action a) const noexcept;
 
+    template <typename T>
+    T const& get_product(std::string const& key) const;
+
+    template <typename T>
+    handle<T> get_handle(std::string const& key) const;
+
+    // Thread-unsafe operations
     template <typename T>
     void add_product(std::string const& key, T const& t);
 
@@ -57,18 +67,12 @@ namespace meld {
     template <typename T>
     void add_product(labeled_data<T>&& data);
 
-    template <typename T>
-    T const& get_product(std::string const& key) const;
-
-    template <typename T>
-    handle<T> get_handle(std::string const& key) const;
-
   private:
     std::shared_ptr<product_store> parent_{nullptr};
-    tbb::concurrent_unordered_map<std::string, std::unique_ptr<product_base>> products_{};
+    std::map<std::string, std::unique_ptr<product_base>> products_{};
     level_id id_;
-    // std::size_t port_hash_{};
     action action_;
+    std::size_t message_id_;
   };
 
   using product_store_ptr = std::shared_ptr<product_store>;

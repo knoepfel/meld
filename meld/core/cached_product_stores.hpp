@@ -4,6 +4,8 @@
 #include "meld/core/product_store.hpp"
 #include "meld/graph/transition.hpp"
 
+#include <atomic>
+
 namespace meld {
 
   class cached_product_stores {
@@ -16,9 +18,11 @@ namespace meld {
         return it->second;
       }
       if (id == level_id{}) {
-        return new_store(std::make_shared<product_store>(id));
+        return new_store(std::make_shared<product_store>());
       }
-      return new_store(get_store(id.parent())->make_child(id.back(), processing_action));
+      ++store_counter_;
+      return new_store(
+        get_store(id.parent())->make_child(id.back(), processing_action, store_counter_.load()));
     }
 
   private:
@@ -29,6 +33,7 @@ namespace meld {
     }
 
     std::map<level_id, product_store_ptr> product_stores_;
+    std::atomic<std::size_t> store_counter_{};
   };
 
 }
