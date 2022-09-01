@@ -54,17 +54,17 @@ namespace {
     return std::sqrt(static_cast<double>(data.total) / data.number);
   }
 
-  void
-  print_result(handle<double> result)
-  {
-    debug(result.id(), ": ", *result);
-  }
-
   std::string strtime [[maybe_unused]] (std::time_t tm)
   {
     char buffer[32];
     std::strncpy(buffer, std::ctime(&tm), 26);
     return buffer;
+  }
+
+  void
+  print_result(handle<double> result, std::string const& stringized_time)
+  {
+    debug(result.id(), ": ", *result, " @ ", stringized_time);
   }
 }
 
@@ -76,7 +76,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   transitions.reserve(index_limit * (number_limit + 1u));
   for (unsigned i = 0u; i != index_limit; ++i) {
     level_id const id{i};
-    //    transitions.emplace_back(id, stage::process);
+    transitions.emplace_back(id, stage::process);
     for (unsigned j = 0u; j != number_limit; ++j) {
       transitions.emplace_back(id.make_child(j), stage::process);
     }
@@ -100,7 +100,6 @@ TEST_CASE("Hierarchical nodes", "[graph]")
       auto store = cached_stores.get_store(id, processing_action);
       debug("Starting ", id, " with stage ", to_string(st));
       if (id.depth() == 1ull) {
-        debug("Adding time");
         store->add_product<std::time_t>("time", std::time(nullptr));
       }
       else if (processing_action == action::process) {
@@ -110,10 +109,10 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     }};
 
   auto c = graph.make_component();
-  // c.declare_transform("get_the_time", strtime)
-  //   .concurrency(flow::serial)
-  //   .input("time")
-  //   .output("strtime");
+  c.declare_transform("get_the_time", strtime)
+    .concurrency(flow::serial)
+    .input("time")
+    .output("strtime");
   c.declare_transform("square", square)
     .concurrency(flow::unlimited)
     .input("number")
@@ -126,7 +125,9 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     .concurrency(flow::unlimited)
     .input("concat_data")
     .output("result");
-  c.declare_transform("print_result", print_result).concurrency(flow::unlimited).input("result");
+  c.declare_transform("print_result", print_result)
+    .concurrency(flow::unlimited)
+    .input("result", "strtime");
 
   graph.merge(c.release_callbacks());
   graph.execute();

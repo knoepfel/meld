@@ -79,7 +79,10 @@ namespace meld {
         if (it != cend(nodes_that_produce)) {
           make_edge(*it->second, node->port(product_name));
         }
-        head_nodes_[product_name] = &node->port(product_name);
+        else {
+          // Is there a way to detect mis-specified product dependencies?
+          head_nodes_[product_name] = &node->port(product_name);
+        }
       }
     }
     for (auto& [node_name, node] : reductions_) {
@@ -88,7 +91,10 @@ namespace meld {
         if (it != cend(nodes_that_produce)) {
           make_edge(*it->second, node->port(product_name));
         }
-        head_nodes_[product_name] = &node->port(product_name);
+        else {
+          // Is there a way to detect mis-specified product dependencies?
+          head_nodes_[product_name] = &node->port(product_name);
+        }
       }
     }
     make_edge(src_, multiplexer_);
