@@ -12,57 +12,58 @@ using namespace meld;
 using namespace oneapi::tbb;
 
 namespace {
-  constexpr std::size_t bypass{};
 
-  ProductStoreHasher const matcher{};
   template <std::size_t I>
   using arg_t = sized_tuple<product_store_ptr, I>;
 
-  class user_node : public flow::composite_node<arg_t<3ull>, arg_t<2ull>> {
+  ProductStoreHasher const matcher{};
+  using simple_base = flow::function_node<product_store_ptr, product_store_ptr>;
+  class simple_node : public simple_base {
+  public:
+    simple_node(flow::graph& g, std::string const& name) :
+      simple_base{g, flow::unlimited, [this, &name](product_store_ptr const& store) {
+                    if (decltype(stores_)::const_accessor a; stores_.find(a, store->id())) {
+                      // debug('[' + name + ']', " Reusing store with ID: ",  store->id());
+                      return a->second->extend(store->message_id());
+                    }
+                    decltype(stores_)::accessor a;
+                    stores_.emplace(a, store->id(), store);
+                    debug('[' + name + ']', " Created store with ID: ", store->id());
+                    return a->second;
+                  }}
+    {
+    }
+
+  private:
+    tbb::concurrent_hash_map<level_id, product_store_ptr> stores_;
+  };
+
+  class user_node : public flow::composite_node<arg_t<2ull>, arg_t<1ull>> {
   public:
     explicit user_node(flow::graph& g, std::string const& name) :
-      flow::composite_node<arg_t<3ull>, arg_t<2ull>>{g},
+      flow::composite_node<arg_t<2ull>, arg_t<1ull>>{g},
       join_{g, matcher, matcher},
-      func_{g,
-            flow::unlimited,
-            [this, &name](arg_t<2ull> const& stores) -> product_store_ptr {
-              auto& store = std::get<0>(stores);
-              decltype(data_)::accessor a;
-              data_.insert(a, store->id());
-              debug(name, " Creating data product for ", store->id());
-              sleep_for(0.5s);
-              a->second = store;
-              debug(name, " Done with data product for ", store->id());
-              return store;
-            }},
-      bypass_{g,
-              flow::unlimited,
-              [this, &name](product_store_ptr const& store, auto& outputs) -> product_store_ptr {
-                decltype(data_)::const_accessor a;
-                if (data_.find(a, store->parent()->id())) {
-                  debug(name, " Forwarding ", store->id());
-                  std::get<0>(outputs).try_put(store->extend(action::process));
-                }
-                else {
-                  // FIXME: This is gross, icky, yucky.  Seriously, this is
-                  // the best we can come up with?  A busy loop until the
-                  // other thing is ready?  This needs to be fixed...badly.
-                  std::get<1>(outputs).try_put(store->extend(action::process));
-                }
-                return store->extend(action::process);
-              }}
+      func_{g, flow::unlimited, [this, &name](arg_t<2ull> const& stores) {
+              auto& store = most_derived_store(stores);
+              if (decltype(stores_)::const_accessor a; stores_.find(a, store->id())) {
+                // debug('[' + name + ']', " Reusing store with ID: ",  store->id());
+                return a->second->extend(store->message_id());
+              }
+              decltype(stores_)::accessor a;
+              stores_.emplace(a, store->id(), store);
+              debug('[' + name + ']', " Created store with ID: ", store->id());
+              return a->second;
+            }}
     {
-      set_external_ports(input_ports_type{bypass_, input_port<0>(join_), input_port<1>(join_)},
-                         output_ports_type{output_port<bypass>(bypass_), func_});
+      set_external_ports(input_ports_type{input_port<0>(join_), input_port<1>(join_)},
+                         output_ports_type{func_});
       make_edge(join_, func_);
-      make_edge(output_port<1>(bypass_), bypass_);
     }
 
   private:
     flow::join_node<arg_t<2ull>, flow::tag_matching> join_;
     flow::function_node<arg_t<2ull>, product_store_ptr> func_;
-    flow::multifunction_node<product_store_ptr, arg_t<2ull>> bypass_;
-    tbb::concurrent_hash_map<level_id, product_store_ptr> data_;
+    tbb::concurrent_hash_map<level_id, product_store_ptr> stores_;
   };
 
 }
@@ -95,67 +96,51 @@ TEST_CASE("Cached function calls", "[data model]")
                            fc.stop();
                            return nullptr;
                          }
-                         return stores.get_store(*it++, action::process);
+                         auto store = stores.get_store(*it++, stage::process);
+                         if (store->id().depth() == 1ull) {
+                           store->add_product("number", 2 * store->id().back());
+                         }
+                         if (store->id().depth() == 2ull) {
+                           store->add_product("another", 3 * store->id().back());
+                         }
+                         if (store->id().depth() == 3ull) {
+                           store->add_product("still", 4 * store->id().back());
+                         }
+                         return store;
                        }};
 
-  user_node run_producer{g, "[Run producer...]"};
-  user_node subrun_producer{g, "[Subrun producer]"};
-  user_node event_producer{g, "[Event producer.]"};
+  simple_node A1{g, "A1"};
+  simple_node A2{g, "A2"};
+  simple_node A3{g, "A3"};
+  user_node B1{g, "B1"};
+  user_node B2{g, "B2"};
+  user_node C{g, "C "};
 
   struct no_output {};
   flow::multifunction_node<product_store_ptr, std::tuple<no_output>> multiplexer{
-    g,
-    flow::unlimited,
-    [&event_producer, &subrun_producer, &run_producer](product_store_ptr const& store, auto&) {
-      if (store->id().depth() == 1ull) {
-        debug("[Multiplexer....] Sending ", store->id());
-        auto new_store = store->extend(action::process);
-        input_port<1ull>(run_producer).try_put(new_store);
-        input_port<2ull>(run_producer).try_put(new_store);
+    g, flow::unlimited, [&](product_store_ptr const& store, auto&) {
+      auto const& a1_store = store->store_with("number");
+      // debug("Will send: ", a1_store->id(), " with message ID: ", a1_store->message_id());
+      A1.try_put(a1_store);
+      if (store->id().depth() > 1ull) {
+        auto const& b1_store = store->store_with("another");
+        // debug("Will send: ", b1_store->id(), " with message ID: ", b1_store->message_id());
+        input_port<1>(B1).try_put(b1_store);
       }
-      else if (store->id().depth() == 2ull) {
-        input_port<1>(subrun_producer).try_put(store->extend(action::process));
-        auto new_store = store->extend(action::forward);
-        debug("[Multiplexer....] Sending new ", new_store->id());
-        input_port<bypass>(run_producer).try_put(new_store);
+      if (store->id().depth() > 2ull) {
+        auto const& c_store = store->store_with("still");
+        // debug("Will send: ", c_store->id(), " with message ID: ", c_store->message_id());
+        input_port<1>(C).try_put(c_store);
       }
-      else if (store->id().depth() == 3ull) {
-        input_port<1>(event_producer).try_put(store->extend(action::process));
-        auto new_store = store->extend(action::forward);
-        debug("[Multiplexer....] Sending new ", new_store->id());
-        input_port<bypass>(subrun_producer).try_put(new_store);
-        // input_port<bypass>(run_producer).try_put(new_store); // Maybe add this?
-      }
-    }};
-
-  std::atomic<unsigned int> run_count = 0;
-  flow::function_node run_saver{
-    g, flow::unlimited, [&run_count](product_store_ptr const& store) -> flow::continue_msg {
-      debug("[Run saver......] Received ", store->id());
-      ++run_count;
-      return {};
-    }};
-  std::atomic<unsigned int> subrun_count{};
-  flow::function_node subrun_saver{
-    g, flow::unlimited, [&subrun_count](product_store_ptr const& store) -> flow::continue_msg {
-      debug("[Subrun saver...] Received ", store->id());
-      ++subrun_count;
-      return {};
-    }};
-  std::atomic<unsigned int> event_count{};
-  flow::function_node event_saver{
-    g, flow::unlimited, [&event_count](product_store_ptr const& store) -> flow::continue_msg {
-      debug("[Event saver....] Received ", store->id());
-      ++event_count;
-      return {};
     }};
 
   make_edge(src, multiplexer);
-  make_edge(output_port<1>(run_producer), run_saver);
-  make_edge(output_port<bypass>(run_producer), input_port<2>(subrun_producer));
-  make_edge(output_port<1>(subrun_producer), subrun_saver);
-  make_edge(output_port<bypass>(subrun_producer), input_port<2>(event_producer));
-  make_edge(output_port<1>(event_producer), event_saver);
+  make_edge(A1, A2);
+  make_edge(A2, A3);
+  make_edge(A1, input_port<0>(B1));
+  make_edge(B1, input_port<1>(B2));
+  make_edge(A2, input_port<0>(B2));
+  make_edge(B2, input_port<0>(C));
   src.activate();
   g.wait_for_all();
 }

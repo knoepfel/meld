@@ -25,12 +25,12 @@ namespace meld {
 
   public:
     explicit product_store(level_id id = {},
-                           action processing_action = action::process,
+                           stage processing_stage = stage::process,
                            std::size_t message_id = 0ull);
-    explicit product_store(product_store const& current, action processing_action);
+    explicit product_store(product_store const& current, std::size_t message_id = -1ull);
     explicit product_store(std::shared_ptr<product_store> parent,
                            std::size_t new_level_number,
-                           action processing_action,
+                           stage processing_stage,
                            std::size_t message_id);
 
     auto
@@ -45,11 +45,14 @@ namespace meld {
     }
 
     ptr const& parent() const noexcept;
-    ptr make_child(std::size_t new_level_number, action a, std::size_t message_id);
-    ptr extend(action a);
+    ptr store_with(std::string const& product_name, std::size_t message_id = -1ull);
+    ptr make_child(std::size_t new_level_number,
+                   stage st = stage::process,
+                   std::size_t message_id = 0ull);
+    ptr extend(std::size_t message_id = -1ull);
     level_id const& id() const noexcept;
     std::size_t message_id() const noexcept;
-    bool has(action a) const noexcept;
+    bool is_flush() const noexcept;
 
     template <typename T>
     T const& get_product(std::string const& key) const;
@@ -62,16 +65,16 @@ namespace meld {
     void add_product(std::string const& key, T const& t);
 
     template <typename T>
-    void add_product(std::string const& key, std::unique_ptr<T>&& t);
+    void add_product(std::string const& key, std::shared_ptr<T>&& t);
 
     template <typename T>
     void add_product(labeled_data<T>&& data);
 
   private:
     std::shared_ptr<product_store> parent_{nullptr};
-    std::map<std::string, std::unique_ptr<product_base>> products_{};
+    std::map<std::string, std::shared_ptr<product_base>> products_{};
     level_id id_;
-    action action_;
+    stage stage_;
     std::size_t message_id_;
   };
 
@@ -137,12 +140,12 @@ namespace meld {
   void
   product_store::add_product(std::string const& key, T const& t)
   {
-    add_product(key, std::make_unique<product<std::remove_cvref_t<T>>>(t));
+    add_product(key, std::make_shared<product<std::remove_cvref_t<T>>>(t, message_id_));
   }
 
   template <typename T>
   void
-  product_store::add_product(std::string const& key, std::unique_ptr<T>&& t)
+  product_store::add_product(std::string const& key, std::shared_ptr<T>&& t)
   {
     products_.emplace(key, std::move(t));
   }

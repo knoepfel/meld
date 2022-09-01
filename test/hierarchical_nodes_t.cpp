@@ -93,18 +93,14 @@ TEST_CASE("Hierarchical nodes", "[graph]")
         fc.stop();
         return {};
       }
-      auto const& [id, st] = *it++;
-      auto processing_action = action::process;
-      if (st == stage::flush) {
-        processing_action = action::flush;
-      }
+      auto const& [id, stage] = *it++;
 
-      auto store = cached_stores.get_store(id, processing_action);
-      debug("Starting ", id, " with stage ", to_string(st));
+      auto store = cached_stores.get_store(id, stage);
+      debug("Starting ", id, " with stage ", to_string(stage));
       if (id.depth() == 1ull) {
         store->add_product<std::time_t>("time", std::time(nullptr));
       }
-      else if (processing_action == action::process) {
+      else if (stage == stage::process) {
         store->add_product<unsigned>("number", id.back() + id.parent().back());
       }
       return store;

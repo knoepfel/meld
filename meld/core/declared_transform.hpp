@@ -165,11 +165,11 @@ namespace meld {
       join_{g, type_for_t<ProductStoreHasher, Args>{}...},
       transform_{g, concurrency, [this, ft = std::move(f)](stores_t<N> const& stores) {
                    auto const& original_store = std::get<0>(stores); // FIXME!
-                   if (original_store->has(action::flush)) {
+                   if (original_store->is_flush()) {
                      return original_store;
                    }
 
-                   auto store = original_store->extend(action::process); // FIXME
+                   auto store = most_derived_store(stores)->extend();
                    if constexpr (std::same_as<R, void>) {
                      call(ft, stores, std::index_sequence_for<Args...>{});
                    }

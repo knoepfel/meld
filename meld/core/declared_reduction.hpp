@@ -92,7 +92,7 @@ namespace meld {
     input(Ts... ts)
     {
       static_assert(std::conjunction_v<std::is_convertible<Ts, std::string>...>);
-      static_assert(sizeof...(Args) == sizeof...(Ts),
+      static_assert(N == sizeof...(Ts),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
       return input(std::array<std::string, N>{ts...});
@@ -203,7 +203,7 @@ namespace meld {
           if (it == cend(entries_)) {
             it = entries_.emplace(parent_id, std::make_unique<map_entry>()).first;
           }
-          if (store->has(action::flush)) {
+          if (store->is_flush()) {
             set_flush_value(store->id());
           }
           else {

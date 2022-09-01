@@ -97,7 +97,7 @@ namespace meld {
   framework_graph::multiplex(product_store_ptr const& store)
   {
     //  debug("Multiplexing ", store->id());
-    if (store->has(action::flush)) {
+    if (store->is_flush()) {
       auto it = flushes_required_.find(store->parent()->id());
       assert(it != cend(flushes_required_));
       for (auto node : it->second) {
@@ -109,7 +109,7 @@ namespace meld {
 
     // TODO: Add option to send directly to any functions that specify
     // they are of a certain processing level.
-    for (auto const& [key, _] : *store) {
+    for (auto const& [key, product] : *store) {
       if (auto it = head_nodes_.find(key); it != cend(head_nodes_)) {
         it->second->try_put(store);
         if (auto& parent = store->parent()) {

@@ -32,6 +32,22 @@ TEST_CASE("Product store insertion", "[data model]")
   CHECK(store.get_product<std::vector<int>>("numbers") == many_numbers);
 }
 
+TEST_CASE("Products available to children", "[data model]")
+{
+  // auto gen1 = make_product_store();
+  // gen1->add_product("grandpa", 65);
+  // auto gen2 = gen1->make_child(1);
+  // gen2->add_product("dad", 35);
+  // CHECK(gen2->get_product<int>("grandpa") == 65);
+  // CHECK(gen2->get_product<int>("dad") == 35);
+
+  // auto gen3 = gen2->make_child(2);
+  // gen3->add_product("son", 10);
+  // CHECK(gen3->get_product<int>("grandpa") == 65);
+  // CHECK(gen3->get_product<int>("dad") == 35);
+  // CHECK(gen3->get_product<int>("son") == 10);
+}
+
 TEST_CASE("Product store derivation", "[data model]")
 {
   SECTION("Only one store")
