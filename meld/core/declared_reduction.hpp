@@ -79,9 +79,9 @@ namespace meld {
 
     // Icky?
     incomplete_reduction&
-    concurrency(std::size_t concurrency)
+    concurrency(std::size_t n)
     {
-      concurrency_ = concurrency;
+      concurrency_ = n;
       return *this;
     }
 

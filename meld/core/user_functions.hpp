@@ -17,6 +17,11 @@ namespace meld {
   // ==============================================================================
   // Registering user functions
 
+  namespace concurrency {
+    inline constexpr auto unlimited = tbb::flow::unlimited;
+    inline constexpr auto serial = tbb::flow::serial;
+  }
+
   struct void_tag {};
 
   template <typename T>

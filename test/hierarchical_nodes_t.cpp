@@ -17,6 +17,7 @@
 #include <vector>
 
 using namespace meld;
+using namespace meld::concurrency;
 using namespace oneapi::tbb;
 
 namespace {
@@ -111,23 +112,20 @@ TEST_CASE("Hierarchical nodes", "[graph]")
 
   auto c = graph.make_component();
   c.declare_transform("get_the_time", strtime)
-    .concurrency(flow::serial)
+    .concurrency(unlimited)
     .input("time")
     .output("strtime");
   c.declare_transform("square", square)
-    .concurrency(flow::unlimited)
+    .concurrency(unlimited)
     .input("number")
     .output("squared_number");
   c.declare_reduction("concat", concat, 15u)
-    .concurrency(flow::unlimited)
+    .concurrency(unlimited)
     .input("squared_number")
     .output("concat_data");
-  c.declare_transform("scale", scale)
-    .concurrency(flow::unlimited)
-    .input("concat_data")
-    .output("result");
+  c.declare_transform("scale", scale).concurrency(unlimited).input("concat_data").output("result");
   c.declare_transform("print_result", print_result)
-    .concurrency(flow::unlimited)
+    .concurrency(unlimited)
     .input("result", "strtime");
 
   graph.execute();

@@ -10,6 +10,7 @@
 
 using namespace std::string_literals;
 using namespace meld;
+using namespace meld::concurrency;
 
 namespace {
   struct A {

@@ -7,6 +7,7 @@
 #include <vector>
 
 using namespace meld;
+using namespace meld::concurrency;
 
 namespace {
   auto
@@ -58,15 +59,15 @@ TEST_CASE("Call multiple functions", "[programming model]")
   {
     auto component = graph.make_component();
     component.declare_transform("square_numbers", square_numbers)
-      .concurrency(tbb::flow::unlimited)
+      .concurrency(unlimited)
       .input("numbers")
       .output("squared_numbers");
     component.declare_transform("sum_numbers", sum_numbers)
-      .concurrency(tbb::flow::unlimited)
+      .concurrency(unlimited)
       .input("squared_numbers")
       .output("summed_numbers");
     component.declare_transform("sqrt_sum_numbers", sqrt_sum_numbers)
-      .concurrency(tbb::flow::unlimited)
+      .concurrency(unlimited)
       .input("summed_numbers", "offset")
       .output("result");
   }
@@ -75,19 +76,19 @@ TEST_CASE("Call multiple functions", "[programming model]")
   {
     auto a = graph.make_component();
     a.declare_transform("square_numbers", square_numbers)
-      .concurrency(tbb::flow::unlimited)
+      .concurrency(unlimited)
       .input("numbers")
       .output("squared_numbers");
 
     auto b = graph.make_component();
     b.declare_transform("sum_numbers", sum_numbers)
-      .concurrency(tbb::flow::unlimited)
+      .concurrency(unlimited)
       .input("squared_numbers")
       .output("summed_numbers");
 
     auto c = graph.make_component();
     c.declare_transform("sqrt_sum_numbers", sqrt_sum_numbers)
-      .concurrency(tbb::flow::unlimited)
+      .concurrency(unlimited)
       .input("summed_numbers", "offset")
       .output("result");
   }
@@ -96,19 +97,19 @@ TEST_CASE("Call multiple functions", "[programming model]")
   {
     auto a = graph.make_component();
     a.declare_transform("square_numbers", square_numbers)
-      .concurrency(tbb::flow::unlimited)
+      .concurrency(unlimited)
       .input("numbers")
       .output("squared_numbers");
 
     auto b = graph.make_component();
     b.declare_transform("sum_numbers", sum_numbers)
-      .concurrency(tbb::flow::unlimited)
+      .concurrency(unlimited)
       .input("squared_numbers")
       .output("summed_numbers");
 
     auto c = graph.make_component<A>();
     c.declare_transform("sqrt_sum_numbers", &A::sqrt_sum)
-      .concurrency(tbb::flow::unlimited)
+      .concurrency(unlimited)
       .input("summed_numbers", "offset")
       .output("result");
   }
