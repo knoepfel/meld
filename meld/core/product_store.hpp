@@ -127,13 +127,13 @@ namespace meld {
   {
     auto it = products_.find(key);
     if (it == cend(products_)) {
-      return handle<T>{"No product exists with the key '" + key + "'."};
+      return handle<T>{"No product exists with the key '" + key + "'.", id_};
     }
     if (auto t = dynamic_cast<product<T> const*>(it->second.get())) {
-      return handle<T>{*t};
+      return handle<T>{*t, id_};
     }
-    return handle<T>{"Cannot get product '" + key + "' with type '" + demangle_symbol(typeid(T)) +
-                     "'."};
+    return handle<T>{
+      "Cannot get product '" + key + "' with type '" + demangle_symbol(typeid(T)) + "'.", id_};
   }
 
   template <typename T>

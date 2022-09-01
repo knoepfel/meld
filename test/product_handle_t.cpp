@@ -25,7 +25,9 @@ TEST_CASE("Handle type conversions (compile-time checks)", "[data model]")
 TEST_CASE("Can only create handles with compatible types", "[data model]")
 {
   static_assert(std::constructible_from<handle<int>, product<int>>);
+  static_assert(std::constructible_from<handle<int>, product<int>, level_id>);
   static_assert(not std::constructible_from<handle<int>, product<double>>);
+  static_assert(not std::constructible_from<handle<int>, product<double>, level_id>);
 }
 
 TEST_CASE("Handle type conversions (run-time checks)", "[data model]")
@@ -37,6 +39,7 @@ TEST_CASE("Handle type conversions (run-time checks)", "[data model]")
   product<int> const number{3};
   handle const h{number};
   CHECK(handle<int const>{number} == h);
+  CHECK(h.id() == level_id{});
 
   int const& num_ref = h;
   int const* num_ptr = h;

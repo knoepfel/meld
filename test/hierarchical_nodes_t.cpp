@@ -56,9 +56,9 @@ namespace {
   }
 
   void
-  print_result(double result)
+  print_result(handle<double> result)
   {
-    debug(result);
+    debug(result.id(), ": ", *result);
   }
 
   std::string strtime [[maybe_unused]] (std::time_t tm)

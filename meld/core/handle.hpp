@@ -45,12 +45,14 @@ namespace meld {
     handle() = default;
 
     template <typename U>
-    explicit handle(product<U> const& prod) requires detail::same_handle_type<T, U> :
-      rep_{&prod.obj}
+    explicit handle(product<U> const& prod,
+                    level_id const& id = {}) requires detail::same_handle_type<T, U> :
+      rep_{&prod.obj},
+      id_{&id}
     {
     }
 
-    explicit handle(std::string err_msg) : rep_{move(err_msg)} {}
+    explicit handle(std::string err_msg, level_id const& id = {}) : rep_{move(err_msg)}, id_{&id} {}
 
     const_pointer
     operator->() const
@@ -69,6 +71,13 @@ namespace meld {
     operator const_reference() const noexcept { return operator*(); }
     operator const_pointer() const noexcept { return operator->(); }
 
+    level_id const&
+    id() const noexcept // FIXME: Should probably get a separate function name to distinguish it
+                        //        from product IDs, which are not yet implemented
+    {
+      return *id_;
+    }
+
     template <typename U>
     friend class handle;
 
@@ -82,6 +91,7 @@ namespace meld {
   private:
     std::variant<const_pointer, err_t> rep_{"Cannot dereference empty handle of type '" +
                                             demangle_symbol(typeid(T)) + "'."};
+    level_id const* id_;
   };
 
   template <typename T>
