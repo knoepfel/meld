@@ -69,7 +69,6 @@ TEST_CASE("Call multiple functions", "[programming model]")
       .concurrency(tbb::flow::unlimited)
       .input("summed_numbers", "offset")
       .output("result");
-    graph.merge(component.release_callbacks());
   }
 
   SECTION("Multiple components, each with one free function")
@@ -91,10 +90,6 @@ TEST_CASE("Call multiple functions", "[programming model]")
       .concurrency(tbb::flow::unlimited)
       .input("summed_numbers", "offset")
       .output("result");
-
-    graph.merge(a.release_callbacks());
-    graph.merge(b.release_callbacks());
-    graph.merge(c.release_callbacks());
   }
 
   SECTION("Multiple components, mixed free and member functions")
@@ -116,15 +111,10 @@ TEST_CASE("Call multiple functions", "[programming model]")
       .concurrency(tbb::flow::unlimited)
       .input("summed_numbers", "offset")
       .output("result");
-
-    graph.merge(a.release_callbacks());
-    graph.merge(b.release_callbacks());
-    graph.merge(c.release_callbacks());
   }
 
   // The following is invoked for *each* section above
   auto check_result = graph.make_component();
   check_result.declare_transform("verify_result", verify_result).input("result");
-  graph.merge(check_result.release_callbacks());
   graph.execute();
 }

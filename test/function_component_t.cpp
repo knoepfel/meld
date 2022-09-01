@@ -97,6 +97,5 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   // The following is invoked for *each* section above
   component.declare_transform("verify_results", verify_results).input("result");
 
-  graph.merge(component.release_callbacks());
   graph.execute();
 }

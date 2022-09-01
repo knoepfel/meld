@@ -107,7 +107,5 @@ TEST_CASE("Call non-framework functions", "[programming model]")
     .concurrency(tbb::flow::unlimited)
     .input("result");
 
-  graph.merge(component.release_callbacks());
-  graph.merge(check_results.release_callbacks());
   graph.execute();
 }

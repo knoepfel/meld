@@ -18,17 +18,20 @@ namespace meld {
   // Registering user functions
 
   struct void_tag {};
-  struct declared_callbacks {
-    declared_transforms transforms;
-    declared_reductions reductions;
-  };
 
   template <typename T>
   class user_functions {
   public:
-    user_functions(tbb::flow::graph& g) : graph_{g} {}
-    user_functions(tbb::flow::graph& g) requires(not std::same_as<T, void_tag>) :
-      graph_{g}, bound_obj_{std::make_unique<T>()}
+    user_functions(tbb::flow::graph& g,
+                   declared_transforms& transforms,
+                   declared_reductions& reductions) :
+      graph_{g}, transforms_{transforms}, reductions_{reductions}
+    {
+    }
+    user_functions(tbb::flow::graph& g,
+                   declared_transforms& transforms,
+                   declared_reductions& reductions) requires(not std::same_as<T, void_tag>) :
+      graph_{g}, transforms_{transforms}, reductions_{reductions}, bound_obj_{std::make_unique<T>()}
     {
     }
 
@@ -118,17 +121,11 @@ namespace meld {
       reductions_.try_emplace(name, std::move(ptr));
     }
 
-    declared_callbacks
-    release_callbacks()
-    {
-      return {std::move(transforms_), std::move(reductions_)};
-    }
-
   private:
     tbb::flow::graph& graph_;
+    declared_transforms& transforms_;
+    declared_reductions& reductions_;
     std::unique_ptr<T> bound_obj_;
-    declared_transforms transforms_;
-    declared_reductions reductions_;
   };
 }
 

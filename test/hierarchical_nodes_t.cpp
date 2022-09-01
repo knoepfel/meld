@@ -54,7 +54,8 @@ namespace {
     return std::sqrt(static_cast<double>(data.total) / data.number);
   }
 
-  std::string strtime [[maybe_unused]] (std::time_t tm)
+  std::string
+  strtime(std::time_t tm)
   {
     char buffer[32];
     std::strncpy(buffer, std::ctime(&tm), 26);
@@ -129,6 +130,5 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     .concurrency(flow::unlimited)
     .input("result", "strtime");
 
-  graph.merge(c.release_callbacks());
   graph.execute();
 }

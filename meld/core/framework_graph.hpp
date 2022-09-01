@@ -40,7 +40,6 @@ namespace meld {
     {
     }
 
-    void merge(declared_callbacks user_fcns);
     void execute();
 
     template <typename T = void_tag>
@@ -48,10 +47,10 @@ namespace meld {
     make_component()
     {
       if constexpr (std::same_as<T, void_tag>) {
-        return user_functions<void_tag>{graph_};
+        return user_functions<void_tag>{graph_, transforms_, reductions_};
       }
       else {
-        return user_functions<T>{graph_};
+        return user_functions<T>{graph_, transforms_, reductions_};
       }
     }
 

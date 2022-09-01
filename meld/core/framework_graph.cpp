@@ -30,13 +30,6 @@ namespace meld {
   }
 
   void
-  framework_graph::merge(declared_callbacks user_functions)
-  {
-    transforms_.merge(std::move(user_functions.transforms));
-    reductions_.merge(std::move(user_functions.reductions));
-  }
-
-  void
   framework_graph::execute()
   {
     finalize();
