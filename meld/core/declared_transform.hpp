@@ -103,7 +103,7 @@ namespace meld {
       static_assert(N == sizeof...(Ts),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      return input(std::array<std::string, sizeof...(Args)>{ts...});
+      return input(std::array<std::string, N>{ts...});
     }
 
   private:
@@ -257,6 +257,7 @@ namespace meld {
     output(Ts... ts)
     {
       static_assert(std::conjunction_v<std::is_convertible<Ts, std::string>...>);
+      // FIXME: Eventually make a static_assert so that # of output arguments matches sizeof...(Ts)
       output(std::array<std::string, sizeof...(Ts)>{ts...});
     }
 

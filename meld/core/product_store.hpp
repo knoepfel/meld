@@ -27,6 +27,7 @@ namespace meld {
     explicit product_store(level_id id = {},
                            stage processing_stage = stage::process,
                            std::size_t message_id = 0ull);
+    // FIXME: Possible conflict with copy c'tor
     explicit product_store(product_store const& current, std::size_t message_id = -1ull);
     explicit product_store(std::shared_ptr<product_store> parent,
                            std::size_t new_level_number,
