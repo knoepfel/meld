@@ -84,27 +84,20 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     }
     transitions.emplace_back(id.make_child(number_limit), stage::flush);
   }
-  auto const b = cbegin(transitions);
+  auto it = cbegin(transitions);
   auto const e = cend(transitions);
   cached_product_stores cached_stores;
-  std::map<level_id, std::size_t> original_message_ids;
-  framework_graph graph{[&cached_stores, &original_message_ids, b, e, it = b](
-                          tbb::flow_control& fc) mutable -> message {
+  framework_graph graph{[&cached_stores, it, e]() mutable -> product_store_ptr {
     if (it == e) {
-      fc.stop();
-      return {};
+      return nullptr;
     }
     auto const& [id, stage] = *it++;
-
-    std::size_t const message_id = std::distance(b, it);
-    original_message_ids.try_emplace(id, message_id);
 
     auto store = cached_stores.get_empty_store(id, stage);
     debug("Starting ", id, " with stage ", to_string(stage));
 
     if (store->is_flush()) {
-      std::size_t const original_message_id = original_message_ids.at(store->parent()->id());
-      return {store, message_id, original_message_id};
+      return store;
     }
     if (id.depth() == 1ull) {
       store->add_product<std::time_t>("time", std::time(nullptr));
@@ -112,7 +105,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     if (id.depth() == 2ull) {
       store->add_product<unsigned>("number", id.back() + id.parent().back());
     }
-    return {store, message_id};
+    return store;
   }};
 
   auto c = graph.make_component();

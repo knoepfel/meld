@@ -18,13 +18,12 @@
 namespace meld {
 
   framework_graph::framework_graph(run_once_t, product_store_ptr store) :
-    framework_graph{[store, executed = false](auto& fc) mutable -> message {
+    framework_graph{[store, executed = false]() mutable -> product_store_ptr {
       if (executed) {
-        fc.stop();
-        return {};
+        return nullptr;
       }
       executed = true;
-      return {store, 0ull};
+      return store;
     }}
   {
   }

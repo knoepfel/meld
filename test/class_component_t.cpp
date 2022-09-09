@@ -102,11 +102,12 @@ TEST_CASE("Call non-framework functions", "[programming model]")
       .input(product_names)
       .output(result);
   }
+
   // The following is invoked for *each* section above
   g.make_component()
     .declare_transform("verify_results", verify_results)
     .concurrency(tbb::flow::unlimited)
     .input("result");
 
-  graph.execute();
+  g.execute();
 }

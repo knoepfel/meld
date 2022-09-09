@@ -26,7 +26,27 @@ namespace meld {
 
     template <typename FT>
     explicit framework_graph(FT ft) :
-      src_{graph_, std::move(ft)},
+      src_{graph_,
+           [this, user_function = std::move(ft)](tbb::flow_control& fc) mutable -> message {
+             auto store = user_function();
+             if (not store) {
+               fc.stop();
+               return {};
+             }
+
+             ++calls_;
+             if (store->is_flush()) {
+               debug("Parent ID: ", store->parent()->id());
+               auto it = original_message_ids_.find(store->parent()->id());
+               assert(it != cend(original_message_ids_));
+               std::size_t const original_message_id = it->second;
+               return {store, calls_, original_message_id};
+             }
+
+             // FIXME: Need to find way to cleanup the original message-IDs map.
+             original_message_ids_.try_emplace(store->id(), calls_);
+             return {store, calls_};
+           }},
       multiplexer_{graph_,
                    tbb::flow::unlimited,
                    [this](message const& msg) -> tbb::flow::continue_msg { return multiplex(msg); }}
@@ -62,6 +82,8 @@ namespace meld {
     tbb::flow::input_node<message> src_;
     tbb::flow::function_node<message> multiplexer_;
     tbb::concurrent_hash_map<level_id, std::set<tbb::flow::receiver<message>*>> flushes_required_;
+    std::map<level_id, std::size_t> original_message_ids_;
+    std::size_t calls_{};
   };
 }
 

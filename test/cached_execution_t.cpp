@@ -70,8 +70,10 @@ TEST_CASE("Cached function calls", "[data model]")
   constexpr std::size_t n_events{5u};
 
   std::vector<transition> transitions;
+  level_id const job_id{};
+  transitions.emplace_back(level_id{}, stage::process);
   for (std::size_t i = 0; i != n_runs; ++i) {
-    level_id const run_id{i};
+    auto const run_id = job_id.make_child(i);
     transitions.emplace_back(run_id, stage::process);
     for (std::size_t j = 0; j != n_subruns; ++j) {
       auto const subrun_id = run_id.make_child(j);
@@ -85,21 +87,18 @@ TEST_CASE("Cached function calls", "[data model]")
   }
   transitions.emplace_back(level_id{n_runs}, stage::flush);
 
-  auto const b = cbegin(transitions);
+  auto it = cbegin(transitions);
   auto const e = cend(transitions);
   cached_product_stores stores;
-  framework_graph g{[&stores, b, e, it = b](tbb::flow_control& fc) mutable -> message {
+  framework_graph g{[&stores, it, e]() mutable -> product_store_ptr {
     if (it == e) {
-      fc.stop();
-      return {};
+      return nullptr;
     }
     auto const& [id, stage] = *it++;
 
-    std::size_t const message_id = std::distance(b, it);
-
     auto store = stores.get_empty_store(id, stage);
     if (store->is_flush()) {
-      return {store, message_id};
+      return store;
     }
     if (store->id().depth() == 1ull) {
       store->add_product<int>("number", 2 * store->id().back());
@@ -110,7 +109,7 @@ TEST_CASE("Cached function calls", "[data model]")
     if (store->id().depth() == 3ull) {
       store->add_product<int>("still", 4 * store->id().back());
     }
-    return {store, message_id};
+    return store;
   }};
 
   std::atomic<unsigned int> a1_counter{};
