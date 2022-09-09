@@ -1,3 +1,33 @@
+// ===================================================================
+// This test executes the following graph
+//
+//    Multiplexer
+//      |  |  |
+//     A1  |  |
+//      |\ |  |
+//      | \|  |
+//     A2 B1  |
+//      |\ |\ |
+//      | \| \|
+//     A3 B2  C
+//
+// where A1, A2, and A3 are transforms that execute at the "run"
+// level; B1 and B2 are transforms that execute at the "subrun" level;
+// and C is a transform that executes at the event level.
+//
+// This test verifies that for each "run", "subrun", and "event", the
+// corresponding transforms execute only once.  This test assumes:
+//
+//  1 run
+//    2 subruns per run
+//      5 events per subrun
+//
+// Note that B1 and B2 rely on the output from A1 and A2; and C relies
+// on the output from B1.  However, because the A transforms execute
+// at a different cadence than the B transforms (and similar for C),
+// the B transforms must use "cached" data from the A transforms.
+// ===================================================================
+
 #include "meld/core/cached_product_stores.hpp"
 #include "meld/core/framework_graph.hpp"
 #include "meld/graph/transition.hpp"
@@ -122,12 +152,12 @@ TEST_CASE("Cached function calls", "[data model]")
 
   g.execute();
 
-  CHECK(a1_counter == 1u);
-  CHECK(a2_counter == 1u);
-  CHECK(a3_counter == 1u);
+  CHECK(a1_counter == n_runs);
+  CHECK(a2_counter == n_runs);
+  CHECK(a3_counter == n_runs);
 
-  CHECK(b1_counter == 2u);
-  CHECK(b2_counter == 2u);
+  CHECK(b1_counter == n_runs * n_subruns);
+  CHECK(b2_counter == n_runs * n_subruns);
 
-  CHECK(c_counter == 10u);
+  CHECK(c_counter == n_runs * n_subruns * n_events);
 }
