@@ -97,10 +97,14 @@ TEST_CASE("Hierarchical nodes", "[graph]")
 
       auto store = cached_stores.get_store(id, stage);
       debug("Starting ", id, " with stage ", to_string(stage));
+
+      if (store->is_flush()) {
+        return store;
+      }
       if (id.depth() == 1ull) {
         store->add_product<std::time_t>("time", std::time(nullptr));
       }
-      else if (stage == stage::process) {
+      if (id.depth() == 2ull) {
         store->add_product<unsigned>("number", id.back() + id.parent().back());
       }
       return store;

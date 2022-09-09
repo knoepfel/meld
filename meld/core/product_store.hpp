@@ -28,11 +28,15 @@ namespace meld {
                            stage processing_stage = stage::process,
                            std::size_t message_id = 0ull);
     // FIXME: Possible conflict with copy c'tor
-    explicit product_store(product_store const& current, std::size_t message_id = -1ull);
-    explicit product_store(std::shared_ptr<product_store> parent,
+    explicit product_store(product_store const& current,
+                           bool deep = false,
+                           std::size_t message_id = -1ull);
+    explicit product_store(ptr parent,
                            std::size_t new_level_number,
                            stage processing_stage,
                            std::size_t message_id);
+
+    std::map<std::string, std::weak_ptr<product_store>> stores_for_products();
 
     auto
     begin() const noexcept
@@ -46,11 +50,10 @@ namespace meld {
     }
 
     ptr const& parent() const noexcept;
-    ptr store_with(std::string const& product_name, std::size_t message_id = -1ull);
     ptr make_child(std::size_t new_level_number,
                    stage st = stage::process,
                    std::size_t message_id = 0ull);
-    ptr extend(std::size_t message_id = -1ull);
+    ptr extend(std::size_t message_id = -1ull, bool deep = false);
     level_id const& id() const noexcept;
     std::size_t message_id() const noexcept;
     bool is_flush() const noexcept;
@@ -72,7 +75,7 @@ namespace meld {
     void add_product(labeled_data<T>&& data);
 
   private:
-    std::shared_ptr<product_store> parent_{nullptr};
+    ptr parent_{nullptr};
     std::map<std::string, std::shared_ptr<product_base>> products_{};
     level_id id_;
     stage stage_;

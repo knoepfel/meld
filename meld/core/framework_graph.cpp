@@ -96,10 +96,14 @@ namespace meld {
   tbb::flow::continue_msg
   framework_graph::multiplex(product_store_ptr const& store)
   {
-    //  debug("Multiplexing ", store->id());
+    // debug("Multiplexing ", store->id());
     if (store->is_flush()) {
       auto it = flushes_required_.find(store->parent()->id());
-      assert(it != cend(flushes_required_));
+      if (it == cend(flushes_required_)) {
+        // FIXME: This is the case where no nodes exist.  Should
+        // probably either detect this situation and warn or....?
+        return {};
+      }
       for (auto node : it->second) {
         node->try_put(store);
       }
@@ -109,10 +113,12 @@ namespace meld {
 
     // TODO: Add option to send directly to any functions that specify
     // they are of a certain processing level.
-    for (auto const& [key, product] : *store) {
+    for (auto const& [key, store_ptr] : store->stores_for_products()) {
       if (auto it = head_nodes_.find(key); it != cend(head_nodes_)) {
-        it->second->try_put(store);
-        if (auto& parent = store->parent()) {
+        auto shared_store = store_ptr.lock();
+        auto store_to_send = shared_store->extend(store->message_id(), true);
+        it->second->try_put(store_to_send);
+        if (auto& parent = store_to_send->parent()) {
           flushes_required_[parent->id()].insert(it->second);
         }
       }

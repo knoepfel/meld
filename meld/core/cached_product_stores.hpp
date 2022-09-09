@@ -10,7 +10,7 @@ namespace meld {
 
   class cached_product_stores {
   public:
-    product_store_ptr
+    std::shared_ptr<product_store>
     get_store(level_id const& id, stage processing_stage = stage::process)
     {
       auto it = product_stores_.find(id);
@@ -26,13 +26,13 @@ namespace meld {
     }
 
   private:
-    product_store_ptr
+    std::shared_ptr<product_store>
     new_store(std::shared_ptr<product_store> const& store)
     {
       return product_stores_.try_emplace(store->id(), store).first->second;
     }
 
-    std::map<level_id, product_store_ptr> product_stores_;
+    std::map<level_id, std::shared_ptr<product_store>> product_stores_;
     std::atomic<std::size_t> store_counter_{};
   };
 

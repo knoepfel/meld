@@ -5,6 +5,7 @@
 #include "meld/core/declared_transform.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
+#include "oneapi/tbb/global_control.h"
 
 #include <concepts>
 #include <memory>
@@ -14,13 +15,25 @@
 
 namespace meld {
 
-  // ==============================================================================
-  // Registering user functions
-
+  // FIXME: These belong somewhere else
   namespace concurrency {
     inline constexpr auto unlimited = tbb::flow::unlimited;
     inline constexpr auto serial = tbb::flow::serial;
+
+    class max_allowed_parallelism {
+    public:
+      explicit max_allowed_parallelism(std::size_t i) :
+        control_{tbb::global_control::max_allowed_parallelism, i}
+      {
+      }
+
+    private:
+      tbb::global_control control_;
+    };
   }
+
+  // ==============================================================================
+  // Registering user functions
 
   struct void_tag {};
 
@@ -29,14 +42,19 @@ namespace meld {
   public:
     user_functions(tbb::flow::graph& g,
                    declared_transforms& transforms,
-                   declared_reductions& reductions) :
+                   declared_reductions& reductions) requires(std::same_as<T, void_tag>) :
       graph_{g}, transforms_{transforms}, reductions_{reductions}
     {
     }
+    template <typename... Args>
     user_functions(tbb::flow::graph& g,
                    declared_transforms& transforms,
-                   declared_reductions& reductions) requires(not std::same_as<T, void_tag>) :
-      graph_{g}, transforms_{transforms}, reductions_{reductions}, bound_obj_{std::make_unique<T>()}
+                   declared_reductions& reductions,
+                   Args&&... args) requires(not std::same_as<T, void_tag>) :
+      graph_{g},
+      transforms_{transforms},
+      reductions_{reductions},
+      bound_obj_{std::make_unique<T>(std::forward<Args>(args)...)}
     {
     }
 
@@ -55,7 +73,10 @@ namespace meld {
     {
       assert(bound_obj_);
       return incomplete_transform<T, R, Args...>{
-        *this, name, graph_, [bound_obj = std::move(*bound_obj_), f](Args const&... args) -> R {
+        *this,
+        name,
+        graph_,
+        [bound_obj = std::move(*bound_obj_), f](Args const&... args) mutable -> R {
           return (bound_obj.*f)(args...);
         }};
     }
@@ -66,7 +87,10 @@ namespace meld {
     {
       assert(bound_obj_);
       return incomplete_transform<T, R, Args...>{
-        *this, name, graph_, [bound_obj = std::move(*bound_obj_), f](Args const&... args) -> R {
+        *this,
+        name,
+        graph_,
+        [bound_obj = std::move(*bound_obj_), f](Args const&... args) mutable -> R {
           return (bound_obj.*f)(args...);
         }};
     }
@@ -92,7 +116,7 @@ namespace meld {
         *this,
         name,
         graph_,
-        [bound_obj = std::move(*bound_obj_), f](R& result, Args const&... args) {
+        [bound_obj = std::move(*bound_obj_), f](R& result, Args const&... args) mutable {
           return (bound_obj.*f)(result, args...);
         },
         std::make_tuple(std::forward<InitArgs>(init_args)...)};
@@ -107,7 +131,7 @@ namespace meld {
         *this,
         name,
         graph_,
-        [bound_obj = std::move(*bound_obj_), f](R& result, Args const&... args) {
+        [bound_obj = std::move(*bound_obj_), f](R& result, Args const&... args) mutable {
           return (bound_obj.*f)(result, args...);
         },
         std::make_tuple(std::forward<InitArgs>(init_args)...)};

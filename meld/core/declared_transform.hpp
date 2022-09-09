@@ -164,20 +164,31 @@ namespace meld {
       output_{move(output)},
       join_{g, type_for_t<ProductStoreHasher, Args>{}...},
       transform_{g, concurrency, [this, ft = std::move(f)](stores_t<N> const& stores) {
-                   auto const& original_store = std::get<0>(stores); // FIXME!
-                   if (original_store->is_flush()) {
-                     return original_store;
+                   auto store = most_derived_store(stores);
+                   if (store->is_flush()) {
+                     return store;
                    }
 
-                   auto store = most_derived_store(stores)->extend();
+                   if (typename decltype(stores_)::const_accessor a; stores_.find(a, store->id())) {
+                     return a->second->extend(store->message_id(), true); // FIXME!
+                   }
+
+                   typename decltype(stores_)::accessor a;
+                   bool const new_insert = stores_.insert(a, store->id());
+                   if (!new_insert) {
+                     return a->second->extend(store->message_id(), true); // FIXME!
+                   }
+
                    if constexpr (std::same_as<R, void>) {
                      call(ft, stores, std::index_sequence_for<Args...>{});
+                     a->second = {};
                    }
                    else {
                      auto result = call(ft, stores, std::index_sequence_for<Args...>{});
                      store->add_product(output_[0], result);
+                     a->second = store;
                    }
-                   return store;
+                   return a->second;
                  }}
     {
       if constexpr (N > 1ull) {
@@ -222,6 +233,7 @@ namespace meld {
     std::array<std::string, M> output_;
     join_or_none_t<N> join_;
     tbb::flow::function_node<stores_t<N>, product_store_ptr> transform_;
+    tbb::concurrent_hash_map<level_id, product_store_ptr> stores_;
   };
 
   template <typename T, typename R, typename... Args>

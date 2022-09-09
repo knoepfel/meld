@@ -42,16 +42,17 @@ namespace meld {
 
     void execute();
 
-    template <typename T = void_tag>
     auto
     make_component()
     {
-      if constexpr (std::same_as<T, void_tag>) {
-        return user_functions<void_tag>{graph_, transforms_, reductions_};
-      }
-      else {
-        return user_functions<T>{graph_, transforms_, reductions_};
-      }
+      return user_functions<void_tag>{graph_, transforms_, reductions_};
+    }
+
+    template <typename T, typename... Args>
+    auto
+    make_component(Args&&... args)
+    {
+      return user_functions<T>{graph_, transforms_, reductions_, std::forward<Args>(args)...};
     }
 
   private:
