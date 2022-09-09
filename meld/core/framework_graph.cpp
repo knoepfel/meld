@@ -18,13 +18,13 @@
 namespace meld {
 
   framework_graph::framework_graph(run_once_t, product_store_ptr store) :
-    framework_graph{[store, executed = false](auto& fc) mutable -> product_store_ptr {
+    framework_graph{[store, executed = false](auto& fc) mutable -> message {
       if (executed) {
         fc.stop();
         return {};
       }
       executed = true;
-      return store;
+      return {store, 0ull};
     }}
   {
   }
@@ -48,7 +48,7 @@ namespace meld {
   {
     // Calculate produced products
     using product_name_t = std::string;
-    std::map<product_name_t, tbb::flow::sender<product_store_ptr>*> nodes_that_produce;
+    std::map<product_name_t, tbb::flow::sender<message>*> nodes_that_produce;
     for (auto const& [node_name, node] : transforms_) {
       for (auto const& product_name : node->output()) {
         if (empty(product_name))
@@ -94,20 +94,23 @@ namespace meld {
   }
 
   tbb::flow::continue_msg
-  framework_graph::multiplex(product_store_ptr const& store)
+  framework_graph::multiplex(message const& msg)
   {
-    // debug("Multiplexing ", store->id());
+    auto const& [store, message_id, _] = msg;
+    // debug("Multiplexing ", store->id(), " with ID ", message_id);
+    using accessor = decltype(flushes_required_)::accessor;
     if (store->is_flush()) {
-      auto it = flushes_required_.find(store->parent()->id());
-      if (it == cend(flushes_required_)) {
+      accessor a;
+      bool const found = flushes_required_.find(a, store->parent()->id());
+      if (!found) {
         // FIXME: This is the case where no nodes exist.  Should
         // probably either detect this situation and warn or....?
         return {};
       }
-      for (auto node : it->second) {
-        node->try_put(store);
+      for (auto node : a->second) {
+        node->try_put(msg);
       }
-      flushes_required_.erase(it);
+      flushes_required_.erase(a);
       return {};
     }
 
@@ -115,11 +118,12 @@ namespace meld {
     // they are of a certain processing level.
     for (auto const& [key, store_ptr] : store->stores_for_products()) {
       if (auto it = head_nodes_.find(key); it != cend(head_nodes_)) {
-        auto shared_store = store_ptr.lock();
-        auto store_to_send = shared_store->extend(store->message_id(), true);
-        it->second->try_put(store_to_send);
+        auto store_to_send = store_ptr.lock();
+        it->second->try_put({store_to_send, message_id});
         if (auto& parent = store_to_send->parent()) {
-          flushes_required_[parent->id()].insert(it->second);
+          accessor a;
+          flushes_required_.insert(a, parent->id());
+          a->second.insert(it->second);
         }
       }
     }

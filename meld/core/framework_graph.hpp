@@ -5,7 +5,6 @@
 #include "meld/core/declared_transform.hpp"
 #include "meld/core/product_store.hpp"
 #include "meld/core/user_functions.hpp"
-#include "meld/graph/dynamic_join_node.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -18,10 +17,7 @@
 
 namespace meld {
 
-  using dynamic_join = dynamic_join_node<product_store_ptr, ProductStoreHasher>;
   class framework_graph {
-    using source_node = tbb::flow::input_node<product_store_ptr>;
-
   public:
     struct run_once_t {};
     static constexpr run_once_t run_once{};
@@ -32,10 +28,8 @@ namespace meld {
     explicit framework_graph(FT ft) :
       src_{graph_, std::move(ft)},
       multiplexer_{graph_,
-                   tbb::flow::serial, // FIXME: Change this when necessary
-                   [this](product_store_ptr const& store) -> tbb::flow::continue_msg {
-                     return multiplex(store);
-                   }}
+                   tbb::flow::unlimited,
+                   [this](message const& msg) -> tbb::flow::continue_msg { return multiplex(msg); }}
 
     {
     }
@@ -59,15 +53,15 @@ namespace meld {
     void run();
     void finalize();
 
-    tbb::flow::continue_msg multiplex(product_store_ptr const& ptr);
+    tbb::flow::continue_msg multiplex(message const& msg);
 
     tbb::flow::graph graph_{};
     declared_transforms transforms_{};
     declared_reductions reductions_{};
-    std::map<std::string, tbb::flow::receiver<product_store_ptr>*> head_nodes_;
-    tbb::flow::input_node<product_store_ptr> src_;
-    tbb::flow::function_node<product_store_ptr> multiplexer_;
-    std::map<level_id, std::set<tbb::flow::receiver<product_store_ptr>*>> flushes_required_;
+    std::map<std::string, tbb::flow::receiver<message>*> head_nodes_;
+    tbb::flow::input_node<message> src_;
+    tbb::flow::function_node<message> multiplexer_;
+    tbb::concurrent_hash_map<level_id, std::set<tbb::flow::receiver<message>*>> flushes_required_;
   };
 }
 

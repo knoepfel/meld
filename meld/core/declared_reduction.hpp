@@ -29,13 +29,13 @@ namespace meld {
 
     std::string const& name() const noexcept;
     std::size_t concurrency() const noexcept;
-    tbb::flow::receiver<product_store_ptr>& port(std::string const& product_name);
-    virtual tbb::flow::sender<product_store_ptr>& sender() = 0;
+    tbb::flow::receiver<message>& port(std::string const& product_name);
+    virtual tbb::flow::sender<message>& sender() = 0;
     virtual std::span<std::string const, std::dynamic_extent> input() const = 0;
     virtual std::span<std::string const, std::dynamic_extent> output() const = 0;
 
   private:
-    virtual tbb::flow::receiver<product_store_ptr>& port_for(std::string const& product_name) = 0;
+    virtual tbb::flow::receiver<message>& port_for(std::string const& product_name) = 0;
 
     std::string name_;
     std::size_t concurrency_;
@@ -122,7 +122,7 @@ namespace meld {
     }
 
     template <std::size_t I>
-    tbb::flow::receiver<product_store_ptr>&
+    tbb::flow::receiver<message>&
     receiver_for(std::size_t const index)
     {
       if constexpr (I < N) {
@@ -139,11 +139,10 @@ namespace meld {
     template <std::size_t... Is>
     void
     call(std::function<void(R&, Args...)> const& ft,
-         stores_t<N> const& stores,
+         messages_t<N> const& messages,
          std::index_sequence<Is...>)
     {
-      // Accessing the parent for the first store is sufficient
-      auto const& parent = std::get<0>(stores)->parent();
+      auto const& parent = most_derived(messages).store->parent();
       auto it = results_.find(parent->id());
       if (it == results_.end()) {
         it =
@@ -156,29 +155,32 @@ namespace meld {
       return std::invoke(
         ft,
         *it->second,
-        std::get<Is>(stores)->template get_handle<typename handle_for<Args>::value_type>(
+        std::get<Is>(messages).store->template get_handle<typename handle_for<Args>::value_type>(
           input_[Is])...);
     }
 
-    bool
+    std::pair<bool, std::size_t>
     reduction_complete(product_store& parent_store)
     {
+
       auto& entry = entries_.find(parent_store.id())->second;
       if (entry->count == entry->stop_after) {
         commit_(parent_store);
+        auto original_message_id = entry->original_message_id;
         // Would be good to free up memory here.
         entry.reset();
-        return true;
+        return {true, original_message_id};
       }
-      return false;
+      return {};
     }
 
     void
-    set_flush_value(level_id const& id)
+    set_flush_value(level_id const& id, std::size_t const original_message_id)
     {
       auto it = entries_.find(id.parent());
       assert(it != cend(entries_));
       it->second->stop_after = id.back();
+      it->second->original_message_id = original_message_id;
     }
 
   public:
@@ -193,10 +195,11 @@ namespace meld {
       initializer_{std::move(initializer)},
       input_{move(input)},
       output_{move(output)},
-      join_{g, type_for_t<ProductStoreHasher, Args>{}...},
+      join_{g, type_for_t<MessageHasher, Args>{}...},
       reduction_{
-        g, concurrency, [this, ft = std::move(f)](stores_t<N> const& stores, auto& outputs) {
-          auto& store = std::get<0>(stores); // FIXME: Any store might be sufficient...?
+        g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages, auto& outputs) {
+          auto const& msg = most_derived(messages);
+          auto const& [store, message_id, original_message_id] = msg;
           assert(store->parent());
           auto& parent_id = store->parent()->id();
           auto it = entries_.find(parent_id);
@@ -204,14 +207,15 @@ namespace meld {
             it = entries_.emplace(parent_id, std::make_unique<map_entry>()).first;
           }
           if (store->is_flush()) {
-            set_flush_value(store->id());
+            set_flush_value(store->id(), original_message_id);
           }
           else {
-            call(ft, stores, std::index_sequence_for<Args...>{});
+            call(ft, messages, std::index_sequence_for<Args...>{});
             ++it->second->count;
           }
-          if (auto const& parent = store->parent(); reduction_complete(*parent)) {
-            get<0>(outputs).try_put(parent);
+          auto const& parent = store->parent();
+          if (auto const [complete, original_message_id] = reduction_complete(*parent); complete) {
+            get<0>(outputs).try_put({parent, original_message_id});
           }
         }}
     {
@@ -224,7 +228,7 @@ namespace meld {
     }
 
   private:
-    tbb::flow::receiver<product_store_ptr>&
+    tbb::flow::receiver<message>&
     port_for(std::string const& product_name) override
     {
       if constexpr (N > 1ull) {
@@ -236,7 +240,7 @@ namespace meld {
       }
     }
 
-    tbb::flow::sender<product_store_ptr>&
+    tbb::flow::sender<message>&
     sender() override
     {
       return output_port<0ull>(reduction_);
@@ -282,11 +286,12 @@ namespace meld {
     std::array<std::string, N> input_;
     std::array<std::string, M> output_;
     join_or_none_t<N> join_;
-    tbb::flow::multifunction_node<stores_t<N>, stores_t<1ull>> reduction_;
+    tbb::flow::multifunction_node<messages_t<N>, messages_t<1ull>> reduction_;
     tbb::concurrent_unordered_map<level_id, std::unique_ptr<R>> results_;
     struct map_entry {
       std::atomic<unsigned int> count{};
       std::atomic<unsigned int> stop_after{-1u};
+      unsigned int original_message_id{}; // Necessary for matching inputs to downstream join nodes.
     };
     tbb::concurrent_unordered_map<level_id, std::unique_ptr<map_entry>> entries_;
   };

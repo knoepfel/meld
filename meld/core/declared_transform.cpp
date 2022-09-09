@@ -10,17 +10,6 @@ namespace meld {
 
   declared_transform::~declared_transform() = default;
 
-  // void
-  // declared_transform::invoke(std::span<product_store_ptr> stores) const
-  // {
-  //   if (std::any_of(cbegin(stores), cend(stores), [](auto const& store) {
-  //         return store->has(action::flush);
-  //       })) {
-  //     return;
-  //   }
-  //   invoke_(stores);
-  // }
-
   std::string const&
   declared_transform::name() const noexcept
   {
@@ -33,7 +22,7 @@ namespace meld {
     return concurrency_;
   }
 
-  tbb::flow::receiver<product_store_ptr>&
+  tbb::flow::receiver<message>&
   declared_transform::port(std::string const& product_name)
   {
     return port_for(product_name);

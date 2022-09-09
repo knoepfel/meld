@@ -28,13 +28,13 @@ namespace meld {
 
     std::string const& name() const noexcept;
     std::size_t concurrency() const noexcept;
-    tbb::flow::receiver<product_store_ptr>& port(std::string const& product_name);
-    virtual tbb::flow::sender<product_store_ptr>& sender() = 0;
+    tbb::flow::receiver<message>& port(std::string const& product_name);
+    virtual tbb::flow::sender<message>& sender() = 0;
     virtual std::span<std::string const, std::dynamic_extent> input() const = 0;
     virtual std::span<std::string const, std::dynamic_extent> output() const = 0;
 
   private:
-    virtual tbb::flow::receiver<product_store_ptr>& port_for(std::string const& product_name) = 0;
+    virtual tbb::flow::receiver<message>& port_for(std::string const& product_name) = 0;
 
     std::string name_;
     std::size_t concurrency_;
@@ -128,7 +128,7 @@ namespace meld {
     }
 
     template <std::size_t I>
-    tbb::flow::receiver<product_store_ptr>&
+    tbb::flow::receiver<message>&
     receiver_for(std::size_t const index)
     {
       if constexpr (I < N) {
@@ -144,11 +144,11 @@ namespace meld {
 
     template <std::size_t... Is>
     R
-    call(std::function<R(Args...)> ft, stores_t<N> const& stores, std::index_sequence<Is...>)
+    call(std::function<R(Args...)> ft, messages_t<N> const& messages, std::index_sequence<Is...>)
     {
       return std::invoke(
         ft,
-        std::get<Is>(stores)->template get_handle<typename handle_for<Args>::value_type>(
+        std::get<Is>(messages).store->template get_handle<typename handle_for<Args>::value_type>(
           input_[Is])...);
     }
 
@@ -162,34 +162,36 @@ namespace meld {
       declared_transform{move(name), concurrency},
       input_{move(input)},
       output_{move(output)},
-      join_{g, type_for_t<ProductStoreHasher, Args>{}...},
-      transform_{g, concurrency, [this, ft = std::move(f)](stores_t<N> const& stores) {
-                   auto store = most_derived_store(stores);
-                   if (store->is_flush()) {
-                     return store;
-                   }
+      join_{g, type_for_t<MessageHasher, Args>{}...},
+      transform_{
+        g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages) -> message {
+          auto const& msg = most_derived(messages);
+          auto const& [store, message_id, _] = msg;
+          if (store->is_flush()) {
+            return msg;
+          }
 
-                   if (typename decltype(stores_)::const_accessor a; stores_.find(a, store->id())) {
-                     return a->second->extend(store->message_id(), true); // FIXME!
-                   }
+          if (typename decltype(stores_)::const_accessor a; stores_.find(a, store->id())) {
+            return {a->second, message_id};
+          }
 
-                   typename decltype(stores_)::accessor a;
-                   bool const new_insert = stores_.insert(a, store->id());
-                   if (!new_insert) {
-                     return a->second->extend(store->message_id(), true); // FIXME!
-                   }
+          typename decltype(stores_)::accessor a;
+          bool const new_insert = stores_.insert(a, store->id());
+          if (!new_insert) {
+            return {a->second, message_id};
+          }
 
-                   if constexpr (std::same_as<R, void>) {
-                     call(ft, stores, std::index_sequence_for<Args...>{});
-                     a->second = {};
-                   }
-                   else {
-                     auto result = call(ft, stores, std::index_sequence_for<Args...>{});
-                     store->add_product(output_[0], result);
-                     a->second = store;
-                   }
-                   return a->second;
-                 }}
+          if constexpr (std::same_as<R, void>) {
+            call(ft, messages, std::index_sequence_for<Args...>{});
+            a->second = {};
+          }
+          else {
+            auto result = call(ft, messages, std::index_sequence_for<Args...>{});
+            store->add_product(output_[0], result);
+            a->second = store;
+          }
+          return {a->second, message_id};
+        }}
     {
       if constexpr (N > 1ull) {
         make_edge(join_, transform_);
@@ -200,7 +202,7 @@ namespace meld {
     }
 
   private:
-    tbb::flow::receiver<product_store_ptr>&
+    tbb::flow::receiver<message>&
     port_for(std::string const& product_name) override
     {
       if constexpr (N > 1ull) {
@@ -212,7 +214,7 @@ namespace meld {
       }
     }
 
-    tbb::flow::sender<product_store_ptr>&
+    tbb::flow::sender<message>&
     sender() override
     {
       return transform_;
@@ -232,7 +234,7 @@ namespace meld {
     std::array<std::string, N> input_;
     std::array<std::string, M> output_;
     join_or_none_t<N> join_;
-    tbb::flow::function_node<stores_t<N>, product_store_ptr> transform_;
+    tbb::flow::function_node<messages_t<N>, message> transform_;
     tbb::concurrent_hash_map<level_id, product_store_ptr> stores_;
   };
 

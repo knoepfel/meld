@@ -16,17 +16,12 @@
 namespace meld {
 
   struct product_base {
-    explicit product_base(std::size_t id) : message_id{id} {}
     virtual ~product_base() = default;
-    std::size_t message_id{};
   };
 
   template <typename T>
   struct product : product_base {
-    explicit product(T const& prod, std::size_t message_id = 0ull) :
-      product_base{message_id}, obj{prod}
-    {
-    }
+    explicit product(T const& prod) : obj{prod} {}
     std::remove_cvref_t<T> obj;
   };
 

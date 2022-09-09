@@ -85,19 +85,21 @@ TEST_CASE("Cached function calls", "[data model]")
   }
   transitions.emplace_back(level_id{n_runs}, stage::flush);
 
-  auto it = cbegin(transitions);
-  auto const end = cend(transitions);
+  auto const b = cbegin(transitions);
+  auto const e = cend(transitions);
   cached_product_stores stores;
-  framework_graph g{[&stores, it, end](tbb::flow_control& fc) mutable -> product_store_ptr {
-    if (it == end) {
+  framework_graph g{[&stores, b, e, it = b](tbb::flow_control& fc) mutable -> message {
+    if (it == e) {
       fc.stop();
-      return nullptr;
+      return {};
     }
     auto const& [id, stage] = *it++;
 
-    auto store = stores.get_store(id, stage);
+    std::size_t const message_id = std::distance(b, it);
+
+    auto store = stores.get_empty_store(id, stage);
     if (store->is_flush()) {
-      return store;
+      return {store, message_id};
     }
     if (store->id().depth() == 1ull) {
       store->add_product<int>("number", 2 * store->id().back());
@@ -108,7 +110,7 @@ TEST_CASE("Cached function calls", "[data model]")
     if (store->id().depth() == 3ull) {
       store->add_product<int>("still", 4 * store->id().back());
     }
-    return store;
+    return {store, message_id};
   }};
 
   std::atomic<unsigned int> a1_counter{};

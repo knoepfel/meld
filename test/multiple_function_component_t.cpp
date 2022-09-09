@@ -53,11 +53,11 @@ TEST_CASE("Call multiple functions", "[programming model]")
   auto store = make_product_store();
   store->add_product("numbers", std::vector<unsigned>{0, 1, 2, 3, 4});
   store->add_product("offset", 6u);
-  framework_graph graph{framework_graph::run_once, store};
+  framework_graph g{framework_graph::run_once, store};
 
   SECTION("One component, all free functions")
   {
-    auto component = graph.make_component();
+    auto component = g.make_component();
     component.declare_transform("square_numbers", square_numbers)
       .concurrency(unlimited)
       .input("numbers")
@@ -74,20 +74,18 @@ TEST_CASE("Call multiple functions", "[programming model]")
 
   SECTION("Multiple components, each with one free function")
   {
-    auto a = graph.make_component();
-    a.declare_transform("square_numbers", square_numbers)
+    g.make_component()
+      .declare_transform("square_numbers", square_numbers)
       .concurrency(unlimited)
       .input("numbers")
       .output("squared_numbers");
-
-    auto b = graph.make_component();
-    b.declare_transform("sum_numbers", sum_numbers)
+    g.make_component()
+      .declare_transform("sum_numbers", sum_numbers)
       .concurrency(unlimited)
       .input("squared_numbers")
       .output("summed_numbers");
-
-    auto c = graph.make_component();
-    c.declare_transform("sqrt_sum_numbers", sqrt_sum_numbers)
+    g.make_component()
+      .declare_transform("sqrt_sum_numbers", sqrt_sum_numbers)
       .concurrency(unlimited)
       .input("summed_numbers", "offset")
       .output("result");
@@ -95,27 +93,24 @@ TEST_CASE("Call multiple functions", "[programming model]")
 
   SECTION("Multiple components, mixed free and member functions")
   {
-    auto a = graph.make_component();
-    a.declare_transform("square_numbers", square_numbers)
+    g.make_component()
+      .declare_transform("square_numbers", square_numbers)
       .concurrency(unlimited)
       .input("numbers")
       .output("squared_numbers");
-
-    auto b = graph.make_component();
-    b.declare_transform("sum_numbers", sum_numbers)
+    g.make_component()
+      .declare_transform("sum_numbers", sum_numbers)
       .concurrency(unlimited)
       .input("squared_numbers")
       .output("summed_numbers");
-
-    auto c = graph.make_component<A>();
-    c.declare_transform("sqrt_sum_numbers", &A::sqrt_sum)
+    g.make_component<A>()
+      .declare_transform("sqrt_sum_numbers", &A::sqrt_sum)
       .concurrency(unlimited)
       .input("summed_numbers", "offset")
       .output("result");
   }
 
   // The following is invoked for *each* section above
-  auto check_result = graph.make_component();
-  check_result.declare_transform("verify_result", verify_result).input("result");
-  graph.execute();
+  g.make_component().declare_transform("verify_result", verify_result).input("result");
+  g.execute();
 }

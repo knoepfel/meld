@@ -12,10 +12,7 @@ namespace meld {
   class level_id;
   class level_counter;
   enum class stage { setup, flush, process };
-  enum class action { process, forward, flush };
 
-  // std::string is the name of the data_node type
-  using transition_type = std::pair<std::string, stage>;
   using transition = std::pair<level_id, stage>;
   using transitions = std::vector<transition>;
 

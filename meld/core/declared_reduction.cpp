@@ -23,7 +23,7 @@ namespace meld {
     return concurrency_;
   }
 
-  tbb::flow::receiver<product_store_ptr>&
+  tbb::flow::receiver<message>&
   declared_reduction::port(std::string const& product_name)
   {
     return port_for(product_name);

@@ -24,18 +24,10 @@ namespace meld {
     using ptr = std::shared_ptr<product_store>;
 
   public:
-    explicit product_store(level_id id = {},
-                           stage processing_stage = stage::process,
-                           std::size_t message_id = 0ull);
-    // FIXME: Possible conflict with copy c'tor
-    explicit product_store(product_store const& current,
-                           bool deep = false,
-                           std::size_t message_id = -1ull);
-    explicit product_store(ptr parent,
-                           std::size_t new_level_number,
-                           stage processing_stage,
-                           std::size_t message_id);
+    explicit product_store(level_id id = {}, stage processing_stage = stage::process);
+    explicit product_store(ptr parent, std::size_t new_level_number, stage processing_stage);
 
+    // FIXME: 'stores_for_products()' may need to become a lazy range.
     std::map<std::string, std::weak_ptr<product_store>> stores_for_products();
 
     auto
@@ -50,12 +42,8 @@ namespace meld {
     }
 
     ptr const& parent() const noexcept;
-    ptr make_child(std::size_t new_level_number,
-                   stage st = stage::process,
-                   std::size_t message_id = 0ull);
-    ptr extend(std::size_t message_id = -1ull, bool deep = false);
+    ptr make_child(std::size_t new_level_number, stage st = stage::process);
     level_id const& id() const noexcept;
-    std::size_t message_id() const noexcept;
     bool is_flush() const noexcept;
 
     template <typename T>
@@ -79,38 +67,44 @@ namespace meld {
     std::map<std::string, std::shared_ptr<product_base>> products_{};
     level_id id_;
     stage stage_;
-    std::size_t message_id_;
   };
 
   using product_store_ptr = std::shared_ptr<product_store>;
 
   product_store_ptr make_product_store();
 
-  template <std::size_t N>
-  using stores_t = sized_tuple<product_store_ptr, N>;
+  struct message {
+    product_store_ptr store;
+    std::size_t id;
+    std::size_t original_id; // Used during flush
+  };
 
-  struct ProductStoreHasher {
-    std::size_t operator()(product_store_ptr ptr) const noexcept;
+  template <std::size_t N>
+  using messages_t = sized_tuple<message, N>;
+
+  struct MessageHasher {
+    std::size_t operator()(message const& msg) const noexcept;
   };
 
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b);
+  message const& more_derived(message const& a, message const& b);
 
-  template <std::size_t I, typename Tuple>
-  product_store_ptr const&
-  get_most_derived(Tuple const& tup, product_store_ptr const& store)
+  template <std::size_t I, typename Tuple, typename Element>
+  Element const&
+  get_most_derived(Tuple const& tup, Element const& element)
   {
     constexpr auto N = std::tuple_size_v<Tuple>;
     if constexpr (I == N - 1) {
-      return more_derived(store, std::get<I>(tup));
+      return more_derived(element, std::get<I>(tup));
     }
     else {
-      return get_most_derived<I + 1>(tup, more_derived(store, std::get<I>(tup)));
+      return get_most_derived<I + 1>(tup, more_derived(element, std::get<I>(tup)));
     }
   }
 
   template <typename Tuple>
-  product_store_ptr const&
-  most_derived_store(Tuple const& tup)
+  auto const&
+  most_derived(Tuple const& tup)
   {
     constexpr auto N = std::tuple_size_v<Tuple>;
     static_assert(N > 0ull);
@@ -124,27 +118,26 @@ namespace meld {
 
   inline namespace put_somplace_else {
     template <std::size_t N>
-    using join_product_stores_t = tbb::flow::join_node<stores_t<N>, tbb::flow::tag_matching>;
+    using join_messages_t = tbb::flow::join_node<messages_t<N>, tbb::flow::tag_matching>;
 
     struct no_join {
-      no_join(tbb::flow::graph& g, ProductStoreHasher) :
-        pass_through{
-          g, tbb::flow::unlimited, [](product_store_ptr const& store) { return std::tuple{store}; }}
+      no_join(tbb::flow::graph& g, MessageHasher) :
+        pass_through{g, tbb::flow::unlimited, [](message const& msg) { return std::tuple{msg}; }}
       {
       }
-      tbb::flow::function_node<product_store_ptr, stores_t<1ull>> pass_through;
+      tbb::flow::function_node<message, messages_t<1ull>> pass_through;
     };
   }
 
   template <std::size_t N>
-  using join_or_none_t = std::conditional_t<N == 1ull, no_join, join_product_stores_t<N>>;
+  using join_or_none_t = std::conditional_t<N == 1ull, no_join, join_messages_t<N>>;
 
   // Implementation details
   template <typename T>
   void
   product_store::add_product(std::string const& key, T const& t)
   {
-    add_product(key, std::make_shared<product<std::remove_cvref_t<T>>>(t, message_id_));
+    add_product(key, std::make_shared<product<std::remove_cvref_t<T>>>(t));
   }
 
   template <typename T>

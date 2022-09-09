@@ -14,13 +14,13 @@ TEST_CASE("Cached product stores", "[data model]")
   cached_product_stores stores;
   SECTION("Root store")
   {
-    auto store = stores.get_store({});
+    auto store = stores.get_empty_store({});
     REQUIRE(store);
     CHECK(store->id() == level_id{});
   }
   SECTION("One level down")
   {
-    auto store = stores.get_store("1"_id);
+    auto store = stores.get_empty_store("1"_id);
     REQUIRE(store);
     CHECK(store->id() == "1"_id);
     REQUIRE(store->parent());
@@ -28,8 +28,8 @@ TEST_CASE("Cached product stores", "[data model]")
   }
   SECTION("One level down, multiple instances")
   {
-    auto store1 = stores.get_store("1"_id);
-    auto store2 = stores.get_store("2"_id);
+    auto store1 = stores.get_empty_store("1"_id);
+    auto store2 = stores.get_empty_store("2"_id);
     REQUIRE(store1);
     REQUIRE(store2);
     CHECK(store1->id() == "1"_id);
@@ -39,8 +39,8 @@ TEST_CASE("Cached product stores", "[data model]")
   }
   SECTION("Multiple levels")
   {
-    auto store1 = stores.get_store("1"_id);
-    auto store2345 = stores.get_store("2:3:4:5"_id);
+    auto store1 = stores.get_empty_store("1"_id);
+    auto store2345 = stores.get_empty_store("2:3:4:5"_id);
     REQUIRE(store1);
     REQUIRE(store2345);
 

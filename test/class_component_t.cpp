@@ -65,46 +65,46 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   store->add_product("temperature", 98.5);
   store->add_product("name", std::string{"John"});
 
-  framework_graph graph{framework_graph::run_once, store};
-  auto component = graph.make_component<A>();
+  framework_graph g{framework_graph::run_once, store};
+  auto a_component = g.make_component<A>();
   SECTION("No framework")
   {
-    component.declare_transform("no_framework", &A::no_framework)
+    a_component.declare_transform("no_framework", &A::no_framework)
       .concurrency(tbb::flow::unlimited)
       .input(product_names)
       .output(result);
   }
   SECTION("No framework, all references")
   {
-    component.declare_transform("no_framework_all_refs", &A::no_framework_all_refs)
+    a_component.declare_transform("no_framework_all_refs", &A::no_framework_all_refs)
       .concurrency(tbb::flow::unlimited)
       .input(product_names)
       .output(result);
   }
   SECTION("No framework, all pointers")
   {
-    component.declare_transform("no_framework_all_ptrs", &A::no_framework_all_ptrs)
+    a_component.declare_transform("no_framework_all_ptrs", &A::no_framework_all_ptrs)
       .concurrency(tbb::flow::unlimited)
       .input(product_names)
       .output(result);
   }
   SECTION("One framework argument")
   {
-    component.declare_transform("one_framework_arg", &A::one_framework_arg)
+    a_component.declare_transform("one_framework_arg", &A::one_framework_arg)
       .concurrency(tbb::flow::unlimited)
       .input(product_names)
       .output(result);
   }
   SECTION("All framework arguments")
   {
-    component.declare_transform("all_framework_args", &A::all_framework_args)
+    a_component.declare_transform("all_framework_args", &A::all_framework_args)
       .concurrency(tbb::flow::unlimited)
       .input(product_names)
       .output(result);
   }
   // The following is invoked for *each* section above
-  auto check_results = graph.make_component();
-  check_results.declare_transform("verify_results", verify_results)
+  g.make_component()
+    .declare_transform("verify_results", verify_results)
     .concurrency(tbb::flow::unlimited)
     .input("result");
 
