@@ -62,25 +62,10 @@ namespace meld {
     return std::make_shared<product_store>();
   }
 
-  std::size_t
-  MessageHasher::operator()(message const& msg) const noexcept
-  {
-    return msg.id;
-  }
-
   product_store_ptr const&
   more_derived(product_store_ptr const& a, product_store_ptr const& b)
   {
     if (a->id().depth() > b->id().depth()) {
-      return a;
-    }
-    return b;
-  }
-
-  message const&
-  more_derived(message const& a, message const& b)
-  {
-    if (a.store->id().depth() > b.store->id().depth()) {
       return a;
     }
     return b;

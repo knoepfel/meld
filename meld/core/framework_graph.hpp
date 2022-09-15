@@ -3,6 +3,7 @@
 
 #include "meld/core/declared_reduction.hpp"
 #include "meld/core/declared_transform.hpp"
+#include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
 #include "meld/core/user_functions.hpp"
 

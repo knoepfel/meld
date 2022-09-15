@@ -2,6 +2,7 @@
 #define meld_core_declared_reduction_hpp
 
 #include "meld/core/fwd.h"
+#include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
 #include "meld/graph/transition.hpp"
 

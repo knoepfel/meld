@@ -2,6 +2,7 @@
 #define meld_core_declared_transform_hpp
 
 #include "meld/core/fwd.h"
+#include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 

@@ -4,9 +4,6 @@
 #include "meld/core/handle.hpp"
 #include "meld/graph/transition.hpp"
 #include "meld/utilities/demangle_symbol.hpp"
-#include "meld/utilities/sized_tuple.hpp"
-
-#include "oneapi/tbb/flow_graph.h" // <-- belongs somewhere else
 
 #include <map>
 #include <memory>
@@ -73,21 +70,7 @@ namespace meld {
 
   product_store_ptr make_product_store();
 
-  struct message {
-    product_store_ptr store;
-    std::size_t id;
-    std::size_t original_id; // Used during flush
-  };
-
-  template <std::size_t N>
-  using messages_t = sized_tuple<message, N>;
-
-  struct MessageHasher {
-    std::size_t operator()(message const& msg) const noexcept;
-  };
-
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b);
-  message const& more_derived(message const& a, message const& b);
 
   template <std::size_t I, typename Tuple, typename Element>
   Element const&
@@ -115,22 +98,6 @@ namespace meld {
       return get_most_derived<1ull>(tup, std::get<0>(tup));
     }
   }
-
-  inline namespace put_somplace_else {
-    template <std::size_t N>
-    using join_messages_t = tbb::flow::join_node<messages_t<N>, tbb::flow::tag_matching>;
-
-    struct no_join {
-      no_join(tbb::flow::graph& g, MessageHasher) :
-        pass_through{g, tbb::flow::unlimited, [](message const& msg) { return std::tuple{msg}; }}
-      {
-      }
-      tbb::flow::function_node<message, messages_t<1ull>> pass_through;
-    };
-  }
-
-  template <std::size_t N>
-  using join_or_none_t = std::conditional_t<N == 1ull, no_join, join_messages_t<N>>;
 
   // Implementation details
   template <typename T>
