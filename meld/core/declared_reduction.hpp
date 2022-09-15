@@ -1,7 +1,8 @@
 #ifndef meld_core_declared_reduction_hpp
 #define meld_core_declared_reduction_hpp
 
-#include "meld/core/fwd.h"
+#include "meld/core/concurrency.hpp"
+#include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
 #include "meld/graph/transition.hpp"
@@ -102,7 +103,7 @@ namespace meld {
   private:
     user_functions<T>& funcs_;
     std::string name_;
-    std::size_t concurrency_{tbb::flow::serial};
+    std::size_t concurrency_{concurrency::serial};
     tbb::flow::graph& graph_;
     std::function<void(R&, Args...)> ft_;
     InitTuple initializer_;

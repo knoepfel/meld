@@ -1,10 +1,10 @@
 #ifndef meld_core_declared_transform_hpp
 #define meld_core_declared_transform_hpp
 
-#include "meld/core/fwd.h"
+#include "meld/core/concurrency.hpp"
+#include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
-#include "meld/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -110,7 +110,7 @@ namespace meld {
   private:
     user_functions<T>& funcs_;
     std::string name_;
-    std::size_t concurrency_{tbb::flow::serial};
+    std::size_t concurrency_{concurrency::serial};
     tbb::flow::graph& graph_;
     std::function<R(Args...)> ft_;
   };

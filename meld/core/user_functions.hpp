@@ -15,23 +15,6 @@
 
 namespace meld {
 
-  // FIXME: These belong somewhere else
-  namespace concurrency {
-    inline constexpr auto unlimited = tbb::flow::unlimited;
-    inline constexpr auto serial = tbb::flow::serial;
-
-    class max_allowed_parallelism {
-    public:
-      explicit max_allowed_parallelism(std::size_t i) :
-        control_{tbb::global_control::max_allowed_parallelism, i}
-      {
-      }
-
-    private:
-      tbb::global_control control_;
-    };
-  }
-
   // ==============================================================================
   // Registering user functions
 

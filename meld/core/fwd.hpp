@@ -1,5 +1,5 @@
-#ifndef meld_core_fwd_h
-#define meld_core_fwd_h
+#ifndef meld_core_fwd_hpp
+#define meld_core_fwd_hpp
 
 namespace meld {
   class product_store;
@@ -7,7 +7,7 @@ namespace meld {
   class user_functions;
 }
 
-#endif /* meld_core_fwd_h */
+#endif /* meld_core_fwd_hpp */
 
 // Local Variables:
 // mode: c++
