@@ -35,69 +35,55 @@ using namespace meld;
 using namespace meld::concurrency;
 
 namespace {
-  auto
-  square(unsigned int const num)
-  {
-    return num * num;
-  }
-
   struct data_for_rms {
     unsigned int total;
     unsigned int number;
   };
 
-  struct threadsafe_data_for_rms {
+  struct threadsafe_data {
     std::atomic<unsigned int> total;
     std::atomic<unsigned int> number;
-    data_for_rms
+    unsigned int
     send() const
     {
-      return {total.load(), number.load()};
+      return total.load();
     }
   };
 
   void
-  add(threadsafe_data_for_rms& redata, unsigned squared_number)
+  add(threadsafe_data& redata, unsigned number)
   {
-    redata.total += squared_number;
-    ++redata.number;
-  }
-
-  double
-  scale(data_for_rms data)
-  {
-    return std::sqrt(static_cast<double>(data.total) / data.number);
-  }
-
-  std::string
-  strtime(std::time_t tm)
-  {
-    char buffer[32];
-    std::strncpy(buffer, std::ctime(&tm), 26);
-    return buffer;
+    redata.total += number;
   }
 
   void
-  print_result(handle<double> result, std::string const& stringized_time)
+  split(generator& g, unsigned max_number)
   {
-    debug(result.id(), ": ", *result, " @ ", stringized_time);
+    for (std::size_t i = 0; i != max_number; ++i) {
+      g.make_child(i);
+    }
+  }
+
+  void
+  print_sum(handle<unsigned int> const sum)
+  {
+    debug(sum.id(), ": ", *sum);
   }
 }
 
-TEST_CASE("Hierarchical nodes", "[graph]")
+TEST_CASE("Splitting the processing", "[graph]")
 {
   constexpr auto index_limit = 2u;
-  constexpr auto number_limit = 5u;
   std::vector<transition> transitions;
-  transitions.reserve(index_limit * (number_limit + 1u));
+  transitions.reserve(index_limit + 2u);
+  level_id const root_id{};
+  transitions.emplace_back(root_id, stage::process);
   for (unsigned i = 0u; i != index_limit; ++i) {
-    level_id const id{i};
+    auto const id = root_id.make_child(i);
     transitions.emplace_back(id, stage::process);
-    for (unsigned j = 0u; j != number_limit; ++j) {
-      transitions.emplace_back(id.make_child(j), stage::process);
-    }
-    transitions.emplace_back(id.make_child(number_limit), stage::flush);
+    transitions.emplace_back(id.make_child(1u), stage::flush);
   }
+  transitions.emplace_back(root_id.make_child(2u), stage::flush);
   auto it = cbegin(transitions);
   auto const e = cend(transitions);
   cached_product_stores cached_stores;
@@ -113,32 +99,17 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     if (store->is_flush()) {
       return store;
     }
-    if (id.depth() == 1ull) {
-      store->add_product<std::time_t>("time", std::time(nullptr));
+    if (store->id().depth() == 0ull) {
+      return store;
     }
-    if (id.depth() == 2ull) {
-      store->add_product<unsigned>("number", id.back() + id.parent().back());
-    }
+    store->add_product<unsigned>("max_number", 10u * (id.back() + 1));
     return store;
   }};
 
   auto c = graph.make_component();
-  c.declare_transform("get_the_time", strtime)
-    .concurrency(unlimited)
-    .input("time")
-    .output("strtime");
-  c.declare_transform("square", square)
-    .concurrency(unlimited)
-    .input("number")
-    .output("squared_number");
-  c.declare_reduction("add", add, 15u)
-    .concurrency(unlimited)
-    .input("squared_number")
-    .output("added_data");
-  c.declare_transform("scale", scale).concurrency(unlimited).input("added_data").output("result");
-  c.declare_transform("print_result", print_result)
-    .concurrency(unlimited)
-    .input("result", "strtime");
+  c.declare_splitter("split", split).concurrency(unlimited).input("max_number"); //.provides("num");
+  c.declare_reduction("add", add).concurrency(unlimited).input("num").output("sum");
+  c.declare_transform("print_sum", print_sum).concurrency(unlimited).input("sum");
 
   graph.execute();
 }

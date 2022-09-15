@@ -2,6 +2,7 @@
 #define meld_core_framework_graph_hpp
 
 #include "meld/core/declared_reduction.hpp"
+#include "meld/core/declared_splitter.hpp"
 #include "meld/core/declared_transform.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
@@ -37,7 +38,7 @@ namespace meld {
 
              ++calls_;
              if (store->is_flush()) {
-               debug("Parent ID: ", store->parent()->id());
+               // debug("Parent ID: ", store->parent()->id());
                auto it = original_message_ids_.find(store->parent()->id());
                assert(it != cend(original_message_ids_));
                std::size_t const original_message_id = it->second;
@@ -60,14 +61,15 @@ namespace meld {
     auto
     make_component()
     {
-      return user_functions<void_tag>{graph_, transforms_, reductions_};
+      return user_functions<void_tag>{graph_, transforms_, reductions_, splitters_};
     }
 
     template <typename T, typename... Args>
     auto
     make_component(Args&&... args)
     {
-      return user_functions<T>{graph_, transforms_, reductions_, std::forward<Args>(args)...};
+      return user_functions<T>{
+        graph_, transforms_, reductions_, splitters_, std::forward<Args>(args)...};
     }
 
   private:
@@ -79,6 +81,7 @@ namespace meld {
     tbb::flow::graph graph_{};
     declared_transforms transforms_{};
     declared_reductions reductions_{};
+    declared_splitters splitters_{};
     std::map<std::string, tbb::flow::receiver<message>*> head_nodes_;
     tbb::flow::input_node<message> src_;
     tbb::flow::function_node<message> multiplexer_;

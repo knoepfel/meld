@@ -164,7 +164,7 @@ namespace meld {
     std::pair<bool, std::size_t>
     reduction_complete(product_store& parent_store)
     {
-
+      // debug("Reduction complete called with parent ID: ", parent_store.id());
       auto& entry = entries_.find(parent_store.id())->second;
       if (entry->count == entry->stop_after) {
         commit_(parent_store);

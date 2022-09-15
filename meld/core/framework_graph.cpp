@@ -15,6 +15,46 @@
 #include <utility>
 #include <vector>
 
+namespace {
+  using product_name_t = std::string;
+
+  template <typename T>
+  auto
+  producing_nodes(T& nodes)
+  {
+    std::map<product_name_t, tbb::flow::sender<meld::message>*> result;
+    for (auto const& [node_name, node] : nodes) {
+      for (auto const& product_name : node->output()) {
+        if (empty(product_name))
+          continue;
+        result[product_name] = &node->sender();
+      }
+    }
+    return result;
+  }
+
+  template <typename T>
+  auto
+  make_edges(std::map<product_name_t, tbb::flow::sender<meld::message>*> const& producers,
+             T& consumers)
+  {
+    std::map<std::string, tbb::flow::receiver<meld::message>*> result;
+    for (auto& [node_name, node] : consumers) {
+      for (auto const& product_name : node->input()) {
+        auto it = producers.find(product_name);
+        if (it != cend(producers)) {
+          make_edge(*it->second, node->port(product_name));
+        }
+        else {
+          // Is there a way to detect mis-specified product dependencies?
+          result[product_name] = &node->port(product_name);
+        }
+      }
+    }
+    return result;
+  }
+}
+
 namespace meld {
 
   framework_graph::framework_graph(run_once_t, product_store_ptr store) :
@@ -46,49 +86,13 @@ namespace meld {
   framework_graph::finalize()
   {
     // Calculate produced products
-    using product_name_t = std::string;
-    std::map<product_name_t, tbb::flow::sender<message>*> nodes_that_produce;
-    for (auto const& [node_name, node] : transforms_) {
-      for (auto const& product_name : node->output()) {
-        if (empty(product_name))
-          continue;
-        nodes_that_produce[product_name] = &node->sender();
-      }
-    }
-
-    for (auto const& [node_name, node] : reductions_) {
-      for (auto const& product_name : node->output()) {
-        if (empty(product_name))
-          continue;
-        nodes_that_produce[product_name] = &node->sender();
-      }
-    }
+    auto nodes_that_produce = producing_nodes(transforms_);
+    nodes_that_produce.merge(producing_nodes(reductions_));
 
     // Create edges between nodes per product dependencies
-    for (auto& [node_name, node] : transforms_) {
-      for (auto const& product_name : node->input()) {
-        auto it = nodes_that_produce.find(product_name);
-        if (it != cend(nodes_that_produce)) {
-          make_edge(*it->second, node->port(product_name));
-        }
-        else {
-          // Is there a way to detect mis-specified product dependencies?
-          head_nodes_[product_name] = &node->port(product_name);
-        }
-      }
-    }
-    for (auto& [node_name, node] : reductions_) {
-      for (auto const& product_name : node->input()) {
-        auto it = nodes_that_produce.find(product_name);
-        if (it != cend(nodes_that_produce)) {
-          make_edge(*it->second, node->port(product_name));
-        }
-        else {
-          // Is there a way to detect mis-specified product dependencies?
-          head_nodes_[product_name] = &node->port(product_name);
-        }
-      }
-    }
+    head_nodes_.merge(make_edges(nodes_that_produce, transforms_));
+    head_nodes_.merge(make_edges(nodes_that_produce, reductions_));
+    head_nodes_.merge(make_edges(nodes_that_produce, splitters_));
     make_edge(src_, multiplexer_);
   }
 

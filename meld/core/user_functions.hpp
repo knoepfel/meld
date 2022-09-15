@@ -2,6 +2,7 @@
 #define meld_core_user_functions_hpp
 
 #include "meld/core/declared_reduction.hpp"
+#include "meld/core/declared_splitter.hpp"
 #include "meld/core/declared_transform.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
@@ -25,18 +26,21 @@ namespace meld {
   public:
     user_functions(tbb::flow::graph& g,
                    declared_transforms& transforms,
-                   declared_reductions& reductions) requires(std::same_as<T, void_tag>) :
-      graph_{g}, transforms_{transforms}, reductions_{reductions}
+                   declared_reductions& reductions,
+                   declared_splitters& splitters) requires(std::same_as<T, void_tag>) :
+      graph_{g}, transforms_{transforms}, reductions_{reductions}, splitters_{splitters}
     {
     }
     template <typename... Args>
     user_functions(tbb::flow::graph& g,
                    declared_transforms& transforms,
                    declared_reductions& reductions,
+                   declared_splitters& splitters,
                    Args&&... args) requires(not std::same_as<T, void_tag>) :
       graph_{g},
       transforms_{transforms},
       reductions_{reductions},
+      splitters_{splitters},
       bound_obj_{std::make_unique<T>(std::forward<Args>(args)...)}
     {
     }
@@ -120,6 +124,15 @@ namespace meld {
         std::make_tuple(std::forward<InitArgs>(init_args)...)};
     }
 
+    // Splitters
+    template <typename... Args>
+    auto
+    declare_splitter(std::string name, void (*f)(Args...)) requires std::same_as<T, void_tag>
+    {
+      assert(not bound_obj_);
+      return incomplete_splitter{*this, name, graph_, f};
+    }
+
     // Expert-use only
     void
     add_transform(std::string const& name, declared_transform_ptr ptr)
@@ -133,10 +146,17 @@ namespace meld {
       reductions_.try_emplace(name, std::move(ptr));
     }
 
+    void
+    add_splitter(std::string const& name, declared_splitter_ptr ptr)
+    {
+      splitters_.try_emplace(name, std::move(ptr));
+    }
+
   private:
     tbb::flow::graph& graph_;
     declared_transforms& transforms_;
     declared_reductions& reductions_;
+    declared_splitters& splitters_;
     std::unique_ptr<T> bound_obj_;
   };
 }

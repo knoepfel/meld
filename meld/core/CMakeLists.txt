@@ -1,4 +1,5 @@
 add_library(meld_core SHARED
+  declared_splitter.cpp
   declared_transform.cpp
   declared_reduction.cpp
   framework_graph.cpp
