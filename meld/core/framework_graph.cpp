@@ -57,47 +57,8 @@ namespace {
 
 namespace meld {
 
-  framework_graph::framework_graph(run_once_t, product_store_ptr store) :
-    framework_graph{[store, executed = false]() mutable -> product_store_ptr {
-      if (executed) {
-        return nullptr;
-      }
-      executed = true;
-      return store;
-    }}
-  {
-  }
-
-  void
-  framework_graph::execute()
-  {
-    finalize();
-    run();
-  }
-
-  void
-  framework_graph::run()
-  {
-    src_.activate();
-    graph_.wait_for_all();
-  }
-
-  void
-  framework_graph::finalize()
-  {
-    // Calculate produced products
-    auto nodes_that_produce = producing_nodes(transforms_);
-    nodes_that_produce.merge(producing_nodes(reductions_));
-
-    // Create edges between nodes per product dependencies
-    head_nodes_.merge(make_edges(nodes_that_produce, transforms_));
-    head_nodes_.merge(make_edges(nodes_that_produce, reductions_));
-    head_nodes_.merge(make_edges(nodes_that_produce, splitters_));
-    make_edge(src_, multiplexer_);
-  }
-
   tbb::flow::continue_msg
-  framework_graph::multiplex(message const& msg)
+  multiplexer::multiplex(message const& msg)
   {
     auto const& [store, message_id, _] = msg;
     // debug("Multiplexing ", store->id(), " with ID ", message_id);
@@ -131,5 +92,46 @@ namespace meld {
       }
     }
     return {};
+  }
+
+  framework_graph::framework_graph(run_once_t, product_store_ptr store) :
+    framework_graph{[store, executed = false]() mutable -> product_store_ptr {
+      if (executed) {
+        return nullptr;
+      }
+      executed = true;
+      return store;
+    }}
+  {
+  }
+
+  void
+  framework_graph::execute()
+  {
+    finalize();
+    run();
+  }
+
+  void
+  framework_graph::run()
+  {
+    src_.activate();
+    graph_.wait_for_all();
+  }
+
+  void
+  framework_graph::finalize()
+  {
+    // Calculate produced products
+    auto nodes_that_produce = producing_nodes(transforms_);
+    nodes_that_produce.merge(producing_nodes(reductions_));
+
+    // Create edges between nodes per product dependencies
+    auto head_nodes = make_edges(nodes_that_produce, transforms_);
+    head_nodes.merge(make_edges(nodes_that_produce, reductions_));
+    head_nodes.merge(make_edges(nodes_that_produce, splitters_));
+
+    multiplexer_.finalize(move(head_nodes));
+    make_edge(src_, multiplexer_);
   }
 }

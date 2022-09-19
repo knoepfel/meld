@@ -19,6 +19,30 @@
 
 namespace meld {
 
+  class multiplexer : public tbb::flow::function_node<message> {
+    using base = tbb::flow::function_node<message>;
+
+  public:
+    explicit multiplexer(tbb::flow::graph& g) :
+      base{g, tbb::flow::unlimited, [this](message const& msg) -> tbb::flow::continue_msg {
+             return multiplex(msg);
+           }}
+    {
+    }
+
+    tbb::flow::continue_msg multiplex(message const& msg);
+
+    void
+    finalize(std::map<std::string, tbb::flow::receiver<message>*> head_nodes)
+    {
+      head_nodes_ = move(head_nodes);
+    }
+
+  private:
+    std::map<std::string, tbb::flow::receiver<message>*> head_nodes_;
+    tbb::concurrent_hash_map<level_id, std::set<tbb::flow::receiver<message>*>> flushes_required_;
+  };
+
   class framework_graph {
   public:
     struct run_once_t {};
@@ -49,10 +73,7 @@ namespace meld {
              original_message_ids_.try_emplace(store->id(), calls_);
              return {store, calls_};
            }},
-      multiplexer_{graph_,
-                   tbb::flow::unlimited,
-                   [this](message const& msg) -> tbb::flow::continue_msg { return multiplex(msg); }}
-
+      multiplexer_{graph_}
     {
     }
 
@@ -76,16 +97,12 @@ namespace meld {
     void run();
     void finalize();
 
-    tbb::flow::continue_msg multiplex(message const& msg);
-
     tbb::flow::graph graph_{};
     declared_transforms transforms_{};
     declared_reductions reductions_{};
     declared_splitters splitters_{};
-    std::map<std::string, tbb::flow::receiver<message>*> head_nodes_;
     tbb::flow::input_node<message> src_;
-    tbb::flow::function_node<message> multiplexer_;
-    tbb::concurrent_hash_map<level_id, std::set<tbb::flow::receiver<message>*>> flushes_required_;
+    multiplexer multiplexer_;
     std::map<level_id, std::size_t> original_message_ids_;
     std::size_t calls_{};
   };
