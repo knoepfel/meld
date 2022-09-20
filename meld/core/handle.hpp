@@ -12,6 +12,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <variant>
 
 namespace meld {
 
@@ -23,6 +24,51 @@ namespace meld {
   struct product : product_base {
     explicit product(T const& prod) : obj{prod} {}
     std::remove_cvref_t<T> obj;
+  };
+
+  class products {
+  public:
+    template <typename T>
+    void
+    add(std::string const& key, T const& t)
+    {
+      add(key, std::make_shared<product<std::remove_cvref_t<T>>>(t));
+    }
+
+    template <typename T>
+    void
+    add(std::string const& key, std::shared_ptr<product<T>>&& t)
+    {
+      products_.emplace(key, std::move(t));
+    }
+
+    template <typename T>
+    std::variant<T const*, std::string>
+    get(std::string const& key) const
+    {
+      auto it = products_.find(key);
+      if (it == cend(products_)) {
+        return "No product exists with the key '" + key + "'.";
+      }
+      if (auto t = dynamic_cast<product<T> const*>(it->second.get())) {
+        return &t->obj;
+      }
+      return "Cannot get product '" + key + "' with type '" + demangle_symbol(typeid(T)) + "'.";
+    }
+
+    auto
+    begin() const noexcept
+    {
+      return products_.begin();
+    }
+    auto
+    end() const noexcept
+    {
+      return products_.end();
+    }
+
+  private:
+    std::map<std::string, std::shared_ptr<product_base>> products_;
   };
 
   namespace detail {
@@ -52,7 +98,12 @@ namespace meld {
     {
     }
 
-    explicit handle(std::string err_msg, level_id const& id = {}) : rep_{move(err_msg)}, id_{&id} {}
+    explicit handle(std::variant<const_pointer, err_t> maybe_product, level_id const& id) :
+      rep_{move(maybe_product)}, id_{&id}
+    {
+    }
+
+    explicit handle(std::string err_msg, level_id const& id) : rep_{move(err_msg)}, id_{&id} {}
 
     const_pointer
     operator->() const

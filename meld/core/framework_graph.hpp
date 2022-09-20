@@ -10,6 +10,7 @@
 
 #include "oneapi/tbb/flow_graph.h"
 
+#include <functional>
 #include <map>
 #include <set>
 #include <string>
@@ -24,9 +25,7 @@ namespace meld {
 
   public:
     explicit multiplexer(tbb::flow::graph& g) :
-      base{g, tbb::flow::unlimited, [this](message const& msg) -> tbb::flow::continue_msg {
-             return multiplex(msg);
-           }}
+      base{g, tbb::flow::unlimited, std::bind_front(&multiplexer::multiplex, this)}
     {
     }
 

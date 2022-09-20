@@ -11,11 +11,11 @@
 
 namespace meld {
 
-  template <typename T>
-  struct labeled_data {
-    std::string label;
-    T data;
-  };
+  // template <typename T>
+  // struct labeled_data {
+  //   std::string label;
+  //   T data;
+  // };
 
   class product_store : public std::enable_shared_from_this<product_store> {
     using ptr = std::shared_ptr<product_store>;
@@ -56,12 +56,12 @@ namespace meld {
     template <typename T>
     void add_product(std::string const& key, std::shared_ptr<T>&& t);
 
-    template <typename T>
-    void add_product(labeled_data<T>&& data);
+    // template <typename T>
+    // void add_product(labeled_data<T>&& data);
 
   private:
     ptr parent_{nullptr};
-    std::map<std::string, std::shared_ptr<product_base>> products_{};
+    products products_{};
     level_id id_;
     stage stage_;
   };
@@ -111,29 +111,21 @@ namespace meld {
   void
   product_store::add_product(std::string const& key, std::shared_ptr<T>&& t)
   {
-    products_.emplace(key, std::move(t));
+    products_.add(key, std::move(t));
   }
 
-  template <typename T>
-  void
-  product_store::add_product(labeled_data<T>&& ldata)
-  {
-    add_product(ldata.label, std::forward<T>(ldata.data));
-  }
+  // template <typename T>
+  // void
+  // product_store::add_product(labeled_data<T>&& ldata)
+  // {
+  //   add_product(ldata.label, std::forward<T>(ldata.data));
+  // }
 
   template <typename T>
   [[nodiscard]] handle<T>
   product_store::get_handle(std::string const& key) const
   {
-    auto it = products_.find(key);
-    if (it == cend(products_)) {
-      return handle<T>{"No product exists with the key '" + key + "'.", id_};
-    }
-    if (auto t = dynamic_cast<product<T> const*>(it->second.get())) {
-      return handle<T>{*t, id_};
-    }
-    return handle<T>{
-      "Cannot get product '" + key + "' with type '" + demangle_symbol(typeid(T)) + "'.", id_};
+    return handle<T>{products_.get<T>(key), id_};
   }
 
   template <typename T>
