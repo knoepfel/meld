@@ -22,6 +22,7 @@ namespace meld {
 
   public:
     explicit product_store(level_id id = {}, stage processing_stage = stage::process);
+    explicit product_store(ptr parent, std::size_t new_level_number, products new_products);
     explicit product_store(ptr parent, std::size_t new_level_number, stage processing_stage);
 
     // FIXME: 'stores_for_products()' may need to become a lazy range.
@@ -39,6 +40,7 @@ namespace meld {
     }
 
     ptr const& parent() const noexcept;
+    ptr make_child(std::size_t new_level_number, products new_products);
     ptr make_child(std::size_t new_level_number, stage st = stage::process);
     level_id const& id() const noexcept;
     bool is_flush() const noexcept;

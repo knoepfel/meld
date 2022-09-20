@@ -1,21 +1,18 @@
-// ===================================================================
-// This test executes the following graph
+// ====================================================================
+// This test executes splitting functionality using the following graph
 //
 //     Multiplexer
-//      |       |
-//   get_time square
-//      |       |
-//      |      add(*)
-//      |       |
-//      |     scale
-//      |       |
+//          |
+//      splitter (creates children)
+//          |
+//         add(*)
+//          |
 //     print_result
 //
-// where the asterisk (*) indicates a reduction step.  In terms of the
-// data model, whenever the add node receives the flush token, a
-// product is inserted at one level higher than the level processed by
-// square and add nodes.
-// ===================================================================
+// where the asterisk (*) indicates a reduction step.  The difference
+// here is that the *splitter* is responsible for sending the flush
+// token instead of the source/multiplexer.
+// ====================================================================
 
 #include "meld/core/cached_product_stores.hpp"
 #include "meld/core/framework_graph.hpp"
@@ -35,6 +32,16 @@ using namespace meld;
 using namespace meld::concurrency;
 
 namespace {
+  void
+  split(generator& g, unsigned max_number)
+  {
+    for (std::size_t i = 0; i != max_number; ++i) {
+      products new_products;
+      new_products.add<unsigned>("num", i);
+      g.make_child(i, std::move(new_products));
+    }
+  }
+
   struct data_for_rms {
     unsigned int total;
     unsigned int number;
@@ -54,14 +61,6 @@ namespace {
   add(threadsafe_data& redata, unsigned number)
   {
     redata.total += number;
-  }
-
-  void
-  split(generator& g, unsigned max_number)
-  {
-    for (std::size_t i = 0; i != max_number; ++i) {
-      g.make_child(i);
-    }
   }
 
   void
@@ -107,7 +106,7 @@ TEST_CASE("Splitting the processing", "[graph]")
   }};
 
   auto c = graph.make_component();
-  c.declare_splitter("split", split).concurrency(unlimited).input("max_number"); //.provides("num");
+  c.declare_splitter("split", split).concurrency(unlimited).input("max_number").provides({"num"});
   c.declare_reduction("add", add).concurrency(unlimited).input("num").output("sum");
   c.declare_transform("print_sum", print_sum).concurrency(unlimited).input("sum");
 

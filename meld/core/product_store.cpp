@@ -13,6 +13,16 @@ namespace meld {
 
   product_store::product_store(product_store_ptr parent,
                                std::size_t new_level_number,
+                               products new_products) :
+    parent_{parent},
+    products_{std::move(new_products)},
+    id_{parent->id().make_child(new_level_number)},
+    stage_{stage::process}
+  {
+  }
+
+  product_store::product_store(product_store_ptr parent,
+                               std::size_t new_level_number,
                                stage processing_stage) :
     parent_{parent}, id_{parent->id().make_child(new_level_number)}, stage_{processing_stage}
   {
@@ -36,6 +46,13 @@ namespace meld {
   product_store::parent() const noexcept
   {
     return parent_;
+  }
+
+  product_store_ptr
+  product_store::make_child(std::size_t new_level_number, products new_products)
+  {
+    return std::make_shared<product_store>(
+      shared_from_this(), new_level_number, std::move(new_products));
   }
 
   product_store_ptr

@@ -5,6 +5,7 @@
 #include "meld/core/declared_splitter.hpp"
 #include "meld/core/declared_transform.hpp"
 #include "meld/core/message.hpp"
+#include "meld/core/multiplexer.hpp"
 #include "meld/core/product_store.hpp"
 #include "meld/core/user_functions.hpp"
 
@@ -19,28 +20,6 @@
 #include <vector>
 
 namespace meld {
-
-  class multiplexer : public tbb::flow::function_node<message> {
-    using base = tbb::flow::function_node<message>;
-
-  public:
-    explicit multiplexer(tbb::flow::graph& g) :
-      base{g, tbb::flow::unlimited, std::bind_front(&multiplexer::multiplex, this)}
-    {
-    }
-
-    tbb::flow::continue_msg multiplex(message const& msg);
-
-    void
-    finalize(std::map<std::string, tbb::flow::receiver<message>*> head_nodes)
-    {
-      head_nodes_ = move(head_nodes);
-    }
-
-  private:
-    std::map<std::string, tbb::flow::receiver<message>*> head_nodes_;
-    tbb::concurrent_hash_map<level_id, std::set<tbb::flow::receiver<message>*>> flushes_required_;
-  };
 
   class framework_graph {
   public:

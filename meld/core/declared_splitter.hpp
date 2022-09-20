@@ -4,6 +4,7 @@
 #include "meld/core/concurrency.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
+#include "meld/core/multiplexer.hpp"
 #include "meld/core/product_store.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
@@ -24,7 +25,7 @@ namespace meld {
   class generator {
   public:
     explicit generator(product_store_ptr const& parent);
-    void make_child(std::size_t i);
+    void make_child(std::size_t i, products new_products = {});
 
   private:
     product_store_ptr parent_;
@@ -41,6 +42,8 @@ namespace meld {
     tbb::flow::receiver<message>& port(std::string const& product_name);
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual std::span<std::string const, std::dynamic_extent> input() const = 0;
+    virtual std::vector<std::string> const& provided_products() const = 0;
+    virtual void finalize(multiplexer::head_nodes_t head_nodes) = 0;
 
   private:
     virtual tbb::flow::receiver<message>& port_for(std::string const& product_name) = 0;
@@ -76,12 +79,12 @@ namespace meld {
       return *this;
     }
 
-    auto
+    // Icky?
+    incomplete_splitter&
     input(std::array<std::string, N> input_keys)
     {
-      funcs_.add_splitter(name_,
-                          std::make_unique<complete_splitter>(
-                            name_, concurrency_, graph_, move(ft_), move(input_keys)));
+      input_keys_ = move(input_keys);
+      return *this;
     }
 
     template <typename... Ts>
@@ -95,10 +98,20 @@ namespace meld {
       return input(std::array<std::string, N>{ts...});
     }
 
+    auto
+    provides(std::vector<std::string> product_names)
+    {
+      funcs_.add_splitter(
+        name_,
+        std::make_unique<complete_splitter>(
+          name_, concurrency_, graph_, move(ft_), move(input_keys_), move(product_names)));
+    }
+
   private:
     user_functions<T>& funcs_;
     std::string name_;
     std::size_t concurrency_{concurrency::serial};
+    std::array<std::string, N> input_keys_;
     tbb::flow::graph& graph_;
     std::function<void(generator&, Args...)> ft_;
   };
@@ -149,9 +162,11 @@ namespace meld {
                       std::size_t concurrency,
                       tbb::flow::graph& g,
                       std::function<void(generator&, Args...)>&& f,
-                      std::array<std::string, N> input) :
+                      std::array<std::string, N> input,
+                      std::vector<std::string> provided_products) :
       declared_splitter{move(name), concurrency},
       input_{move(input)},
+      provided_{move(provided_products)},
       join_{g, type_for_t<MessageHasher, Args>{}...},
       splitter_{
         g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages) -> message {
@@ -210,9 +225,23 @@ namespace meld {
       return input_;
     }
 
+    std::vector<std::string> const&
+    provided_products() const override
+    {
+      return provided_;
+    }
+
+    void
+    finalize(multiplexer::head_nodes_t head_nodes) override
+    {
+      head_nodes_ = std::move(head_nodes);
+    }
+
     std::array<std::string, N> input_;
+    std::vector<std::string> provided_;
     join_or_none_t<N> join_;
     tbb::flow::function_node<messages_t<N>, message> splitter_;
+    multiplexer::head_nodes_t head_nodes_;
     tbb::concurrent_hash_map<level_id, product_store_ptr> stores_;
   };
 }

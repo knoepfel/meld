@@ -38,7 +38,7 @@ namespace {
   make_edges(std::map<product_name_t, tbb::flow::sender<meld::message>*> const& producers,
              T& consumers)
   {
-    std::map<std::string, tbb::flow::receiver<meld::message>*> result;
+    meld::multiplexer::head_nodes_t result;
     for (auto& [node_name, node] : consumers) {
       for (auto const& product_name : node->input()) {
         auto it = producers.find(product_name);
@@ -56,43 +56,6 @@ namespace {
 }
 
 namespace meld {
-
-  tbb::flow::continue_msg
-  multiplexer::multiplex(message const& msg)
-  {
-    auto const& [store, message_id, _] = msg;
-    // debug("Multiplexing ", store->id(), " with ID ", message_id);
-    using accessor = decltype(flushes_required_)::accessor;
-    if (store->is_flush()) {
-      accessor a;
-      bool const found = flushes_required_.find(a, store->parent()->id());
-      if (!found) {
-        // FIXME: This is the case where no nodes exist.  Should
-        // probably either detect this situation and warn or....?
-        return {};
-      }
-      for (auto node : a->second) {
-        node->try_put(msg);
-      }
-      flushes_required_.erase(a);
-      return {};
-    }
-
-    // TODO: Add option to send directly to any functions that specify
-    // they are of a certain processing level.
-    for (auto const& [key, store_ptr] : store->stores_for_products()) {
-      if (auto it = head_nodes_.find(key); it != cend(head_nodes_)) {
-        auto store_to_send = store_ptr.lock();
-        it->second->try_put({store_to_send, message_id});
-        if (auto& parent = store_to_send->parent()) {
-          accessor a;
-          flushes_required_.insert(a, parent->id());
-          a->second.insert(it->second);
-        }
-      }
-    }
-    return {};
-  }
 
   framework_graph::framework_graph(run_once_t, product_store_ptr store) :
     framework_graph{[store, executed = false]() mutable -> product_store_ptr {
@@ -130,6 +93,35 @@ namespace meld {
     auto head_nodes = make_edges(nodes_that_produce, transforms_);
     head_nodes.merge(make_edges(nodes_that_produce, reductions_));
     head_nodes.merge(make_edges(nodes_that_produce, splitters_));
+
+    // Create head nodes for splitters
+    auto get_consumed_products = [](auto const& consumers, auto& products) {
+      for (auto const& [key, consumer] : consumers) {
+        for (auto const& product_name : consumer->input()) {
+          products[product_name].push_back(key);
+        }
+      }
+    };
+
+    std::map<std::string, std::vector<std::string>> consumed_products;
+    get_consumed_products(transforms_, consumed_products);
+    get_consumed_products(reductions_, consumed_products);
+    get_consumed_products(splitters_, consumed_products);
+
+    std::set<std::string> head_nodes_to_remove;
+    for (auto const& [name, splitter] : splitters_) {
+      multiplexer::head_nodes_t heads;
+      for (auto const& product_name : splitter->provided_products()) {
+        heads.insert(*head_nodes.find(product_name));
+        head_nodes_to_remove.insert(product_name);
+      }
+      splitter->finalize(std::move(heads));
+    }
+
+    // Remove head nodes claimed by splitters
+    for (auto const& key : head_nodes_to_remove) {
+      head_nodes.erase(key);
+    }
 
     multiplexer_.finalize(move(head_nodes));
     make_edge(src_, multiplexer_);

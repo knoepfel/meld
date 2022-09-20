@@ -1,14 +1,17 @@
 #include "meld/core/declared_splitter.hpp"
+#include "meld/core/handle.hpp"
 
 namespace meld {
 
   generator::generator(product_store_ptr const& parent) : parent_{parent} {}
 
   void
-  generator::make_child(std::size_t const i)
+  generator::make_child(std::size_t const i, products new_products)
   {
-    auto child = parent_->make_child(i);
-    debug(" Made child with ID: ", child->id());
+    auto child = parent_->make_child(i, std::move(new_products));
+    for (auto const& [name, _] : *child) {
+      debug("  -> Product: ", name, " provided by ", child->id());
+    }
   }
 
   declared_splitter::declared_splitter(std::string name, std::size_t concurrency) :

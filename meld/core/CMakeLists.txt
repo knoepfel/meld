@@ -4,6 +4,7 @@ add_library(meld_core SHARED
   declared_reduction.cpp
   framework_graph.cpp
   message.cpp
+  multiplexer.cpp
   product_store.cpp
   )
 target_include_directories(meld_core PRIVATE ${PROJECT_SOURCE_DIR})

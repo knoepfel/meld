@@ -145,6 +145,7 @@ namespace meld {
          std::index_sequence<Is...>)
     {
       auto const& parent = most_derived(messages).store->parent();
+      // FIXME: Not the safest approach!
       auto it = results_.find(parent->id());
       if (it == results_.end()) {
         it =
