@@ -24,11 +24,18 @@ namespace meld {
 
   class generator {
   public:
-    explicit generator(product_store_ptr const& parent);
+    explicit generator(product_store_ptr const& parent,
+                       multiplexer& m,
+                       std::atomic<std::size_t>& counter);
     void make_child(std::size_t i, products new_products = {});
+    message flush_message();
 
   private:
     product_store_ptr parent_;
+    multiplexer& multiplexer_;
+    std::atomic<std::size_t>& counter_;
+    std::atomic<std::size_t> calls_{};
+    std::size_t const original_message_id_{counter_};
   };
 
   class declared_splitter {
@@ -40,7 +47,6 @@ namespace meld {
     std::string const& name() const noexcept;
     std::size_t concurrency() const noexcept;
     tbb::flow::receiver<message>& port(std::string const& product_name);
-    virtual tbb::flow::sender<message>& sender() = 0;
     virtual std::span<std::string const, std::dynamic_extent> input() const = 0;
     virtual std::vector<std::string> const& provided_products() const = 0;
     virtual void finalize(multiplexer::head_nodes_t head_nodes) = 0;
@@ -143,6 +149,14 @@ namespace meld {
       }
     }
 
+    template <std::size_t I, typename U>
+    auto
+    get_handle_for(messages_t<N> const& messages)
+    {
+      using handle_arg_t = typename handle_for<U>::value_type;
+      return std::get<I>(messages).store->template get_handle<handle_arg_t>(input_[I]);
+    }
+
     template <std::size_t... Is>
     void
     call(std::function<void(generator&, Args...)> ft,
@@ -150,11 +164,7 @@ namespace meld {
          messages_t<N> const& messages,
          std::index_sequence<Is...>)
     {
-      return std::invoke(
-        ft,
-        g,
-        std::get<Is>(messages).store->template get_handle<typename handle_for<Args>::value_type>(
-          input_[Is])...);
+      return std::invoke(ft, g, get_handle_for<Is, Args>(messages)...);
     }
 
   public:
@@ -167,29 +177,32 @@ namespace meld {
       declared_splitter{move(name), concurrency},
       input_{move(input)},
       provided_{move(provided_products)},
+      multiplexer_{g, true},
       join_{g, type_for_t<MessageHasher, Args>{}...},
       splitter_{
-        g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages) -> message {
+        g,
+        concurrency,
+        [this, ft = std::move(f)](messages_t<N> const& messages) -> tbb::flow::continue_msg {
           auto const& msg = most_derived(messages);
           auto const& [store, message_id, _] = msg;
           if (store->is_flush()) {
-            return msg;
+            return {};
           }
 
           if (typename decltype(stores_)::const_accessor a; stores_.find(a, store->id())) {
-            return {a->second, message_id};
+            return {};
           }
 
           typename decltype(stores_)::accessor a;
           bool const new_insert = stores_.insert(a, store->id());
           if (!new_insert) {
-            return {a->second, message_id};
+            return {};
           }
 
-          generator g{msg.store};
+          generator g{msg.store, multiplexer_, counter_};
           call(ft, g, messages, std::index_sequence_for<Args...>{});
-          a->second = {};
-          return {a->second, message_id};
+          multiplexer_.try_put(g.flush_message());
+          return {};
         }}
     {
       if constexpr (N > 1ull) {
@@ -213,12 +226,6 @@ namespace meld {
       }
     }
 
-    tbb::flow::sender<message>&
-    sender() override
-    {
-      return splitter_;
-    }
-
     std::span<std::string const, std::dynamic_extent>
     input() const override
     {
@@ -234,15 +241,16 @@ namespace meld {
     void
     finalize(multiplexer::head_nodes_t head_nodes) override
     {
-      head_nodes_ = std::move(head_nodes);
+      multiplexer_.finalize(std::move(head_nodes));
     }
 
     std::array<std::string, N> input_;
     std::vector<std::string> provided_;
+    multiplexer multiplexer_;
     join_or_none_t<N> join_;
-    tbb::flow::function_node<messages_t<N>, message> splitter_;
-    multiplexer::head_nodes_t head_nodes_;
+    tbb::flow::function_node<messages_t<N>> splitter_;
     tbb::concurrent_hash_map<level_id, product_store_ptr> stores_;
+    std::atomic<std::size_t> counter_{}; // Is this sufficient?  Probably not.
   };
 }
 

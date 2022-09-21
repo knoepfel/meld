@@ -10,16 +10,27 @@ namespace meld {
   multiplexer::multiplex(message const& msg)
   {
     auto const& [store, message_id, _] = msg;
-    // debug("Multiplexing ", store->id(), " with ID ", message_id);
+    if (debug_) {
+      debug("Multiplexing ", store->id(), " with ID ", message_id);
+    }
     using accessor = decltype(flushes_required_)::accessor;
     if (store->is_flush()) {
       accessor a;
       bool const found = flushes_required_.find(a, store->parent()->id());
       if (!found) {
-        // FIXME: This is the case where no nodes exist.  Should
-        // probably either detect this situation and warn or....?
+        a.release();
+        // FIXME: This is the case where (a) no nodes exist, or (b)
+        // the flush message has been received before any other
+        // messages.  In case (b), we send the flush message to all
+        // nodes as we do not yet know which nodes will process a
+        // given processing level.  For case (a), ideally we would
+        // find a better solution.
+        for (auto const& [_, node] : head_nodes_) {
+          node->try_put(msg);
+        }
         return {};
       }
+
       for (auto node : a->second) {
         node->try_put(msg);
       }

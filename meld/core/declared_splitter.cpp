@@ -3,15 +3,27 @@
 
 namespace meld {
 
-  generator::generator(product_store_ptr const& parent) : parent_{parent} {}
+  generator::generator(product_store_ptr const& parent,
+                       multiplexer& m,
+                       std::atomic<std::size_t>& counter) :
+    parent_{parent}, multiplexer_{m}, counter_{counter}
+  {
+  }
 
   void
   generator::make_child(std::size_t const i, products new_products)
   {
+    ++counter_;
+    ++calls_;
     auto child = parent_->make_child(i, std::move(new_products));
-    for (auto const& [name, _] : *child) {
-      debug("  -> Product: ", name, " provided by ", child->id());
-    }
+    multiplexer_.try_put({child, counter_});
+  }
+
+  message
+  generator::flush_message()
+  {
+    auto const message_id = ++counter_;
+    return {parent_->make_child(calls_, stage::flush), message_id, original_message_id_};
   }
 
   declared_splitter::declared_splitter(std::string name, std::size_t concurrency) :

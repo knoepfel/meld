@@ -19,8 +19,8 @@ namespace meld {
 
   public:
     using head_nodes_t = std::map<std::string, tbb::flow::receiver<message>*>;
-    explicit multiplexer(tbb::flow::graph& g) :
-      base{g, tbb::flow::unlimited, std::bind_front(&multiplexer::multiplex, this)}
+    explicit multiplexer(tbb::flow::graph& g, bool debug = false) :
+      base{g, tbb::flow::unlimited, std::bind_front(&multiplexer::multiplex, this)}, debug_{debug}
     {
     }
 
@@ -35,6 +35,7 @@ namespace meld {
   private:
     head_nodes_t head_nodes_;
     tbb::concurrent_hash_map<level_id, std::set<tbb::flow::receiver<message>*>> flushes_required_;
+    bool debug_;
   };
 
 }

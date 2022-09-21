@@ -165,14 +165,14 @@ namespace meld {
     std::pair<bool, std::size_t>
     reduction_complete(product_store& parent_store)
     {
-      // debug("Reduction complete called with parent ID: ", parent_store.id());
-      auto& entry = entries_.find(parent_store.id())->second;
-      if (entry->count == entry->stop_after) {
+      auto it = entries_.find(parent_store.id());
+      assert(it != cend(entries_));
+      auto& entry = it->second;
+      auto stop_number = entry->stop_after.load();
+      if (entry->count.compare_exchange_strong(stop_number, -2u)) {
         commit_(parent_store);
-        auto original_message_id = entry->original_message_id;
-        // Would be good to free up memory here.
-        entry.reset();
-        return {true, original_message_id};
+        // FIXME: Would be good to free up memory here.
+        return {true, entry->original_message_id};
       }
       return {};
     }
@@ -180,6 +180,7 @@ namespace meld {
     void
     set_flush_value(level_id const& id, std::size_t const original_message_id)
     {
+
       auto it = entries_.find(id.parent());
       assert(it != cend(entries_));
       it->second->stop_after = id.back();
