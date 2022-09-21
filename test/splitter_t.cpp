@@ -23,8 +23,6 @@
 #include "catch2/catch.hpp"
 
 #include <atomic>
-#include <cmath>
-#include <ctime>
 #include <string>
 #include <vector>
 
@@ -64,9 +62,14 @@ namespace {
   }
 
   void
-  print_sum(handle<unsigned int> const sum)
+  check_sum(handle<unsigned int> const sum)
   {
-    debug(sum.id(), ": ", *sum);
+    if (sum.id().back() == 0ull) {
+      CHECK(*sum == 45);
+    }
+    else {
+      CHECK(*sum == 190);
+    }
   }
 }
 
@@ -108,7 +111,7 @@ TEST_CASE("Splitting the processing", "[graph]")
   auto c = graph.make_component();
   c.declare_splitter("split", split).concurrency(unlimited).input("max_number").provides({"num"});
   c.declare_reduction("add", add).concurrency(unlimited).input("num").output("sum");
-  c.declare_transform("print_sum", print_sum).concurrency(unlimited).input("sum");
+  c.declare_transform("check_sum", check_sum).concurrency(unlimited).input("sum");
 
   graph.execute();
 }

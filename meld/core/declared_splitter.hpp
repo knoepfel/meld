@@ -177,7 +177,7 @@ namespace meld {
       declared_splitter{move(name), concurrency},
       input_{move(input)},
       provided_{move(provided_products)},
-      multiplexer_{g, true},
+      multiplexer_{g},
       join_{g, type_for_t<MessageHasher, Args>{}...},
       splitter_{
         g,
