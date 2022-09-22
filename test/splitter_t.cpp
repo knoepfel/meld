@@ -36,6 +36,7 @@ namespace {
     for (std::size_t i = 0; i != max_number; ++i) {
       products new_products;
       new_products.add<unsigned>("num", i);
+      // TODO: maybe support pair-wise/zip functionality
       g.make_child(i, std::move(new_products));
     }
   }
