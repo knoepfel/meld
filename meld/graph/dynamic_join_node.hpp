@@ -3,6 +3,8 @@
 
 #include "oneapi/tbb/flow_graph.h"
 
+#include <cassert>
+
 namespace meld {
   namespace detail {
     template <typename Input>

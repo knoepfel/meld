@@ -1,14 +1,9 @@
 #ifndef meld_core_edge_maker_hpp
 #define meld_core_edge_maker_hpp
 
+#include "meld/core/declared_splitter.hpp"
 #include "meld/core/dot_attributes.hpp"
 #include "meld/core/multiplexer.hpp"
-
-#include "meld/core/declared_reduction.hpp"
-#include "meld/core/declared_splitter.hpp"
-#include "meld/core/declared_transform.hpp"
-
-#include "oneapi/tbb/flow_graph.h"
 
 #include <fstream>
 #include <iosfwd>

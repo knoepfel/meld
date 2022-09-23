@@ -3,11 +3,12 @@
 
 #include "meld/core/handle.hpp"
 #include "meld/graph/transition.hpp"
-#include "meld/utilities/demangle_symbol.hpp"
 
+#include <cstddef>
 #include <map>
 #include <memory>
 #include <string>
+#include <type_traits>
 
 namespace meld {
 

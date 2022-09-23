@@ -1,5 +1,7 @@
 #include "meld/utilities/string_literal.hpp"
 
+#include <string_view>
+
 using namespace meld;
 using namespace std::string_view_literals;
 

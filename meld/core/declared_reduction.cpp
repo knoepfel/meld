@@ -1,6 +1,4 @@
 #include "meld/core/declared_reduction.hpp"
-#include "meld/core/product_store.hpp"
-#include "meld/graph/transition.hpp"
 
 namespace meld {
 

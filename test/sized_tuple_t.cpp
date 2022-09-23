@@ -1,6 +1,9 @@
 #include "meld/utilities/sized_tuple.hpp"
 
+#include <array>
 #include <concepts>
+#include <span>
+#include <tuple>
 
 using namespace std;
 using namespace meld;

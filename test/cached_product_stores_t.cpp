@@ -4,9 +4,6 @@
 
 #include "catch2/catch.hpp"
 
-#include <string>
-#include <vector>
-
 using namespace meld;
 
 TEST_CASE("Cached product stores", "[data model]")

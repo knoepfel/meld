@@ -6,7 +6,9 @@
 
 #include "oneapi/tbb/flow_graph.h" // <-- belongs somewhere else
 
+#include <cstddef>
 #include <tuple>
+#include <type_traits>
 
 namespace meld {
 

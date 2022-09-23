@@ -1,4 +1,5 @@
 #include "meld/core/message.hpp"
+#include "meld/graph/transition.hpp"
 
 namespace meld {
 

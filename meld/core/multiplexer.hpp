@@ -2,7 +2,9 @@
 #define meld_core_multiplexer_hpp
 
 #include "meld/core/message.hpp"
+#include "meld/graph/transition.hpp"
 
+#include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"
 
 #include <functional>
@@ -10,7 +12,6 @@
 #include <set>
 #include <string>
 #include <utility>
-#include <vector>
 
 namespace meld {
 

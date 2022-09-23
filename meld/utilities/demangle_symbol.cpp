@@ -1,5 +1,6 @@
 #include "meld/utilities/demangle_symbol.hpp"
 
+#include <cstdlib>
 #include <cxxabi.h>
 
 namespace meld {
@@ -11,7 +12,7 @@ namespace meld {
     char* demangled = abi::__cxa_demangle(p, nullptr, nullptr, &status);
     if (demangled) {
       res = demangled;
-      free(demangled);
+      std::free(demangled);
     }
     return res;
   }

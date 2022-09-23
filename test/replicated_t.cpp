@@ -4,9 +4,11 @@
 #include "catch2/catch.hpp"
 #include "oneapi/tbb/flow_graph.h"
 
+#include <atomic>
+#include <vector>
+
 using namespace meld;
 using namespace oneapi::tbb;
-using namespace std::chrono_literals;
 
 namespace {
   struct thread_unsafe {

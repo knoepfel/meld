@@ -1,4 +1,6 @@
+#include "meld/core/handle.hpp"
 #include "meld/core/product_store.hpp"
+#include "meld/graph/transition.hpp"
 
 #include "catch2/catch.hpp"
 

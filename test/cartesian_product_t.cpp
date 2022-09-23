@@ -3,6 +3,8 @@
 #include "catch2/catch.hpp"
 
 #include <tuple>
+#include <utility>
+#include <vector>
 
 TEST_CASE("Tuple Cartesian product", "[utilities]")
 {

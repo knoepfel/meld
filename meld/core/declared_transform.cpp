@@ -1,5 +1,4 @@
 #include "meld/core/declared_transform.hpp"
-#include "meld/core/product_store.hpp"
 
 namespace meld {
 

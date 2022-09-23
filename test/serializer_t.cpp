@@ -6,6 +6,9 @@
 #include "catch2/catch.hpp"
 #include "oneapi/tbb/flow_graph.h"
 
+#include <atomic>
+#include <string>
+
 using namespace meld;
 using namespace oneapi::tbb;
 

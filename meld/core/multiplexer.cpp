@@ -1,7 +1,10 @@
 #include "meld/core/multiplexer.hpp"
 #include "meld/core/product_store.hpp"
+#include "meld/utilities/debug.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
+
+#include <iterator>
 
 namespace meld {
 

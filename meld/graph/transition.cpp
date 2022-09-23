@@ -4,7 +4,11 @@
 
 #include <algorithm>
 #include <iostream>
+#include <iterator>
+#include <map>
 #include <numeric>
+#include <stdexcept>
+#include <tuple>
 
 namespace {
   std::size_t
@@ -112,7 +116,7 @@ namespace meld {
       return {};
     }
 
-    auto const& [from, to] = std::make_tuple(from_id.id_, to_id.id_);
+    auto const& [from, to] = std::tie(from_id.id_, to_id.id_);
     auto const from_begin = begin(from);
     auto const from_end = end(from);
     auto const to_end = end(to);

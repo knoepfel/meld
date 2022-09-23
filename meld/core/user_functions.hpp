@@ -8,6 +8,7 @@
 #include "oneapi/tbb/flow_graph.h"
 #include "oneapi/tbb/global_control.h"
 
+#include <cassert>
 #include <concepts>
 #include <memory>
 #include <string>

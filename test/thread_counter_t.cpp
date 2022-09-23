@@ -2,7 +2,7 @@
 #include "meld/utilities/thread_counter.hpp"
 
 #include "catch2/catch.hpp"
-#include "oneapi/tbb.h"
+#include "oneapi/tbb/flow_graph.h"
 
 using namespace meld;
 using namespace oneapi::tbb;

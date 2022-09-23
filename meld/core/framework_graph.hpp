@@ -11,6 +11,7 @@
 
 #include "oneapi/tbb/flow_graph.h"
 
+#include <cassert>
 #include <functional>
 #include <map>
 #include <string>

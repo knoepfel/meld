@@ -4,7 +4,9 @@
 #include "oneapi/tbb/concurrent_hash_map.h"
 
 #include <cstddef>
-#include <optional>
+#include <initializer_list>
+#include <iosfwd>
+#include <string>
 #include <utility>
 #include <vector>
 
