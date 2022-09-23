@@ -29,16 +29,8 @@ namespace meld {
     // FIXME: 'stores_for_products()' may need to become a lazy range.
     std::map<std::string, std::weak_ptr<product_store>> stores_for_products();
 
-    auto
-    begin() const noexcept
-    {
-      return products_.begin();
-    }
-    auto
-    end() const noexcept
-    {
-      return products_.end();
-    }
+    auto begin() const noexcept { return products_.begin(); }
+    auto end() const noexcept { return products_.end(); }
 
     ptr const& parent() const noexcept;
     ptr make_child(std::size_t new_level_number, products new_products);
@@ -76,8 +68,7 @@ namespace meld {
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b);
 
   template <std::size_t I, typename Tuple, typename Element>
-  Element const&
-  get_most_derived(Tuple const& tup, Element const& element)
+  Element const& get_most_derived(Tuple const& tup, Element const& element)
   {
     constexpr auto N = std::tuple_size_v<Tuple>;
     if constexpr (I == N - 1) {
@@ -89,8 +80,7 @@ namespace meld {
   }
 
   template <typename Tuple>
-  auto const&
-  most_derived(Tuple const& tup)
+  auto const& most_derived(Tuple const& tup)
   {
     constexpr auto N = std::tuple_size_v<Tuple>;
     static_assert(N > 0ull);
@@ -104,15 +94,13 @@ namespace meld {
 
   // Implementation details
   template <typename T>
-  void
-  product_store::add_product(std::string const& key, T const& t)
+  void product_store::add_product(std::string const& key, T const& t)
   {
     add_product(key, std::make_shared<product<std::remove_cvref_t<T>>>(t));
   }
 
   template <typename T>
-  void
-  product_store::add_product(std::string const& key, std::shared_ptr<T>&& t)
+  void product_store::add_product(std::string const& key, std::shared_ptr<T>&& t)
   {
     products_.add(key, std::move(t));
   }
@@ -125,15 +113,13 @@ namespace meld {
   // }
 
   template <typename T>
-  [[nodiscard]] handle<T>
-  product_store::get_handle(std::string const& key) const
+  [[nodiscard]] handle<T> product_store::get_handle(std::string const& key) const
   {
     return handle<T>{products_.get<T>(key), id_};
   }
 
   template <typename T>
-  [[nodiscard]] T const&
-  product_store::get_product(std::string const& key) const
+  [[nodiscard]] T const& product_store::get_product(std::string const& key) const
   {
     return *get_handle<T>(key);
   }

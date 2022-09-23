@@ -13,8 +13,7 @@ using namespace std::string_literals;
 using namespace boost;
 
 namespace {
-  std::variant<json::value, json::error_code>
-  read_json(std::string const& config)
+  std::variant<json::value, json::error_code> read_json(std::string const& config)
   {
     json::stream_parser p{{}, json::parse_options{.allow_comments = true}};
     json::error_code ec;
@@ -37,8 +36,7 @@ namespace {
   }
 }
 
-int
-main(int argc, char* argv[])
+int main(int argc, char* argv[])
 {
   CLI::App app{"meld is a framework to explore processing DUNE data."};
   bool maybe_version{false};

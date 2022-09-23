@@ -57,15 +57,13 @@ namespace meld {
 
     void execute();
 
-    auto
-    make_component()
+    auto make_component()
     {
       return user_functions<void_tag>{graph_, transforms_, reductions_, splitters_};
     }
 
     template <typename T, typename... Args>
-    auto
-    make_component(Args&&... args)
+    auto make_component(Args&&... args)
     {
       return user_functions<T>{
         graph_, transforms_, reductions_, splitters_, std::forward<Args>(args)...};

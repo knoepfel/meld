@@ -48,16 +48,14 @@ namespace meld {
 
     // Transforms
     template <typename R, typename... Args>
-    auto
-    declare_transform(std::string name, R (*f)(Args...)) requires std::same_as<T, void_tag>
+    auto declare_transform(std::string name, R (*f)(Args...)) requires std::same_as<T, void_tag>
     {
       assert(not bound_obj_);
       return incomplete_transform{*this, name, graph_, f};
     }
 
     template <typename R, typename... Args>
-    auto
-    declare_transform(std::string name, R (T::*f)(Args...))
+    auto declare_transform(std::string name, R (T::*f)(Args...))
     {
       assert(bound_obj_);
       return incomplete_transform<T, R, Args...>{
@@ -70,8 +68,7 @@ namespace meld {
     }
 
     template <typename R, typename... Args>
-    auto
-    declare_transform(std::string name, R (T::*f)(Args...) const)
+    auto declare_transform(std::string name, R (T::*f)(Args...) const)
     {
       assert(bound_obj_);
       return incomplete_transform<T, R, Args...>{
@@ -85,10 +82,9 @@ namespace meld {
 
     // Reductions
     template <typename R, typename... Args, typename... InitArgs>
-    auto
-    declare_reduction(std::string name,
-                      void (*f)(R&, Args...),
-                      InitArgs&&... init_args) requires std::same_as<T, void_tag>
+    auto declare_reduction(std::string name,
+                           void (*f)(R&, Args...),
+                           InitArgs&&... init_args) requires std::same_as<T, void_tag>
     {
       assert(not bound_obj_);
       return incomplete_reduction{
@@ -96,8 +92,7 @@ namespace meld {
     }
 
     template <typename R, typename... Args, typename... InitArgs>
-    auto
-    declare_reduction(std::string name, void (T::*f)(R&, Args...), InitArgs&... init_args)
+    auto declare_reduction(std::string name, void (T::*f)(R&, Args...), InitArgs&... init_args)
     {
       assert(bound_obj_);
       return incomplete_reduction<T, R, Args...>{
@@ -111,8 +106,9 @@ namespace meld {
     }
 
     template <typename R, typename... Args, typename... InitArgs>
-    auto
-    declare_reduction(std::string name, void (T::*f)(R&, Args...) const, InitArgs&&... init_args)
+    auto declare_reduction(std::string name,
+                           void (T::*f)(R&, Args...) const,
+                           InitArgs&&... init_args)
     {
       assert(bound_obj_);
       return incomplete_reduction<T, R, Args...>{
@@ -127,28 +123,24 @@ namespace meld {
 
     // Splitters
     template <typename... Args>
-    auto
-    declare_splitter(std::string name, void (*f)(Args...)) requires std::same_as<T, void_tag>
+    auto declare_splitter(std::string name, void (*f)(Args...)) requires std::same_as<T, void_tag>
     {
       assert(not bound_obj_);
       return incomplete_splitter{*this, name, graph_, f};
     }
 
     // Expert-use only
-    void
-    add_transform(std::string const& name, declared_transform_ptr ptr)
+    void add_transform(std::string const& name, declared_transform_ptr ptr)
     {
       transforms_.try_emplace(name, std::move(ptr));
     }
 
-    void
-    add_reduction(std::string const& name, declared_reduction_ptr ptr)
+    void add_reduction(std::string const& name, declared_reduction_ptr ptr)
     {
       reductions_.try_emplace(name, std::move(ptr));
     }
 
-    void
-    add_splitter(std::string const& name, declared_splitter_ptr ptr)
+    void add_splitter(std::string const& name, declared_splitter_ptr ptr)
     {
       splitters_.try_emplace(name, std::move(ptr));
     }

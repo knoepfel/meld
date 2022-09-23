@@ -9,20 +9,11 @@ namespace meld {
 
   declared_reduction::~declared_reduction() = default;
 
-  std::string const&
-  declared_reduction::name() const noexcept
-  {
-    return name_;
-  }
+  std::string const& declared_reduction::name() const noexcept { return name_; }
 
-  std::size_t
-  declared_reduction::concurrency() const noexcept
-  {
-    return concurrency_;
-  }
+  std::size_t declared_reduction::concurrency() const noexcept { return concurrency_; }
 
-  tbb::flow::receiver<message>&
-  declared_reduction::port(std::string const& product_name)
+  tbb::flow::receiver<message>& declared_reduction::port(std::string const& product_name)
   {
     return port_for(product_name);
   }

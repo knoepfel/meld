@@ -20,8 +20,7 @@ namespace meld {
   template <typename Input, std::size_t N>
   class serial_node : public base<Input> {
     template <typename Serializers, std::size_t... I>
-    void
-    make_edges(std::index_sequence<I...>, Serializers const& serializers)
+    void make_edges(std::index_sequence<I...>, Serializers const& serializers)
     {
       (make_edge(std::get<I>(serializers), input_port<I + 1>(join_)), ...);
     }

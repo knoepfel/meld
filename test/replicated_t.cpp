@@ -15,8 +15,7 @@ namespace {
     unsigned int messages_processed{};
     std::atomic<unsigned int> counter{};
 
-    auto
-    increment(unsigned int i)
+    auto increment(unsigned int i)
     {
       thread_counter c{counter};
       ++messages_processed;

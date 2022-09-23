@@ -21,8 +21,7 @@ namespace meld {
     std::function<source_creator_t> create_source;
 
     template <typename creator_t>
-    std::function<creator_t>
-    plugin_loader(std::string const& spec, std::string const& symbol_name)
+    std::function<creator_t> plugin_loader(std::string const& spec, std::string const& symbol_name)
     {
       char const* plugin_path_ptr = std::getenv("MELD_PLUGIN_PATH");
       if (!plugin_path_ptr)
@@ -46,8 +45,7 @@ namespace meld {
     }
   }
 
-  std::unique_ptr<module_worker>
-  load_module(boost::json::value const& config)
+  std::unique_ptr<module_worker> load_module(boost::json::value const& config)
   {
     auto const& spec = value_to<std::string>(config.at("plugin"));
     auto& creator =
@@ -55,8 +53,7 @@ namespace meld {
     return creator(config);
   }
 
-  std::unique_ptr<source_worker>
-  load_source(boost::json::value const& config)
+  std::unique_ptr<source_worker> load_source(boost::json::value const& config)
   {
     auto const& spec = value_to<std::string>(config.at("plugin"));
     create_source = plugin_loader<source_creator_t>(spec, "create_source");

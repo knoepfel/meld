@@ -29,22 +29,19 @@ namespace meld {
   class products {
   public:
     template <typename T>
-    void
-    add(std::string const& key, T const& t)
+    void add(std::string const& key, T const& t)
     {
       add(key, std::make_shared<product<std::remove_cvref_t<T>>>(t));
     }
 
     template <typename T>
-    void
-    add(std::string const& key, std::shared_ptr<product<T>>&& t)
+    void add(std::string const& key, std::shared_ptr<product<T>>&& t)
     {
       products_.emplace(key, std::move(t));
     }
 
     template <typename T>
-    std::variant<T const*, std::string>
-    get(std::string const& key) const
+    std::variant<T const*, std::string> get(std::string const& key) const
     {
       auto it = products_.find(key);
       if (it == cend(products_)) {
@@ -56,16 +53,8 @@ namespace meld {
       return "Cannot get product '" + key + "' with type '" + demangle_symbol(typeid(T)) + "'.";
     }
 
-    auto
-    begin() const noexcept
-    {
-      return products_.begin();
-    }
-    auto
-    end() const noexcept
-    {
-      return products_.end();
-    }
+    auto begin() const noexcept { return products_.begin(); }
+    auto end() const noexcept { return products_.end(); }
 
   private:
     std::map<std::string, std::shared_ptr<product_base>> products_;
@@ -105,26 +94,21 @@ namespace meld {
 
     explicit handle(std::string err_msg, level_id const& id) : rep_{move(err_msg)}, id_{&id} {}
 
-    const_pointer
-    operator->() const
+    const_pointer operator->() const
     {
       if (auto const* err = get_if<err_t>(&rep_)) {
         throw std::runtime_error(*err);
       }
       return get<const_pointer>(rep_);
     }
-    [[nodiscard]] const_reference
-    operator*() const
-    {
-      return *operator->();
-    }
+    [[nodiscard]] const_reference operator*() const { return *operator->(); }
     explicit operator bool() const noexcept { return get_if<const_pointer>(&rep_) != nullptr; }
     operator const_reference() const noexcept { return operator*(); }
     operator const_pointer() const noexcept { return operator->(); }
 
-    level_id const&
-    id() const noexcept // FIXME: Should probably get a separate function name to distinguish it
-                        //        from product IDs, which are not yet implemented
+    level_id const& id()
+      const noexcept // FIXME: Should probably get a separate function name to distinguish it
+                     //        from product IDs, which are not yet implemented
     {
       return *id_;
     }
@@ -133,8 +117,7 @@ namespace meld {
     friend class handle;
 
     template <typename U>
-    bool
-    operator==(handle<U> rhs) const noexcept requires detail::same_handle_type<T, U>
+    bool operator==(handle<U> rhs) const noexcept requires detail::same_handle_type<T, U>
     {
       return rep_ == rhs.rep_;
     }

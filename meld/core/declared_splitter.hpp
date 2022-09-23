@@ -85,24 +85,21 @@ namespace meld {
     }
 
     // Icky?
-    incomplete_splitter&
-    concurrency(std::size_t n)
+    incomplete_splitter& concurrency(std::size_t n)
     {
       concurrency_ = n;
       return *this;
     }
 
     // Icky?
-    incomplete_splitter&
-    input(std::array<std::string, N> input_keys)
+    incomplete_splitter& input(std::array<std::string, N> input_keys)
     {
       input_keys_ = move(input_keys);
       return *this;
     }
 
     template <typename... Ts>
-    auto
-    input(Ts... ts)
+    auto input(Ts... ts)
     {
       static_assert(std::conjunction_v<std::is_convertible<Ts, std::string>...>);
       static_assert(N == sizeof...(Ts),
@@ -111,8 +108,7 @@ namespace meld {
       return input(std::array<std::string, N>{ts...});
     }
 
-    auto
-    provides(std::vector<std::string> product_names)
+    auto provides(std::vector<std::string> product_names)
     {
       funcs_.add_splitter(
         name_,
@@ -131,8 +127,7 @@ namespace meld {
 
   template <typename T, typename... Args>
   class incomplete_splitter<T, Args...>::complete_splitter : public declared_splitter {
-    std::size_t
-    port_index_for(std::string const& product_name)
+    std::size_t port_index_for(std::string const& product_name)
     {
       auto it = std::find(cbegin(input_), cend(input_), product_name);
       if (it == cend(input_)) {
@@ -142,8 +137,7 @@ namespace meld {
     }
 
     template <std::size_t I>
-    tbb::flow::receiver<message>&
-    receiver_for(std::size_t const index)
+    tbb::flow::receiver<message>& receiver_for(std::size_t const index)
     {
       if constexpr (I < N) {
         if (I != index) {
@@ -157,19 +151,17 @@ namespace meld {
     }
 
     template <std::size_t I, typename U>
-    auto
-    get_handle_for(messages_t<N> const& messages)
+    auto get_handle_for(messages_t<N> const& messages)
     {
       using handle_arg_t = typename handle_for<U>::value_type;
       return std::get<I>(messages).store->template get_handle<handle_arg_t>(input_[I]);
     }
 
     template <std::size_t... Is>
-    void
-    call(std::function<void(generator&, Args...)> ft,
-         generator& g,
-         messages_t<N> const& messages,
-         std::index_sequence<Is...>)
+    void call(std::function<void(generator&, Args...)> ft,
+              generator& g,
+              messages_t<N> const& messages,
+              std::index_sequence<Is...>)
     {
       return std::invoke(ft, g, get_handle_for<Is, Args>(messages)...);
     }
@@ -221,8 +213,7 @@ namespace meld {
     }
 
   private:
-    tbb::flow::receiver<message>&
-    port_for(std::string const& product_name) override
+    tbb::flow::receiver<message>& port_for(std::string const& product_name) override
     {
       if constexpr (N > 1ull) {
         auto const index = port_index_for(product_name);
@@ -233,20 +224,11 @@ namespace meld {
       }
     }
 
-    std::span<std::string const, std::dynamic_extent>
-    input() const override
-    {
-      return input_;
-    }
+    std::span<std::string const, std::dynamic_extent> input() const override { return input_; }
 
-    std::vector<std::string> const&
-    provided_products() const override
-    {
-      return provided_;
-    }
+    std::vector<std::string> const& provided_products() const override { return provided_; }
 
-    void
-    finalize(multiplexer::head_nodes_t head_nodes) override
+    void finalize(multiplexer::head_nodes_t head_nodes) override
     {
       multiplexer_.finalize(std::move(head_nodes));
     }

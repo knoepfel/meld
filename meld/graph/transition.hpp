@@ -44,17 +44,9 @@ namespace meld {
   level_id operator"" _id(char const* str, std::size_t);
 
   struct IDHasher {
-    std::size_t
-    hash(level_id const& id) const noexcept
-    {
-      return id.hash();
-    }
+    std::size_t hash(level_id const& id) const noexcept { return id.hash(); }
 
-    bool
-    equal(level_id const& a, level_id const& b) const
-    {
-      return a == b;
-    }
+    bool equal(level_id const& a, level_id const& b) const { return a == b; }
   };
 
   class level_counter {
@@ -81,11 +73,7 @@ namespace meld {
 namespace std {
   template <>
   struct hash<meld::level_id> {
-    std::size_t
-    operator()(meld::level_id const& id) const noexcept
-    {
-      return id.hash();
-    }
+    std::size_t operator()(meld::level_id const& id) const noexcept { return id.hash(); }
   };
 }
 

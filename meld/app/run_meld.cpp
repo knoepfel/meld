@@ -6,8 +6,7 @@
 #include <iostream>
 
 namespace meld {
-  void
-  run_it(boost::json::value const& configurations)
+  void run_it(boost::json::value const& configurations)
   {
     std::cout << "Running meld\n";
     auto const module_configs = configurations.at("modules").as_object();

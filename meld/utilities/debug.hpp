@@ -6,8 +6,7 @@
 
 namespace meld {
   template <typename... Args>
-  void
-  debug(Args&&... args)
+  void debug(Args&&... args)
   {
     std::ostringstream oss;
     ((oss << std::forward<Args>(args)), ...) << '\n';

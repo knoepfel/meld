@@ -86,8 +86,7 @@ namespace meld {
     }
 
     // Icky?
-    incomplete_reduction&
-    concurrency(std::size_t n)
+    incomplete_reduction& concurrency(std::size_t n)
     {
       concurrency_ = n;
       return *this;
@@ -96,8 +95,7 @@ namespace meld {
     auto input(std::array<std::string, N> input_keys);
 
     template <typename... Ts>
-    auto
-    input(Ts... ts)
+    auto input(Ts... ts)
     {
       static_assert(std::conjunction_v<std::is_convertible<Ts, std::string>...>);
       static_assert(N == sizeof...(Ts),
@@ -119,8 +117,7 @@ namespace meld {
   template <std::size_t M>
   class incomplete_reduction<T, R, InitTuple, Args...>::complete_reduction :
     public declared_reduction {
-    std::size_t
-    port_index_for(std::string const& product_name)
+    std::size_t port_index_for(std::string const& product_name)
     {
       auto it = std::find(cbegin(input_), cend(input_), product_name);
       if (it == cend(input_)) {
@@ -130,8 +127,7 @@ namespace meld {
     }
 
     template <std::size_t I>
-    tbb::flow::receiver<message>&
-    receiver_for(std::size_t const index)
+    tbb::flow::receiver<message>& receiver_for(std::size_t const index)
     {
       if constexpr (I < N) {
         if (I != index) {
@@ -145,10 +141,9 @@ namespace meld {
     }
 
     template <std::size_t... Is>
-    void
-    call(std::function<void(R&, Args...)> const& ft,
-         messages_t<N> const& messages,
-         std::index_sequence<Is...>)
+    void call(std::function<void(R&, Args...)> const& ft,
+              messages_t<N> const& messages,
+              std::index_sequence<Is...>)
     {
       auto const& parent = most_derived(messages).store->parent();
       // FIXME: Not the safest approach!
@@ -168,8 +163,7 @@ namespace meld {
           input_[Is])...);
     }
 
-    std::pair<bool, std::size_t>
-    reduction_complete(product_store& parent_store)
+    std::pair<bool, std::size_t> reduction_complete(product_store& parent_store)
     {
       auto it = entries_.find(parent_store.id());
       assert(it != cend(entries_));
@@ -183,8 +177,7 @@ namespace meld {
       return {};
     }
 
-    void
-    set_flush_value(level_id const& id, std::size_t const original_message_id)
+    void set_flush_value(level_id const& id, std::size_t const original_message_id)
     {
 
       auto it = entries_.find(id.parent());
@@ -238,8 +231,7 @@ namespace meld {
     }
 
   private:
-    tbb::flow::receiver<message>&
-    port_for(std::string const& product_name) override
+    tbb::flow::receiver<message>& port_for(std::string const& product_name) override
     {
       if constexpr (N > 1ull) {
         auto const index = port_index_for(product_name);
@@ -250,33 +242,19 @@ namespace meld {
       }
     }
 
-    tbb::flow::sender<message>&
-    sender() override
-    {
-      return output_port<0ull>(reduction_);
-    }
+    tbb::flow::sender<message>& sender() override { return output_port<0ull>(reduction_); }
 
-    std::span<std::string const, std::dynamic_extent>
-    input() const override
-    {
-      return input_;
-    }
-    std::span<std::string const, std::dynamic_extent>
-    output() const override
-    {
-      return output_;
-    }
+    std::span<std::string const, std::dynamic_extent> input() const override { return input_; }
+    std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
 
     template <size_t... Is>
-    std::unique_ptr<R>
-    initialized_object(InitTuple&& tuple, std::index_sequence<Is...>) const
+    std::unique_ptr<R> initialized_object(InitTuple&& tuple, std::index_sequence<Is...>) const
     {
       return std::unique_ptr<R>{
         new R{std::forward<std::tuple_element_t<Is, InitTuple>>(std::get<Is>(tuple))...}};
     }
 
-    void
-    commit_(product_store& store)
+    void commit_(product_store& store)
     {
       auto& result = results_.at(store.id());
       if constexpr (requires { result->send(); }) {
@@ -307,8 +285,7 @@ namespace meld {
   };
 
   template <typename T, typename R, typename InitTuple, typename... Args>
-  auto
-  incomplete_reduction<T, R, InitTuple, Args...>::input(std::array<std::string, N> input_keys)
+  auto incomplete_reduction<T, R, InitTuple, Args...>::input(std::array<std::string, N> input_keys)
   {
     if constexpr (std::same_as<
                     R,
@@ -351,8 +328,7 @@ namespace meld {
     }
 
     template <std::size_t M>
-    void
-    output(std::array<std::string, M> output_keys)
+    void output(std::array<std::string, M> output_keys)
     {
       funcs_.add_reduction(name_,
                            std::make_unique<complete_reduction<M>>(name_,
@@ -365,8 +341,7 @@ namespace meld {
     }
 
     template <typename... Ts>
-    void
-    output(Ts... ts)
+    void output(Ts... ts)
     {
       static_assert(std::conjunction_v<std::is_convertible<Ts, std::string>...>);
       output(std::array<std::string, sizeof...(Ts)>{ts...});

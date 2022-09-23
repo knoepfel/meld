@@ -42,8 +42,7 @@ using namespace meld::concurrency;
 namespace {
   struct OneArg {
     explicit OneArg(std::atomic<unsigned int>& counter) : calls{counter} {}
-    int
-    call(int) noexcept
+    int call(int) noexcept
     {
       ++calls;
       return 1;
@@ -53,8 +52,7 @@ namespace {
 
   struct TwoArgs {
     explicit TwoArgs(std::atomic<unsigned int>& counter) : calls{counter} {}
-    int
-    call(int, int) noexcept
+    int call(int, int) noexcept
     {
       ++calls;
       return 2;

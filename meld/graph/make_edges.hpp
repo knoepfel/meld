@@ -34,11 +34,7 @@ namespace meld {
       {
       }
 
-      edge_maker<FT, T...> const*
-      operator->() const
-      {
-        return &maker_;
-      }
+      edge_maker<FT, T...> const* operator->() const { return &maker_; }
 
     private:
       edge_maker<FT, T...> maker_;
@@ -46,8 +42,7 @@ namespace meld {
 
     template <typename FT, typename... T>
     template <typename... U>
-    node_t<FT, U...>
-    edge_maker<FT, T...>::nodes(U&... j) const
+    node_t<FT, U...> edge_maker<FT, T...>::nodes(U&... j) const
     {
       cartesian_product(nodes_, std::tie(j...), ft_);
       return node_t<FT, U...>{ft_, j...};
@@ -55,15 +50,13 @@ namespace meld {
   }
 
   template <typename FT, typename... T>
-  auto
-  nodes_using(FT const& ft, T&... t)
+  auto nodes_using(FT const& ft, T&... t)
   {
     return detail::node_t<FT, T...>{ft, t...};
   }
 
   template <typename... T>
-  auto
-  nodes(T&... ts)
+  auto nodes(T&... ts)
   {
     return nodes_using([](auto& l, auto& r) { make_edge(l, r); }, ts...);
   }

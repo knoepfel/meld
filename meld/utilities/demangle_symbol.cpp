@@ -4,8 +4,7 @@
 #include <cxxabi.h>
 
 namespace meld {
-  std::string
-  demangle_symbol(char const* p)
+  std::string demangle_symbol(char const* p)
   {
     std::string res;
     int status;
@@ -17,9 +16,5 @@ namespace meld {
     return res;
   }
 
-  std::string
-  demangle_symbol(std::type_info const& type)
-  {
-    return demangle_symbol(type.name());
-  }
+  std::string demangle_symbol(std::type_info const& type) { return demangle_symbol(type.name()); }
 }

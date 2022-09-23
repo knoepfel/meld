@@ -20,24 +20,14 @@ namespace {
     lazy_iterator() = default;
     explicit lazy_iterator(value_type const v) : value{v} {}
 
-    reference
-    operator*() const
-    {
-      return value;
-    }
-    pointer
-    operator->()
-    {
-      return &operator*();
-    }
-    lazy_iterator&
-    operator++()
+    reference operator*() const { return value; }
+    pointer operator->() { return &operator*(); }
+    lazy_iterator& operator++()
     {
       ++value;
       return *this;
     }
-    lazy_iterator
-    operator++(int)
+    lazy_iterator operator++(int)
     {
       auto old = *this;
       ++(*this);
@@ -55,16 +45,8 @@ namespace {
   class container_with_lazy_iterators {
   public:
     container_with_lazy_iterators(T begin, T end) : begin_{begin}, end_{end} {}
-    auto
-    begin() const
-    {
-      return lazy_iterator{begin_};
-    }
-    auto
-    end() const
-    {
-      return lazy_iterator{end_};
-    }
+    auto begin() const { return lazy_iterator{begin_}; }
+    auto end() const { return lazy_iterator{end_}; }
 
   private:
     T begin_;
@@ -72,8 +54,7 @@ namespace {
   };
 
   template <std::integral T>
-  auto
-  numbers_in_range(T begin, T end)
+  auto numbers_in_range(T begin, T end)
   {
     return container_with_lazy_iterators(begin, end);
   }
@@ -83,14 +64,12 @@ namespace {
     explicit Record(std::size_t n) : apas(n) { std::iota(begin(apas), end(apas), 0); }
     Record(int b, int e) : begin_{b}, end_{e} {}
     template <typename T>
-    auto&
-    process_full() const
+    auto& process_full() const
     {
       return apas;
     }
     template <typename T>
-    auto
-    process() const
+    auto process() const
     {
       return numbers_in_range(begin_, end_);
     }
@@ -103,8 +82,7 @@ namespace {
 
 }
 
-int
-main()
+int main()
 {
   std::size_t sum = 0;
 

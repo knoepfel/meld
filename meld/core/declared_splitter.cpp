@@ -10,8 +10,7 @@ namespace meld {
   {
   }
 
-  void
-  generator::make_child(std::size_t const i, products new_products)
+  void generator::make_child(std::size_t const i, products new_products)
   {
     ++counter_;
     ++calls_;
@@ -19,8 +18,7 @@ namespace meld {
     multiplexer_.try_put({child, counter_});
   }
 
-  message
-  generator::flush_message()
+  message generator::flush_message()
   {
     auto const message_id = ++counter_;
     return {parent_->make_child(calls_, stage::flush), message_id, original_message_id_};
@@ -33,20 +31,11 @@ namespace meld {
 
   declared_splitter::~declared_splitter() = default;
 
-  std::string const&
-  declared_splitter::name() const noexcept
-  {
-    return name_;
-  }
+  std::string const& declared_splitter::name() const noexcept { return name_; }
 
-  std::size_t
-  declared_splitter::concurrency() const noexcept
-  {
-    return concurrency_;
-  }
+  std::size_t declared_splitter::concurrency() const noexcept { return concurrency_; }
 
-  tbb::flow::receiver<message>&
-  declared_splitter::port(std::string const& product_name)
+  tbb::flow::receiver<message>& declared_splitter::port(std::string const& product_name)
   {
     return port_for(product_name);
   }

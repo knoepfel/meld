@@ -36,11 +36,7 @@ namespace meld {
 
     tbb::flow::continue_msg multiplex(message const& msg);
 
-    void
-    finalize(head_nodes_t head_nodes)
-    {
-      head_nodes_ = std::move(head_nodes);
-    }
+    void finalize(head_nodes_t head_nodes) { head_nodes_ = std::move(head_nodes); }
 
   private:
     head_nodes_t head_nodes_;

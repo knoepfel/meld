@@ -89,8 +89,7 @@ namespace meld {
   }
 
   template <typename T>
-  std::map<product_name_t, multiplexer::named_output_port>
-  edge_maker::producing_nodes(T& nodes)
+  std::map<product_name_t, multiplexer::named_output_port> edge_maker::producing_nodes(T& nodes)
   {
     std::map<product_name_t, multiplexer::named_output_port> result;
     for (auto const& [node_name, node] : nodes) {
@@ -104,8 +103,7 @@ namespace meld {
   }
 
   template <typename T>
-  void
-  edge_maker::record_attributes(T& consumers)
+  void edge_maker::record_attributes(T& consumers)
   {
     auto const& [data, attributes] = consumers;
     for (auto const& [node_name, _] : data) {
@@ -114,8 +112,7 @@ namespace meld {
   }
 
   template <typename T>
-  multiplexer::head_nodes_t
-  edge_maker::edges(T& consumers)
+  multiplexer::head_nodes_t edge_maker::edges(T& consumers)
   {
     using namespace dot;
     multiplexer::head_nodes_t result;
@@ -147,8 +144,7 @@ namespace meld {
   }
 
   template <typename... Args>
-  void
-  edge_maker::make_edges(meld::multiplexer& multi, consumers<Args>... cons)
+  void edge_maker::make_edges(meld::multiplexer& multi, consumers<Args>... cons)
   {
     (record_attributes(cons), ...);
 

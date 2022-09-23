@@ -15,15 +15,10 @@ namespace {
 
 #undef DOT_ATTRIBUTE
 
-  inline std::string
-  label(std::string const& str)
-  {
-    return "label=\" " + str + '"';
-  }
+  inline std::string label(std::string const& str) { return "label=\" " + str + '"'; }
 
   template <typename Head, typename... Tail>
-  std::string
-  attributes_str(Head const& head, Tail const&... tail)
+  std::string attributes_str(Head const& head, Tail const&... tail)
   {
     std::string result{" [" + head};
     (result.append(", " + tail), ...);
@@ -33,8 +28,7 @@ namespace {
 }
 
 namespace meld {
-  void
-  edge_maker::dot_prolog(std::ostream& os)
+  void edge_maker::dot_prolog(std::ostream& os)
   {
     os << "digraph test {\n\n"
        << "  // Framework-provided nodes and edges\n"
@@ -47,25 +41,19 @@ namespace meld {
        << "  node [fontname=Monaco, peripheries=1];\n\n";
   }
 
-  void
-  edge_maker::dot_epilog(std::ostream& os)
-  {
-    os << "\n}";
-  }
+  void edge_maker::dot_epilog(std::ostream& os) { os << "\n}"; }
 
-  void
-  edge_maker::dot_node_declaration(std::ostream& os,
-                                   std::string const& node_name,
-                                   std::string const& node_shape)
+  void edge_maker::dot_node_declaration(std::ostream& os,
+                                        std::string const& node_name,
+                                        std::string const& node_shape)
   {
     os << "  " << node_name << attributes_str(shape(node_shape)) << ";\n";
   }
 
-  void
-  edge_maker::dot_normal_edge(std::ostream& os,
-                              std::string const& source_node,
-                              std::string const& target_node,
-                              dot::attributes attrs)
+  void edge_maker::dot_normal_edge(std::ostream& os,
+                                   std::string const& source_node,
+                                   std::string const& target_node,
+                                   dot::attributes attrs)
   {
     os << "  " << source_node << " -> " << target_node
        << attributes_str(
@@ -73,11 +61,10 @@ namespace meld {
        << ";\n";
   }
 
-  void
-  edge_maker::dot_multiplexing_edge(std::ostream& os,
-                                    std::string const& source_node,
-                                    std::string const& target_node,
-                                    dot::attributes attrs)
+  void edge_maker::dot_multiplexing_edge(std::ostream& os,
+                                         std::string const& source_node,
+                                         std::string const& target_node,
+                                         dot::attributes attrs)
   {
     os << "  " << source_node << " -> " << target_node
        << attributes_str(

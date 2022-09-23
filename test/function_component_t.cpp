@@ -12,40 +12,34 @@ using namespace meld;
 using namespace std::string_literals;
 
 namespace {
-  auto
-  no_framework(int num, double temp, std::string const& name)
+  auto no_framework(int num, double temp, std::string const& name)
   {
     return std::make_tuple(num, temp, name);
   }
 
-  auto
-  no_framework_all_refs(int const& num, double const& temp, std::string const& name)
+  auto no_framework_all_refs(int const& num, double const& temp, std::string const& name)
   {
     return std::make_tuple(num, temp, name);
   }
 
-  auto
-  no_framework_all_ptrs(int const* num, double const* temp, std::string const* name)
+  auto no_framework_all_ptrs(int const* num, double const* temp, std::string const* name)
   {
     return std::make_tuple(*num, *temp, *name);
   }
 
-  auto
-  one_framework_arg(handle<int> num, double temp, std::string const& name)
+  auto one_framework_arg(handle<int> num, double temp, std::string const& name)
   {
     return std::make_tuple(*num, temp, name);
   }
 
-  auto
-  all_framework_args(handle<int> const num,
-                     handle<double> const temp,
-                     handle<std::string> const name)
+  auto all_framework_args(handle<int> const num,
+                          handle<double> const temp,
+                          handle<std::string> const name)
   {
     return std::make_tuple(*num, *temp, *name);
   }
 
-  void
-  verify_results(std::tuple<int, double, std::string> const& result)
+  void verify_results(std::tuple<int, double, std::string> const& result)
   {
     auto const expected = std::make_tuple(3, 98.5, "John");
     CHECK(result == expected);

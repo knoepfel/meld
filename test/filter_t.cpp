@@ -25,35 +25,18 @@ namespace meld {
     {
     }
 
-    auto
-    pass(Input const& t) const
-    {
-      return data_msg<Input>{msg_number_, t};
-    }
-    auto
-    fail() const
-    {
-      return data_msg<Input>{msg_number_};
-    }
+    auto pass(Input const& t) const { return data_msg<Input>{msg_number_, t}; }
+    auto fail() const { return data_msg<Input>{msg_number_}; }
 
-    unsigned
-    msg_id() const
-    {
-      return msg_number_;
-    }
+    unsigned msg_id() const { return msg_number_; }
 
     // Necessary API for tagged_msg
     template <typename T>
-    auto&
-    cast_to() const
+    auto& cast_to() const
     {
       return msg_.template cast_to<T>();
     }
-    auto
-    tag() const
-    {
-      return msg_.tag();
-    }
+    auto tag() const { return msg_.tag(); }
 
   private:
     explicit data_msg(unsigned int const msg_number) :

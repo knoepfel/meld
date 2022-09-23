@@ -35,11 +35,7 @@ using namespace meld;
 using namespace meld::concurrency;
 
 namespace {
-  auto
-  square(unsigned int const num)
-  {
-    return num * num;
-  }
+  auto square(unsigned int const num) { return num * num; }
 
   struct data_for_rms {
     unsigned int total;
@@ -49,36 +45,28 @@ namespace {
   struct threadsafe_data_for_rms {
     std::atomic<unsigned int> total;
     std::atomic<unsigned int> number;
-    data_for_rms
-    send() const
-    {
-      return {total.load(), number.load()};
-    }
+    data_for_rms send() const { return {total.load(), number.load()}; }
   };
 
-  void
-  add(threadsafe_data_for_rms& redata, unsigned squared_number)
+  void add(threadsafe_data_for_rms& redata, unsigned squared_number)
   {
     redata.total += squared_number;
     ++redata.number;
   }
 
-  double
-  scale(data_for_rms data)
+  double scale(data_for_rms data)
   {
     return std::sqrt(static_cast<double>(data.total) / data.number);
   }
 
-  std::string
-  strtime(std::time_t tm)
+  std::string strtime(std::time_t tm)
   {
     char buffer[32];
     std::strncpy(buffer, std::ctime(&tm), 26);
     return buffer;
   }
 
-  void
-  print_result(handle<double> result, std::string const& stringized_time)
+  void print_result(handle<double> result, std::string const& stringized_time)
   {
     debug(result.id(), ": ", *result, " @ ", stringized_time);
   }

@@ -74,15 +74,13 @@ namespace meld {
     }
 
     // Icky?
-    incomplete_transform&
-    concurrency(std::size_t n)
+    incomplete_transform& concurrency(std::size_t n)
     {
       concurrency_ = n;
       return *this;
     }
 
-    auto
-    input(std::array<std::string, N> input_keys)
+    auto input(std::array<std::string, N> input_keys)
     {
       if constexpr (std::same_as<R, void>) {
         funcs_.add_transform(
@@ -102,8 +100,7 @@ namespace meld {
     }
 
     template <typename... Ts>
-    auto
-    input(Ts... ts)
+    auto input(Ts... ts)
     {
       static_assert(std::conjunction_v<std::is_convertible<Ts, std::string>...>);
       static_assert(N == sizeof...(Ts),
@@ -123,8 +120,7 @@ namespace meld {
   template <typename T, typename R, typename... Args>
   template <std::size_t M>
   class incomplete_transform<T, R, Args...>::complete_transform : public declared_transform {
-    std::size_t
-    port_index_for(std::string const& product_name)
+    std::size_t port_index_for(std::string const& product_name)
     {
       auto it = std::find(cbegin(input_), cend(input_), product_name);
       if (it == cend(input_)) {
@@ -134,8 +130,7 @@ namespace meld {
     }
 
     template <std::size_t I>
-    tbb::flow::receiver<message>&
-    receiver_for(std::size_t const index)
+    tbb::flow::receiver<message>& receiver_for(std::size_t const index)
     {
       if constexpr (I < N) {
         if (I != index) {
@@ -149,8 +144,7 @@ namespace meld {
     }
 
     template <std::size_t... Is>
-    R
-    call(std::function<R(Args...)> ft, messages_t<N> const& messages, std::index_sequence<Is...>)
+    R call(std::function<R(Args...)> ft, messages_t<N> const& messages, std::index_sequence<Is...>)
     {
       return std::invoke(
         ft,
@@ -208,8 +202,7 @@ namespace meld {
     }
 
   private:
-    tbb::flow::receiver<message>&
-    port_for(std::string const& product_name) override
+    tbb::flow::receiver<message>& port_for(std::string const& product_name) override
     {
       if constexpr (N > 1ull) {
         auto const index = port_index_for(product_name);
@@ -220,22 +213,10 @@ namespace meld {
       }
     }
 
-    tbb::flow::sender<message>&
-    sender() override
-    {
-      return transform_;
-    }
+    tbb::flow::sender<message>& sender() override { return transform_; }
 
-    std::span<std::string const, std::dynamic_extent>
-    input() const override
-    {
-      return input_;
-    }
-    std::span<std::string const, std::dynamic_extent>
-    output() const override
-    {
-      return output_;
-    }
+    std::span<std::string const, std::dynamic_extent> input() const override { return input_; }
+    std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
 
     std::array<std::string, N> input_;
     std::array<std::string, M> output_;
@@ -263,8 +244,7 @@ namespace meld {
     }
 
     template <std::size_t M>
-    void
-    output(std::array<std::string, M> output_keys)
+    void output(std::array<std::string, M> output_keys)
     {
       funcs_.add_transform(
         name_,
@@ -273,8 +253,7 @@ namespace meld {
     }
 
     template <typename... Ts>
-    void
-    output(Ts... ts)
+    void output(Ts... ts)
     {
       static_assert(std::conjunction_v<std::is_convertible<Ts, std::string>...>);
       // FIXME: Eventually make a static_assert so that # of output arguments matches sizeof...(Ts)

@@ -8,8 +8,7 @@
 
 namespace meld {
 
-  tbb::flow::continue_msg
-  multiplexer::multiplex(message const& msg)
+  tbb::flow::continue_msg multiplexer::multiplex(message const& msg)
   {
     auto const& [store, message_id, _] = msg;
     if (debug_) {

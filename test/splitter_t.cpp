@@ -30,8 +30,7 @@ using namespace meld;
 using namespace meld::concurrency;
 
 namespace {
-  void
-  split(generator& g, unsigned max_number)
+  void split(generator& g, unsigned max_number)
   {
     for (std::size_t i = 0; i != max_number; ++i) {
       products new_products;
@@ -49,21 +48,12 @@ namespace {
   struct threadsafe_data {
     std::atomic<unsigned int> total;
     std::atomic<unsigned int> number;
-    unsigned int
-    send() const
-    {
-      return total.load();
-    }
+    unsigned int send() const { return total.load(); }
   };
 
-  void
-  add(threadsafe_data& redata, unsigned number)
-  {
-    redata.total += number;
-  }
+  void add(threadsafe_data& redata, unsigned number) { redata.total += number; }
 
-  void
-  check_sum(handle<unsigned int> const sum)
+  void check_sum(handle<unsigned int> const sum)
   {
     if (sum.id().back() == 0ull) {
       CHECK(*sum == 45);

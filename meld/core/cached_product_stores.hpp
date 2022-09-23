@@ -10,8 +10,7 @@ namespace meld {
 
   class cached_product_stores {
   public:
-    product_store_ptr
-    get_empty_store(level_id const& id, stage processing_stage = stage::process)
+    product_store_ptr get_empty_store(level_id const& id, stage processing_stage = stage::process)
     {
       auto it = product_stores_.find(id);
       if (it != cend(product_stores_)) {
@@ -24,8 +23,7 @@ namespace meld {
     }
 
   private:
-    product_store_ptr
-    new_store(product_store_ptr const& store)
+    product_store_ptr new_store(product_store_ptr const& store)
     {
       return product_stores_.try_emplace(store->id(), store).first->second;
     }

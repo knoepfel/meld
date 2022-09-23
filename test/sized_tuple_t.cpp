@@ -8,8 +8,7 @@
 using namespace std;
 using namespace meld;
 
-int
-main()
+int main()
 {
   static_assert(same_as<sized_tuple<int, 3>, tuple<int, int, int>>);
   static_assert(

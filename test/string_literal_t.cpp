@@ -5,8 +5,7 @@
 using namespace meld;
 using namespace std::string_view_literals;
 
-int
-main()
+int main()
 {
   constexpr string_literal s{"Check, please"};
   static_assert(std::string_view{s} == "Check, please"sv);

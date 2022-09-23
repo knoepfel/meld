@@ -6,8 +6,7 @@
 
 namespace meld {
   template <typename T>
-  void
-  sleep_for(T duration)
+  void sleep_for(T duration)
   {
     std::this_thread::sleep_for(duration);
   }

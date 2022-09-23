@@ -11,8 +11,7 @@
 #include <tuple>
 
 namespace {
-  std::size_t
-  hash_nums(std::vector<std::size_t> const& nums) noexcept
+  std::size_t hash_nums(std::vector<std::size_t> const& nums) noexcept
   {
     // Pilfered from
     // https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector#comment126511630_27216842
@@ -36,53 +35,30 @@ namespace meld {
   {
   }
 
-  std::size_t
-  level_id::depth() const noexcept
-  {
-    return id_.size();
-  }
+  std::size_t level_id::depth() const noexcept { return id_.size(); }
 
-  level_id
-  level_id::make_child(std::size_t const new_level_number) const
+  level_id level_id::make_child(std::size_t const new_level_number) const
   {
     auto numbers = id_;
     numbers.push_back(new_level_number);
     return level_id{move(numbers)};
   }
 
-  bool
-  level_id::has_parent() const noexcept
+  bool level_id::has_parent() const noexcept
   {
     // Use std::vector::empty member function which is noexcept.
     return not id_.empty();
   }
 
-  std::size_t
-  level_id::back() const
-  {
-    return id_.back();
-  }
+  std::size_t level_id::back() const { return id_.back(); }
 
-  std::size_t
-  level_id::hash() const noexcept
-  {
-    return hash_;
-  }
+  std::size_t level_id::hash() const noexcept { return hash_; }
 
-  bool
-  level_id::operator==(level_id const& other) const
-  {
-    return id_ == other.id_;
-  }
+  bool level_id::operator==(level_id const& other) const { return id_ == other.id_; }
 
-  bool
-  level_id::operator<(level_id const& other) const
-  {
-    return id_ < other.id_;
-  }
+  bool level_id::operator<(level_id const& other) const { return id_ < other.id_; }
 
-  level_id
-  id_for(char const* c_str)
+  level_id id_for(char const* c_str)
   {
     std::vector<std::string> strs;
     split(strs, c_str, boost::is_any_of(":"));
@@ -99,8 +75,7 @@ namespace meld {
 
   level_id operator"" _id(char const* c_str, std::size_t) { return id_for(c_str); }
 
-  level_id
-  level_id::parent() const
+  level_id level_id::parent() const
   {
     if (not has_parent())
       throw std::runtime_error("Empty ID does not have a parent.");
@@ -109,8 +84,7 @@ namespace meld {
     return level_id{move(id)};
   }
 
-  transitions
-  transitions_between(level_id from_id, level_id const& to_id, level_counter& counter)
+  transitions transitions_between(level_id from_id, level_id const& to_id, level_counter& counter)
   {
     if (from_id == to_id) {
       return {};
@@ -145,8 +119,7 @@ namespace meld {
     return result;
   }
 
-  transitions
-  transitions_for(std::vector<level_id> const& ids)
+  transitions transitions_for(std::vector<level_id> const& ids)
   {
     level_counter counter;
 
@@ -175,8 +148,7 @@ namespace meld {
     return result;
   }
 
-  std::string
-  to_string(stage const s)
+  std::string to_string(stage const s)
   {
     switch (s) {
     case stage::setup:
@@ -188,8 +160,7 @@ namespace meld {
     }
   }
 
-  std::ostream&
-  operator<<(std::ostream& os, level_id const& id)
+  std::ostream& operator<<(std::ostream& os, level_id const& id)
   {
     if (not id.has_parent())
       return os << "[]";
@@ -202,14 +173,12 @@ namespace meld {
     return os;
   }
 
-  std::ostream&
-  operator<<(std::ostream& os, transition const& t)
+  std::ostream& operator<<(std::ostream& os, transition const& t)
   {
     return os << "ID: " << t.first << " Stage: " << to_string(t.second);
   }
 
-  void
-  level_counter::record_parent(level_id const& id)
+  void level_counter::record_parent(level_id const& id)
   {
     if (not id.has_parent()) {
       // No parent to record
@@ -224,8 +193,7 @@ namespace meld {
     }
   }
 
-  std::size_t
-  level_counter::value(level_id const& id) const
+  std::size_t level_counter::value(level_id const& id) const
   {
     if (accessor a; counter_.find(a, id)) {
       return a->second;
@@ -233,14 +201,9 @@ namespace meld {
     return 0;
   }
 
-  level_id
-  level_counter::value_as_id(level_id const& id) const
-  {
-    return id.make_child(value(id));
-  }
+  level_id level_counter::value_as_id(level_id const& id) const { return id.make_child(value(id)); }
 
-  void
-  level_counter::print() const
+  void level_counter::print() const
   {
     for (auto const& [id, count] : counter_) {
       std::cout << id << " (" << count << ")\n";

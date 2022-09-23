@@ -9,8 +9,7 @@ using namespace meld;
 using namespace oneapi::tbb;
 
 namespace {
-  auto
-  input_source(flow::graph& g)
+  auto input_source(flow::graph& g)
   {
     return flow::input_node<int>{g, [i = 0](flow_control& fc) mutable {
                                    if (i == 10) {
@@ -21,8 +20,7 @@ namespace {
                                  }};
   }
 
-  auto
-  processor(flow::graph& g, std::string_view label)
+  auto processor(flow::graph& g, std::string_view label)
   {
     return flow::function_node<int, int>{g, flow::unlimited, [label](int i) {
                                            debug(label, " processing: ", i);
@@ -30,8 +28,7 @@ namespace {
                                          }};
   }
 
-  auto
-  receiver(flow::graph& g)
+  auto receiver(flow::graph& g)
   {
     return flow::function_node<int>{g, flow::unlimited, [](int i) { debug("-> Received: ", i); }};
   }

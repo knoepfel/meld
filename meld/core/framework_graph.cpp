@@ -15,22 +15,19 @@ namespace meld {
   {
   }
 
-  void
-  framework_graph::execute()
+  void framework_graph::execute()
   {
     finalize();
     run();
   }
 
-  void
-  framework_graph::run()
+  void framework_graph::run()
   {
     src_.activate();
     graph_.wait_for_all();
   }
 
-  void
-  framework_graph::finalize()
+  void framework_graph::finalize()
   {
     edge_maker emaker{"framework-graph.gv", transforms_, reductions_};
     emaker.make_edges(multiplexer_,

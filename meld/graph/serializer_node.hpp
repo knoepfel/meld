@@ -20,8 +20,7 @@ namespace meld {
     {
     }
 
-    void
-    activate()
+    void activate()
     {
       // The serializer must not be activated until it resides in its
       // final resting spot.  IOW, if a container of serializers
@@ -32,11 +31,7 @@ namespace meld {
       try_put(1);
     }
 
-    auto const&
-    name() const
-    {
-      return name_;
-    }
+    auto const& name() const { return name_; }
 
   private:
     std::string name_;
@@ -47,8 +42,7 @@ namespace meld {
     explicit serializers(tbb::flow::graph& g);
     void activate();
 
-    auto
-    get(auto... resources) -> sized_tuple<serializer_node&, sizeof...(resources)>
+    auto get(auto... resources) -> sized_tuple<serializer_node&, sizeof...(resources)>
     {
       // FIXME: Need to make sure there are no duplicates!
       return std::tie(get(std::string(resources))...);

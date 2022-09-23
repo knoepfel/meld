@@ -52,8 +52,7 @@ namespace meld {
                           tbb::flow::receiver<Output>& output);
 
     template <typename T>
-    void
-    output_edge(tbb::flow::receiver<T>& rec)
+    void output_edge(tbb::flow::receiver<T>& rec)
     {
       if (empty(senders_)) {
         return;
@@ -67,8 +66,7 @@ namespace meld {
       }
     }
 
-    void
-    input_edge(tbb::flow::sender<Input>& sender)
+    void input_edge(tbb::flow::sender<Input>& sender)
     {
       senders_.push_back(&sender);
       auto const n_senders = size(senders_);
@@ -100,15 +98,13 @@ namespace meld {
   };
 
   template <typename Input, typename Output, typename TagMatcher>
-  void
-  make_edge(tbb::flow::sender<Input>& input, dynamic_join_node<Output, TagMatcher>& djoin)
+  void make_edge(tbb::flow::sender<Input>& input, dynamic_join_node<Output, TagMatcher>& djoin)
   {
     djoin.input_edge(input);
   }
 
   template <typename Input, typename TagMatcher, typename Output>
-  void
-  make_edge(dynamic_join_node<Input, TagMatcher>& djoin, tbb::flow::receiver<Output>& output)
+  void make_edge(dynamic_join_node<Input, TagMatcher>& djoin, tbb::flow::receiver<Output>& output)
   {
     djoin.output_edge(output);
   }
