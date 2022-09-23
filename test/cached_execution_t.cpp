@@ -149,7 +149,7 @@ TEST_CASE("Cached function calls", "[data model]")
     .input("used_two", "still")
     .output("three");
 
-  g.execute();
+  g.execute("cached_execution_t.gv");
 
   CHECK(a1_counter == n_runs);
   CHECK(a2_counter == n_runs);

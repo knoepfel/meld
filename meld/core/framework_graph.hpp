@@ -55,7 +55,7 @@ namespace meld {
     {
     }
 
-    void execute();
+    void execute(std::string const& dot_file_name = {});
 
     auto make_component()
     {
@@ -71,7 +71,7 @@ namespace meld {
 
   private:
     void run();
-    void finalize();
+    void finalize(std::string const& dot_file_name);
 
     tbb::flow::graph graph_{};
     declared_transforms transforms_{};

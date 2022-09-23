@@ -15,9 +15,9 @@ namespace meld {
   {
   }
 
-  void framework_graph::execute()
+  void framework_graph::execute(std::string const& dot_file_name)
   {
-    finalize();
+    finalize(dot_file_name);
     run();
   }
 
@@ -27,9 +27,9 @@ namespace meld {
     graph_.wait_for_all();
   }
 
-  void framework_graph::finalize()
+  void framework_graph::finalize(std::string const& dot_file_name)
   {
-    edge_maker make_edges{"framework-graph.gv", transforms_, reductions_};
+    edge_maker make_edges{dot_file_name, transforms_, reductions_};
     make_edges(multiplexer_,
                consumers{transforms_, {.shape = "ellipse"}},
                consumers{reductions_, {.arrowtail = "dot", .shape = "ellipse"}},

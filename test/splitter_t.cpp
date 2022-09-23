@@ -104,5 +104,5 @@ TEST_CASE("Splitting the processing", "[graph]")
   c.declare_reduction("add", add).concurrency(unlimited).input("num").output("sum");
   c.declare_transform("check_sum", check_sum).concurrency(unlimited).input("sum");
 
-  graph.execute();
+  graph.execute("splitter_t.gv");
 }

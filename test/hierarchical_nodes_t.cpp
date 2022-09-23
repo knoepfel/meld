@@ -128,5 +128,5 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     .concurrency(unlimited)
     .input("result", "strtime");
 
-  graph.execute();
+  graph.execute("hierarchical_nodes_t.gv");
 }
