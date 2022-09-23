@@ -44,7 +44,7 @@ namespace meld {
     }
 
     template <typename... Args>
-    void make_edges(meld::multiplexer& multi, consumers<Args>... cons);
+    void operator()(meld::multiplexer& multi, consumers<Args>... cons);
 
   private:
     template <typename T>
@@ -144,7 +144,7 @@ namespace meld {
   }
 
   template <typename... Args>
-  void edge_maker::make_edges(meld::multiplexer& multi, consumers<Args>... cons)
+  void edge_maker::operator()(meld::multiplexer& multi, consumers<Args>... cons)
   {
     (record_attributes(cons), ...);
 

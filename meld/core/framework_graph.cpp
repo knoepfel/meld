@@ -29,11 +29,11 @@ namespace meld {
 
   void framework_graph::finalize()
   {
-    edge_maker emaker{"framework-graph.gv", transforms_, reductions_};
-    emaker.make_edges(multiplexer_,
-                      consumers{transforms_, {.shape = "ellipse"}},
-                      consumers{reductions_, {.arrowtail = "dot", .shape = "ellipse"}},
-                      consumers{splitters_, {.shape = "trapezium"}});
+    edge_maker make_edges{"framework-graph.gv", transforms_, reductions_};
+    make_edges(multiplexer_,
+               consumers{transforms_, {.shape = "ellipse"}},
+               consumers{reductions_, {.arrowtail = "dot", .shape = "ellipse"}},
+               consumers{splitters_, {.shape = "trapezium"}});
     make_edge(src_, multiplexer_);
   }
 }
