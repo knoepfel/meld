@@ -120,38 +120,6 @@ namespace meld {
   template <typename T, typename R, typename... Args>
   template <std::size_t M>
   class incomplete_transform<T, R, Args...>::complete_transform : public declared_transform {
-    std::size_t port_index_for(std::string const& product_name)
-    {
-      auto it = std::find(cbegin(input_), cend(input_), product_name);
-      if (it == cend(input_)) {
-        throw std::runtime_error("Product name " + product_name + " not valid for transform.");
-      }
-      return std::distance(cbegin(input_), it);
-    }
-
-    template <std::size_t I>
-    tbb::flow::receiver<message>& receiver_for(std::size_t const index)
-    {
-      if constexpr (I < N) {
-        if (I != index) {
-          return receiver_for<I + 1ull>(index);
-        }
-        return input_port<I>(join_);
-      }
-      else {
-        throw std::runtime_error("Should never get here");
-      }
-    }
-
-    template <std::size_t... Is>
-    R call(std::function<R(Args...)> ft, messages_t<N> const& messages, std::index_sequence<Is...>)
-    {
-      return std::invoke(
-        ft,
-        std::get<Is>(messages).store->template get_handle<typename handle_for<Args>::value_type>(
-          input_[Is])...);
-    }
-
   public:
     complete_transform(std::string name,
                        std::size_t concurrency,
@@ -204,19 +172,20 @@ namespace meld {
   private:
     tbb::flow::receiver<message>& port_for(std::string const& product_name) override
     {
-      if constexpr (N > 1ull) {
-        auto const index = port_index_for(product_name);
-        return receiver_for<0ull>(index);
-      }
-      else {
-        return join_.pass_through;
-      }
+      return receiver_for<N>(join_, input_, product_name);
     }
 
     tbb::flow::sender<message>& sender() override { return transform_; }
-
     std::span<std::string const, std::dynamic_extent> input() const override { return input_; }
     std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
+
+    template <std::size_t... Is>
+    R call(std::function<R(Args...)> const& ft,
+           messages_t<N> const& messages,
+           std::index_sequence<Is...>)
+    {
+      return std::invoke(ft, get_handle_for<Is, N, Args>(messages, input_)...);
+    }
 
     std::array<std::string, N> input_;
     std::array<std::string, M> output_;

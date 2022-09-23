@@ -127,45 +127,6 @@ namespace meld {
 
   template <typename T, typename... Args>
   class incomplete_splitter<T, Args...>::complete_splitter : public declared_splitter {
-    std::size_t port_index_for(std::string const& product_name)
-    {
-      auto it = std::find(cbegin(input_), cend(input_), product_name);
-      if (it == cend(input_)) {
-        throw std::runtime_error("Product name " + product_name + " not valid for splitter.");
-      }
-      return std::distance(cbegin(input_), it);
-    }
-
-    template <std::size_t I>
-    tbb::flow::receiver<message>& receiver_for(std::size_t const index)
-    {
-      if constexpr (I < N) {
-        if (I != index) {
-          return receiver_for<I + 1ull>(index);
-        }
-        return input_port<I>(join_);
-      }
-      else {
-        throw std::runtime_error("Should never get here");
-      }
-    }
-
-    template <std::size_t I, typename U>
-    auto get_handle_for(messages_t<N> const& messages)
-    {
-      using handle_arg_t = typename handle_for<U>::value_type;
-      return std::get<I>(messages).store->template get_handle<handle_arg_t>(input_[I]);
-    }
-
-    template <std::size_t... Is>
-    void call(std::function<void(generator&, Args...)> ft,
-              generator& g,
-              messages_t<N> const& messages,
-              std::index_sequence<Is...>)
-    {
-      return std::invoke(ft, g, get_handle_for<Is, Args>(messages)...);
-    }
-
   public:
     complete_splitter(std::string name,
                       std::size_t concurrency,
@@ -215,22 +176,24 @@ namespace meld {
   private:
     tbb::flow::receiver<message>& port_for(std::string const& product_name) override
     {
-      if constexpr (N > 1ull) {
-        auto const index = port_index_for(product_name);
-        return receiver_for<0ull>(index);
-      }
-      else {
-        return join_.pass_through;
-      }
+      return receiver_for<N>(join_, input_, product_name);
     }
 
     std::span<std::string const, std::dynamic_extent> input() const override { return input_; }
-
     std::vector<std::string> const& provided_products() const override { return provided_; }
 
     void finalize(multiplexer::head_nodes_t head_nodes) override
     {
       multiplexer_.finalize(std::move(head_nodes));
+    }
+
+    template <std::size_t... Is>
+    void call(std::function<void(generator&, Args...)> const& ft,
+              generator& g,
+              messages_t<N> const& messages,
+              std::index_sequence<Is...>)
+    {
+      return std::invoke(ft, g, get_handle_for<Is, N, Args>(messages, input_)...);
     }
 
     std::array<std::string, N> input_;

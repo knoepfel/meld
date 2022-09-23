@@ -117,75 +117,6 @@ namespace meld {
   template <std::size_t M>
   class incomplete_reduction<T, R, InitTuple, Args...>::complete_reduction :
     public declared_reduction {
-    std::size_t port_index_for(std::string const& product_name)
-    {
-      auto it = std::find(cbegin(input_), cend(input_), product_name);
-      if (it == cend(input_)) {
-        throw std::runtime_error("Product name " + product_name + " not valid for transform.");
-      }
-      return std::distance(cbegin(input_), it);
-    }
-
-    template <std::size_t I>
-    tbb::flow::receiver<message>& receiver_for(std::size_t const index)
-    {
-      if constexpr (I < N) {
-        if (I != index) {
-          return receiver_for<I + 1ull>(index);
-        }
-        return input_port<I>(join_);
-      }
-      else {
-        throw std::runtime_error("Should never get here");
-      }
-    }
-
-    template <std::size_t... Is>
-    void call(std::function<void(R&, Args...)> const& ft,
-              messages_t<N> const& messages,
-              std::index_sequence<Is...>)
-    {
-      auto const& parent = most_derived(messages).store->parent();
-      // FIXME: Not the safest approach!
-      auto it = results_.find(parent->id());
-      if (it == results_.end()) {
-        it =
-          results_
-            .insert({parent->id(),
-                     initialized_object(std::move(initializer_),
-                                        std::make_index_sequence<std::tuple_size_v<InitTuple>>{})})
-            .first;
-      }
-      return std::invoke(
-        ft,
-        *it->second,
-        std::get<Is>(messages).store->template get_handle<typename handle_for<Args>::value_type>(
-          input_[Is])...);
-    }
-
-    std::pair<bool, std::size_t> reduction_complete(product_store& parent_store)
-    {
-      auto it = entries_.find(parent_store.id());
-      assert(it != cend(entries_));
-      auto& entry = it->second;
-      auto stop_number = entry->stop_after.load();
-      if (entry->count.compare_exchange_strong(stop_number, -2u)) {
-        commit_(parent_store);
-        // FIXME: Would be good to free up memory here.
-        return {true, entry->original_message_id};
-      }
-      return {};
-    }
-
-    void set_flush_value(level_id const& id, std::size_t const original_message_id)
-    {
-
-      auto it = entries_.find(id.parent());
-      assert(it != cend(entries_));
-      it->second->stop_after = id.back();
-      it->second->original_message_id = original_message_id;
-    }
-
   public:
     complete_reduction(std::string name,
                        std::size_t concurrency,
@@ -233,19 +164,54 @@ namespace meld {
   private:
     tbb::flow::receiver<message>& port_for(std::string const& product_name) override
     {
-      if constexpr (N > 1ull) {
-        auto const index = port_index_for(product_name);
-        return receiver_for<0ull>(index);
-      }
-      else {
-        return join_.pass_through;
-      }
+      return receiver_for<N>(join_, input_, product_name);
     }
 
     tbb::flow::sender<message>& sender() override { return output_port<0ull>(reduction_); }
-
     std::span<std::string const, std::dynamic_extent> input() const override { return input_; }
     std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
+
+    template <std::size_t... Is>
+    void call(std::function<void(R&, Args...)> const& ft,
+              messages_t<N> const& messages,
+              std::index_sequence<Is...>)
+    {
+      auto const& parent = most_derived(messages).store->parent();
+      // FIXME: Not the safest approach!
+      auto it = results_.find(parent->id());
+      if (it == results_.end()) {
+        it =
+          results_
+            .insert({parent->id(),
+                     initialized_object(std::move(initializer_),
+                                        std::make_index_sequence<std::tuple_size_v<InitTuple>>{})})
+            .first;
+      }
+      return std::invoke(ft, *it->second, get_handle_for<Is, N, Args>(messages, input_)...);
+    }
+
+    std::pair<bool, std::size_t> reduction_complete(product_store& parent_store)
+    {
+      auto it = entries_.find(parent_store.id());
+      assert(it != cend(entries_));
+      auto& entry = it->second;
+      auto stop_number = entry->stop_after.load();
+      if (entry->count.compare_exchange_strong(stop_number, -2u)) {
+        commit_(parent_store);
+        // FIXME: Would be good to free up memory here.
+        return {true, entry->original_message_id};
+      }
+      return {};
+    }
+
+    void set_flush_value(level_id const& id, std::size_t const original_message_id)
+    {
+
+      auto it = entries_.find(id.parent());
+      assert(it != cend(entries_));
+      it->second->stop_after = id.back();
+      it->second->original_message_id = original_message_id;
+    }
 
     template <size_t... Is>
     std::unique_ptr<R> initialized_object(InitTuple&& tuple, std::index_sequence<Is...>) const
@@ -283,6 +249,9 @@ namespace meld {
     };
     tbb::concurrent_unordered_map<level_id, std::unique_ptr<map_entry>> entries_;
   };
+
+  // =================================================================================
+  // Implementation
 
   template <typename T, typename R, typename InitTuple, typename... Args>
   auto incomplete_reduction<T, R, InitTuple, Args...>::input(std::array<std::string, N> input_keys)
