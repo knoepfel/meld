@@ -62,25 +62,15 @@ namespace meld {
     class reduction_requires_output;
 
   public:
-    incomplete_reduction(user_functions<T>& funcs,
+    incomplete_reduction(component<T>& funcs,
                          std::string name,
                          tbb::flow::graph& g,
-                         void (*f)(R&, Args...),
-                         InitTuple initializer) :
-      funcs_{funcs}, name_{move(name)}, graph_{g}, ft_{f}, initializer_{std::move(initializer)}
-    {
-    }
-
-    template <typename FT>
-    incomplete_reduction(user_functions<T>& funcs,
-                         std::string name,
-                         tbb::flow::graph& g,
-                         FT f,
+                         std::function<void(R&, Args...)> f,
                          InitTuple initializer) :
       funcs_{funcs},
       name_{move(name)},
       graph_{g},
-      ft_{std::move(f)},
+      ft_{move(f)},
       initializer_{std::move(initializer)}
     {
     }
@@ -105,7 +95,7 @@ namespace meld {
     }
 
   private:
-    user_functions<T>& funcs_;
+    component<T>& funcs_;
     std::string name_;
     std::size_t concurrency_{concurrency::serial};
     tbb::flow::graph& graph_;
@@ -279,7 +269,7 @@ namespace meld {
   template <typename T, typename R, typename InitTuple, typename... Args>
   class incomplete_reduction<T, R, InitTuple, Args...>::reduction_requires_output {
   public:
-    reduction_requires_output(user_functions<T>& funcs,
+    reduction_requires_output(component<T>& funcs,
                               std::string name,
                               std::size_t concurrency,
                               tbb::flow::graph& g,
@@ -317,7 +307,7 @@ namespace meld {
     }
 
   private:
-    user_functions<T>& funcs_;
+    component<T>& funcs_;
     std::string name_;
     std::size_t concurrency_;
     tbb::flow::graph& graph_;

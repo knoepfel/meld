@@ -1,13 +1,13 @@
 #ifndef meld_core_framework_graph_hpp
 #define meld_core_framework_graph_hpp
 
+#include "meld/core/component.hpp"
 #include "meld/core/declared_reduction.hpp"
 #include "meld/core/declared_splitter.hpp"
 #include "meld/core/declared_transform.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/multiplexer.hpp"
 #include "meld/core/product_store.hpp"
-#include "meld/core/user_functions.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -57,15 +57,30 @@ namespace meld {
 
     void execute(std::string const& dot_file_name = {});
 
-    auto make_component()
+    // Framework functions registrations
+    template <typename R, typename... Args>
+    auto declare_transform(std::string name, R (*f)(Args...))
     {
-      return user_functions<void_tag>{graph_, transforms_, reductions_, splitters_};
+      return unbound_functions_.declare_transform(move(name), f);
+    }
+
+    template <typename R, typename... Args, typename... InitArgs>
+    auto declare_reduction(std::string name, void (*f)(R&, Args...), InitArgs&&... init_args)
+    {
+      return unbound_functions_.declare_reduction(
+        move(name), f, std::forward<InitArgs>(init_args)...);
+    }
+
+    template <typename... Args>
+    auto declare_splitter(std::string name, void (*f)(Args...))
+    {
+      return unbound_functions_.declare_splitter(move(name), f);
     }
 
     template <typename T, typename... Args>
     auto make_component(Args&&... args)
     {
-      return user_functions<T>{
+      return component<T>{
         graph_, transforms_, reductions_, splitters_, std::forward<Args>(args)...};
     }
 
@@ -77,6 +92,7 @@ namespace meld {
     declared_transforms transforms_{};
     declared_reductions reductions_{};
     declared_splitters splitters_{};
+    component<void_tag> unbound_functions_{graph_, transforms_, reductions_, splitters_};
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
     std::map<level_id, std::size_t> original_message_ids_;

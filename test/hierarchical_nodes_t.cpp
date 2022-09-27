@@ -89,7 +89,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   auto it = cbegin(transitions);
   auto const e = cend(transitions);
   cached_product_stores cached_stores;
-  framework_graph graph{[&cached_stores, it, e]() mutable -> product_store_ptr {
+  framework_graph g{[&cached_stores, it, e]() mutable -> product_store_ptr {
     if (it == e) {
       return nullptr;
     }
@@ -110,23 +110,22 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     return store;
   }};
 
-  auto c = graph.make_component();
-  c.declare_transform("get_the_time", strtime)
+  g.declare_transform("get_the_time", strtime)
     .concurrency(unlimited)
     .input("time")
     .output("strtime");
-  c.declare_transform("square", square)
+  g.declare_transform("square", square)
     .concurrency(unlimited)
     .input("number")
     .output("squared_number");
-  c.declare_reduction("add", add, 15u)
+  g.declare_reduction("add", add, 15u)
     .concurrency(unlimited)
     .input("squared_number")
     .output("added_data");
-  c.declare_transform("scale", scale).concurrency(unlimited).input("added_data").output("result");
-  c.declare_transform("print_result", print_result)
+  g.declare_transform("scale", scale).concurrency(unlimited).input("added_data").output("result");
+  g.declare_transform("print_result", print_result)
     .concurrency(unlimited)
     .input("result", "strtime");
 
-  graph.execute("hierarchical_nodes_t.gv");
+  g.execute("hierarchical_nodes_t.gv");
 }

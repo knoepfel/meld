@@ -4,7 +4,7 @@
 namespace meld {
   class product_store;
   template <typename T>
-  class user_functions;
+  class component;
 }
 
 #endif /* meld_core_fwd_hpp */

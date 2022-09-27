@@ -83,7 +83,7 @@ TEST_CASE("Cached function calls", "[data model]")
     }
     transitions.emplace_back(run_id.make_child(n_subruns), stage::flush);
   }
-  transitions.emplace_back(level_id{n_runs}, stage::flush);
+  transitions.emplace_back(job_id.make_child(n_runs), stage::flush);
 
   auto it = cbegin(transitions);
   auto const e = cend(transitions);

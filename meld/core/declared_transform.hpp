@@ -59,17 +59,11 @@ namespace meld {
     class transform_requires_output;
 
   public:
-    incomplete_transform(user_functions<T>& funcs,
+    incomplete_transform(component<T>& funcs,
                          std::string name,
                          tbb::flow::graph& g,
-                         R (*f)(Args...)) :
-      funcs_{funcs}, name_{move(name)}, graph_{g}, ft_{f}
-    {
-    }
-
-    template <typename FT>
-    incomplete_transform(user_functions<T>& funcs, std::string name, tbb::flow::graph& g, FT f) :
-      funcs_{funcs}, name_{move(name)}, graph_{g}, ft_{std::move(f)}
+                         std::function<R(Args...)> f) :
+      funcs_{funcs}, name_{move(name)}, graph_{g}, ft_{move(f)}
     {
     }
 
@@ -110,7 +104,7 @@ namespace meld {
     }
 
   private:
-    user_functions<T>& funcs_;
+    component<T>& funcs_;
     std::string name_;
     std::size_t concurrency_{concurrency::serial};
     tbb::flow::graph& graph_;
@@ -197,7 +191,7 @@ namespace meld {
   template <typename T, typename R, typename... Args>
   class incomplete_transform<T, R, Args...>::transform_requires_output {
   public:
-    transform_requires_output(user_functions<T>& funcs,
+    transform_requires_output(component<T>& funcs,
                               std::string name,
                               std::size_t concurrency,
                               tbb::flow::graph& g,
@@ -230,7 +224,7 @@ namespace meld {
     }
 
   private:
-    user_functions<T>& funcs_;
+    component<T>& funcs_;
     std::string name_;
     std::size_t concurrency_;
     tbb::flow::graph& graph_;

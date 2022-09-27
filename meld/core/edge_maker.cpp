@@ -55,7 +55,7 @@ namespace meld {
                                    std::string const& target_node,
                                    dot::attributes attrs)
   {
-    os << "  " << source_node << " -> " << target_node
+    os << "  " << source_node << ":s -> " << target_node
        << attributes_str(
             dir("both"), arrowtail(attrs.arrowtail), label(attrs.label), fontsize(default_fontsize))
        << ";\n";

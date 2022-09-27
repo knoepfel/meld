@@ -60,42 +60,33 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   framework_graph g{framework_graph::run_once, store};
   SECTION("No framework")
   {
-    g.make_component()
-      .declare_transform("no_framework", no_framework)
-      .input(product_names)
-      .output(result);
+    g.declare_transform("no_framework", no_framework).input(product_names).output(result);
   }
   SECTION("No framework, all references")
   {
-    g.make_component()
-      .declare_transform("no_framework_all_refs", no_framework_all_refs)
+    g.declare_transform("no_framework_all_refs", no_framework_all_refs)
       .input(product_names)
       .output(result);
   }
   SECTION("No framework, all pointers")
   {
-    g.make_component()
-      .declare_transform("no_framework_all_ptrs", no_framework_all_ptrs)
+    g.declare_transform("no_framework_all_ptrs", no_framework_all_ptrs)
       .input(product_names)
       .output(result);
   }
   SECTION("One framework argument")
   {
-    g.make_component()
-      .declare_transform("one_framework_arg", one_framework_arg)
-      .input(product_names)
-      .output(result);
+    g.declare_transform("one_framework_arg", one_framework_arg).input(product_names).output(result);
   }
   SECTION("All framework arguments")
   {
-    g.make_component()
-      .declare_transform("all_framework_args", all_framework_args)
+    g.declare_transform("all_framework_args", all_framework_args)
       .input(product_names)
       .output(result);
   }
 
   // The following is invoked for *each* section above
-  g.make_component().declare_transform("verify_results", verify_results).input("result");
+  g.declare_transform("verify_results", verify_results).input("result");
 
   g.execute();
 }

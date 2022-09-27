@@ -76,11 +76,11 @@ namespace meld {
     class complete_splitter;
 
   public:
-    incomplete_splitter(user_functions<T>& funcs,
+    incomplete_splitter(component<T>& funcs,
                         std::string name,
                         tbb::flow::graph& g,
-                        void (*f)(generator&, Args...)) :
-      funcs_{funcs}, name_{move(name)}, graph_{g}, ft_{f}
+                        std::function<void(generator&, Args...)> f) :
+      funcs_{funcs}, name_{move(name)}, graph_{g}, ft_{move(f)}
     {
     }
 
@@ -117,7 +117,7 @@ namespace meld {
     }
 
   private:
-    user_functions<T>& funcs_;
+    component<T>& funcs_;
     std::string name_;
     std::size_t concurrency_{concurrency::serial};
     std::array<std::string, N> input_keys_;

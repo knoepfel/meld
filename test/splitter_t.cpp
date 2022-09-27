@@ -80,7 +80,7 @@ TEST_CASE("Splitting the processing", "[graph]")
   auto it = cbegin(transitions);
   auto const e = cend(transitions);
   cached_product_stores cached_stores;
-  framework_graph graph{[&cached_stores, it, e]() mutable -> product_store_ptr {
+  framework_graph g{[&cached_stores, it, e]() mutable -> product_store_ptr {
     if (it == e) {
       return nullptr;
     }
@@ -99,10 +99,9 @@ TEST_CASE("Splitting the processing", "[graph]")
     return store;
   }};
 
-  auto c = graph.make_component();
-  c.declare_splitter("split", split).concurrency(unlimited).input("max_number").provides({"num"});
-  c.declare_reduction("add", add).concurrency(unlimited).input("num").output("sum");
-  c.declare_transform("check_sum", check_sum).concurrency(unlimited).input("sum");
+  g.declare_splitter("split", split).concurrency(unlimited).input("max_number").provides({"num"});
+  g.declare_reduction("add", add).concurrency(unlimited).input("num").output("sum");
+  g.declare_transform("check_sum", check_sum).concurrency(unlimited).input("sum");
 
-  graph.execute("splitter_t.gv");
+  g.execute("splitter_t.gv");
 }

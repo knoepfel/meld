@@ -47,51 +47,29 @@ TEST_CASE("Call multiple functions", "[programming model]")
   store->add_product("offset", 6u);
   framework_graph g{framework_graph::run_once, store};
 
-  SECTION("One component, all free functions")
+  SECTION("All free functions")
   {
-    auto component = g.make_component();
-    component.declare_transform("square_numbers", square_numbers)
+    g.declare_transform("square_numbers", square_numbers)
       .concurrency(unlimited)
       .input("numbers")
       .output("squared_numbers");
-    component.declare_transform("sum_numbers", sum_numbers)
+    g.declare_transform("sum_numbers", sum_numbers)
       .concurrency(unlimited)
       .input("squared_numbers")
       .output("summed_numbers");
-    component.declare_transform("sqrt_sum_numbers", sqrt_sum_numbers)
+    g.declare_transform("sqrt_sum_numbers", sqrt_sum_numbers)
       .concurrency(unlimited)
       .input("summed_numbers", "offset")
       .output("result");
   }
 
-  SECTION("Multiple components, each with one free function")
+  SECTION("Transforms, one from a component")
   {
-    g.make_component()
-      .declare_transform("square_numbers", square_numbers)
+    g.declare_transform("square_numbers", square_numbers)
       .concurrency(unlimited)
       .input("numbers")
       .output("squared_numbers");
-    g.make_component()
-      .declare_transform("sum_numbers", sum_numbers)
-      .concurrency(unlimited)
-      .input("squared_numbers")
-      .output("summed_numbers");
-    g.make_component()
-      .declare_transform("sqrt_sum_numbers", sqrt_sum_numbers)
-      .concurrency(unlimited)
-      .input("summed_numbers", "offset")
-      .output("result");
-  }
-
-  SECTION("Multiple components, mixed free and member functions")
-  {
-    g.make_component()
-      .declare_transform("square_numbers", square_numbers)
-      .concurrency(unlimited)
-      .input("numbers")
-      .output("squared_numbers");
-    g.make_component()
-      .declare_transform("sum_numbers", sum_numbers)
+    g.declare_transform("sum_numbers", sum_numbers)
       .concurrency(unlimited)
       .input("squared_numbers")
       .output("summed_numbers");
@@ -103,6 +81,6 @@ TEST_CASE("Call multiple functions", "[programming model]")
   }
 
   // The following is invoked for *each* section above
-  g.make_component().declare_transform("verify_result", verify_result).input("result");
+  g.declare_transform("verify_result", verify_result).input("result");
   g.execute();
 }
