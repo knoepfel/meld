@@ -36,6 +36,7 @@ namespace meld {
     std::size_t concurrency() const noexcept;
     tbb::flow::receiver<message>& port(std::string const& product_name);
     virtual tbb::flow::sender<message>& sender() = 0;
+    virtual tbb::flow::sender<message>& to_output() = 0;
     virtual std::span<std::string const, std::dynamic_extent> input() const = 0;
     virtual std::span<std::string const, std::dynamic_extent> output() const = 0;
 
@@ -54,15 +55,13 @@ namespace meld {
   template <typename T, typename R, typename... Args>
   class incomplete_transform {
     static constexpr auto N = sizeof...(Args);
+    using function_t = std::function<R(Args...)>;
     template <std::size_t M>
     class complete_transform;
     class transform_requires_output;
 
   public:
-    incomplete_transform(component<T>& funcs,
-                         std::string name,
-                         tbb::flow::graph& g,
-                         std::function<R(Args...)> f) :
+    incomplete_transform(component<T>& funcs, std::string name, tbb::flow::graph& g, function_t f) :
       funcs_{funcs}, name_{move(name)}, graph_{g}, ft_{move(f)}
     {
     }
@@ -108,7 +107,7 @@ namespace meld {
     std::string name_;
     std::size_t concurrency_{concurrency::serial};
     tbb::flow::graph& graph_;
-    std::function<R(Args...)> ft_;
+    function_t ft_;
   };
 
   template <typename T, typename R, typename... Args>
@@ -118,7 +117,7 @@ namespace meld {
     complete_transform(std::string name,
                        std::size_t concurrency,
                        tbb::flow::graph& g,
-                       std::function<R(Args...)>&& f,
+                       function_t&& f,
                        std::array<std::string, N> input,
                        std::array<std::string, M> output) :
       declared_transform{move(name), concurrency},
@@ -126,21 +125,26 @@ namespace meld {
       output_{move(output)},
       join_{g, type_for_t<MessageHasher, Args>{}...},
       transform_{
-        g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages) -> message {
+        g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages, auto& output) {
           auto const& msg = most_derived(messages);
-          auto const& [store, message_id, _] = msg;
+          auto const& [store, message_id] = std::tie(msg.store, msg.id);
+          auto& [stay_in_graph, to_output] = output;
           if (store->is_flush()) {
-            return msg;
+            stay_in_graph.try_put(msg);
+            return;
           }
 
+          auto const* node_name = &this->name();
           if (typename decltype(stores_)::const_accessor a; stores_.find(a, store->id())) {
-            return {a->second, message_id};
+            stay_in_graph.try_put({a->second, message_id, .node_name = node_name});
+            return;
           }
 
           typename decltype(stores_)::accessor a;
           bool const new_insert = stores_.insert(a, store->id());
           if (!new_insert) {
-            return {a->second, message_id};
+            stay_in_graph.try_put({a->second, message_id, .node_name = node_name});
+            return;
           }
 
           if constexpr (std::same_as<R, void>) {
@@ -149,18 +153,17 @@ namespace meld {
           }
           else {
             auto result = call(ft, messages, std::index_sequence_for<Args...>{});
-            store->add_product(output_[0], result);
-            a->second = store;
+            auto new_store = make_product_store(store->id());
+            new_store->add_product(output_[0], result);
+            a->second = new_store;
           }
-          return {a->second, message_id};
+
+          message const new_msg{a->second, message_id, .node_name = node_name};
+          stay_in_graph.try_put(new_msg);
+          to_output.try_put(new_msg);
         }}
     {
-      if constexpr (N > 1ull) {
-        make_edge(join_, transform_);
-      }
-      else {
-        make_edge(join_.pass_through, transform_);
-      }
+      make_edge(join_, transform_);
     }
 
   private:
@@ -169,14 +172,13 @@ namespace meld {
       return receiver_for<N>(join_, input_, product_name);
     }
 
-    tbb::flow::sender<message>& sender() override { return transform_; }
+    tbb::flow::sender<message>& sender() override { return output_port<0>(transform_); }
+    tbb::flow::sender<message>& to_output() override { return output_port<1>(transform_); }
     std::span<std::string const, std::dynamic_extent> input() const override { return input_; }
     std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
 
     template <std::size_t... Is>
-    R call(std::function<R(Args...)> const& ft,
-           messages_t<N> const& messages,
-           std::index_sequence<Is...>)
+    R call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
     {
       return std::invoke(ft, get_handle_for<Is, N, Args>(messages, input_)...);
     }
@@ -184,7 +186,7 @@ namespace meld {
     std::array<std::string, N> input_;
     std::array<std::string, M> output_;
     join_or_none_t<N> join_;
-    tbb::flow::function_node<messages_t<N>, message> transform_;
+    tbb::flow::multifunction_node<messages_t<N>, messages_t<2u>> transform_;
     tbb::concurrent_hash_map<level_id, product_store_ptr> stores_;
   };
 
@@ -195,7 +197,7 @@ namespace meld {
                               std::string name,
                               std::size_t concurrency,
                               tbb::flow::graph& g,
-                              std::function<R(Args...)>&& f,
+                              function_t&& f,
                               std::array<std::string, N> input_keys) :
       funcs_{funcs},
       name_{move(name)},
@@ -228,7 +230,7 @@ namespace meld {
     std::string name_;
     std::size_t concurrency_;
     tbb::flow::graph& graph_;
-    std::function<R(Args...)> ft_;
+    function_t ft_;
     std::array<std::string, N> input_keys_;
   };
 }

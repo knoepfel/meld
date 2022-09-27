@@ -39,6 +39,7 @@ namespace meld {
     std::size_t concurrency() const noexcept;
     tbb::flow::receiver<message>& port(std::string const& product_name);
     virtual tbb::flow::sender<message>& sender() = 0;
+    virtual tbb::flow::sender<message>& to_output() = 0;
     virtual std::span<std::string const, std::dynamic_extent> input() const = 0;
     virtual std::span<std::string const, std::dynamic_extent> output() const = 0;
 
@@ -57,6 +58,7 @@ namespace meld {
   template <typename T, typename R, typename InitTuple, typename... Args>
   class incomplete_reduction {
     static constexpr auto N = sizeof...(Args);
+    using function_t = std::function<void(R&, Args...)>;
     template <std::size_t M>
     class complete_reduction;
     class reduction_requires_output;
@@ -65,7 +67,7 @@ namespace meld {
     incomplete_reduction(component<T>& funcs,
                          std::string name,
                          tbb::flow::graph& g,
-                         std::function<void(R&, Args...)> f,
+                         function_t f,
                          InitTuple initializer) :
       funcs_{funcs},
       name_{move(name)},
@@ -99,7 +101,7 @@ namespace meld {
     std::string name_;
     std::size_t concurrency_{concurrency::serial};
     tbb::flow::graph& graph_;
-    std::function<void(R&, Args...)> ft_;
+    function_t ft_;
     InitTuple initializer_;
   };
 
@@ -111,7 +113,7 @@ namespace meld {
     complete_reduction(std::string name,
                        std::size_t concurrency,
                        tbb::flow::graph& g,
-                       std::function<void(R&, Args...)>&& f,
+                       function_t&& f,
                        InitTuple initializer,
                        std::array<std::string, N> input,
                        std::array<std::string, M> output) :
@@ -122,10 +124,11 @@ namespace meld {
       join_{g, type_for_t<MessageHasher, Args>{}...},
       reduction_{
         g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages, auto& outputs) {
+          // N.B. The assumption is that a reduction will *never* need
+          //      to cache the product store it creates.
           auto const& msg = most_derived(messages);
-          auto const& [store, message_id, original_message_id] = msg;
-          assert(store->parent());
-          auto& parent_id = store->parent()->id();
+          auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
+          auto const parent_id = store->id().parent();
           auto it = entries_.find(parent_id);
           if (it == cend(entries_)) {
             it = entries_.emplace(parent_id, std::make_unique<map_entry>()).first;
@@ -137,18 +140,13 @@ namespace meld {
             call(ft, messages, std::index_sequence_for<Args...>{});
             ++it->second->count;
           }
-          auto const& parent = store->parent();
+          auto parent = make_product_store(parent_id);
           if (auto const [complete, original_message_id] = reduction_complete(*parent); complete) {
-            get<0>(outputs).try_put({parent, original_message_id});
+            get<0>(outputs).try_put({parent, original_message_id, .node_name = &this->name()});
           }
         }}
     {
-      if constexpr (N > 1ull) {
-        make_edge(join_, reduction_);
-      }
-      else {
-        make_edge(join_.pass_through, reduction_);
-      }
+      make_edge(join_, reduction_);
     }
 
   private:
@@ -158,21 +156,20 @@ namespace meld {
     }
 
     tbb::flow::sender<message>& sender() override { return output_port<0ull>(reduction_); }
+    tbb::flow::sender<message>& to_output() override { return sender(); }
     std::span<std::string const, std::dynamic_extent> input() const override { return input_; }
     std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
 
     template <std::size_t... Is>
-    void call(std::function<void(R&, Args...)> const& ft,
-              messages_t<N> const& messages,
-              std::index_sequence<Is...>)
+    void call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
     {
-      auto const& parent = most_derived(messages).store->parent();
+      auto const parent_id = most_derived(messages).store->id().parent();
       // FIXME: Not the safest approach!
-      auto it = results_.find(parent->id());
+      auto it = results_.find(parent_id);
       if (it == results_.end()) {
         it =
           results_
-            .insert({parent->id(),
+            .insert({parent_id,
                      initialized_object(std::move(initializer_),
                                         std::make_index_sequence<std::tuple_size_v<InitTuple>>{})})
             .first;
@@ -221,6 +218,7 @@ namespace meld {
       }
       // Reclaim some memory; it would be better to erase the entire
       // entry from the map, but that is not thread-safe.
+
       // N.B. Calling reset() is safe even if move(result) has been
       // called.
       result.reset();
@@ -230,7 +228,7 @@ namespace meld {
     std::array<std::string, N> input_;
     std::array<std::string, M> output_;
     join_or_none_t<N> join_;
-    tbb::flow::multifunction_node<messages_t<N>, messages_t<1ull>> reduction_;
+    tbb::flow::multifunction_node<messages_t<N>, messages_t<1>> reduction_;
     tbb::concurrent_unordered_map<level_id, std::unique_ptr<R>> results_;
     struct map_entry {
       std::atomic<unsigned int> count{};
@@ -273,7 +271,7 @@ namespace meld {
                               std::string name,
                               std::size_t concurrency,
                               tbb::flow::graph& g,
-                              std::function<void(R&, Args...)>&& f,
+                              function_t&& f,
                               InitTuple initializer,
                               std::array<std::string, N> input_keys) :
       funcs_{funcs},
@@ -311,7 +309,7 @@ namespace meld {
     std::string name_;
     std::size_t concurrency_;
     tbb::flow::graph& graph_;
-    std::function<void(R&, Args...)> ft_;
+    function_t ft_;
     InitTuple initializer_;
     std::array<std::string, N> input_keys_;
   };

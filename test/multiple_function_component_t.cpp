@@ -73,7 +73,7 @@ TEST_CASE("Call multiple functions", "[programming model]")
       .concurrency(unlimited)
       .input("squared_numbers")
       .output("summed_numbers");
-    g.make_component<A>()
+    g.make<A>()
       .declare_transform("sqrt_sum_numbers", &A::sqrt_sum)
       .concurrency(unlimited)
       .input("summed_numbers", "offset")

@@ -32,6 +32,7 @@ namespace meld {
     explicit framework_graph(FT ft) :
       src_{graph_,
            [this, user_function = std::move(ft)](tbb::flow_control& fc) mutable -> message {
+             static std::string const source_name{"Source"};
              auto store = user_function();
              if (not store) {
                fc.stop();
@@ -49,7 +50,7 @@ namespace meld {
 
              // FIXME: Need to find way to cleanup the original message-IDs map.
              original_message_ids_.try_emplace(store->id(), calls_);
-             return {store, calls_};
+             return {store, calls_, .node_name = &source_name};
            }},
       multiplexer_{graph_}
     {
@@ -57,7 +58,7 @@ namespace meld {
 
     void execute(std::string const& dot_file_name = {});
 
-    // Framework functions registrations
+    // Framework function registrations
     template <typename R, typename... Args>
     auto declare_transform(std::string name, R (*f)(Args...))
     {
@@ -78,10 +79,9 @@ namespace meld {
     }
 
     template <typename T, typename... Args>
-    auto make_component(Args&&... args)
+    auto make(Args&&... args)
     {
-      return component<T>{
-        graph_, transforms_, reductions_, splitters_, std::forward<Args>(args)...};
+      return unbound_functions_.bind_to<T>(std::forward<Args>(args)...);
     }
 
   private:
@@ -91,8 +91,9 @@ namespace meld {
     tbb::flow::graph graph_{};
     declared_transforms transforms_{};
     declared_reductions reductions_{};
+    declared_outputs outputs_{};
     declared_splitters splitters_{};
-    component<void_tag> unbound_functions_{graph_, transforms_, reductions_, splitters_};
+    component<void_tag> unbound_functions_{graph_, transforms_, reductions_, outputs_, splitters_};
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
     std::map<level_id, std::size_t> original_message_ids_;

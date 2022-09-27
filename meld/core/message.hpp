@@ -17,7 +17,8 @@ namespace meld {
   struct message {
     product_store_ptr store;
     std::size_t id;
-    std::size_t original_id; // Used during flush
+    std::size_t original_id{-1ull}; // Used during flush
+    std::string const* node_name{nullptr};
   };
 
   template <std::size_t N>
@@ -30,27 +31,28 @@ namespace meld {
   // Overload for use with most_derived
   message const& more_derived(message const& a, message const& b);
 
-  inline namespace put_somplace_else {
+  namespace detail {
     template <std::size_t N>
     using join_messages_t = tbb::flow::join_node<messages_t<N>, tbb::flow::tag_matching>;
+    using no_join_base_t = tbb::flow::function_node<message, messages_t<1ull>>;
 
-    struct no_join {
+    struct no_join : no_join_base_t {
       no_join(tbb::flow::graph& g, MessageHasher) :
-        pass_through{g, tbb::flow::unlimited, [](message const& msg) { return std::tuple{msg}; }}
+        no_join_base_t{g, tbb::flow::unlimited, [](message const& msg) { return std::tuple{msg}; }}
       {
       }
-      tbb::flow::function_node<message, messages_t<1ull>> pass_through;
     };
   }
 
   template <std::size_t N>
-  using join_or_none_t = std::conditional_t<N == 1ull, no_join, join_messages_t<N>>;
+  using join_or_none_t = std::conditional_t<N == 1ull, detail::no_join, detail::join_messages_t<N>>;
 
   std::size_t port_index_for(std::span<std::string const> product_names,
                              std::string const& product_name);
 
   template <std::size_t I, std::size_t N>
-  tbb::flow::receiver<message>& receiver_for(join_messages_t<N>& join, std::size_t const index)
+  tbb::flow::receiver<message>& receiver_for(detail::join_messages_t<N>& join,
+                                             std::size_t const index)
   {
     if constexpr (I < N) {
       if (I != index) {
@@ -71,7 +73,7 @@ namespace meld {
       return receiver_for<0ull, N>(join, index);
     }
     else {
-      return join.pass_through;
+      return join;
     }
   }
 

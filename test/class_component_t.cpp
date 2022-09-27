@@ -60,7 +60,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   store->add_product("name", std::string{"John"});
 
   framework_graph g{framework_graph::run_once, store};
-  auto a_component = g.make_component<A>();
+  auto a_component = g.make<A>();
   SECTION("No framework")
   {
     a_component.declare_transform("no_framework", &A::no_framework)

@@ -42,13 +42,16 @@ namespace meld {
 
   level_id id_for(char const* str);
   level_id operator"" _id(char const* str, std::size_t);
+}
 
-  struct IDHasher {
-    std::size_t hash(level_id const& id) const noexcept { return id.hash(); }
-
-    bool equal(level_id const& a, level_id const& b) const { return a == b; }
+namespace std {
+  template <>
+  struct hash<meld::level_id> {
+    std::size_t operator()(meld::level_id const& id) const noexcept { return id.hash(); }
   };
+}
 
+namespace meld {
   class level_counter {
   public:
     void record_parent(level_id const& id);
@@ -58,7 +61,7 @@ namespace meld {
     void print() const;
 
   private:
-    tbb::concurrent_hash_map<level_id, unsigned, IDHasher> counter_;
+    tbb::concurrent_hash_map<level_id, unsigned> counter_;
     using accessor = decltype(counter_)::accessor;
   };
 
@@ -68,13 +71,6 @@ namespace meld {
   std::string to_string(stage);
   std::ostream& operator<<(std::ostream& os, level_id const& id);
   std::ostream& operator<<(std::ostream& os, transition const& t);
-}
-
-namespace std {
-  template <>
-  struct hash<meld::level_id> {
-    std::size_t operator()(meld::level_id const& id) const noexcept { return id.hash(); }
-  };
 }
 
 #endif /* meld_graph_transition_hpp */

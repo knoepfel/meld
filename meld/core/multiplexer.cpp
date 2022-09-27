@@ -10,7 +10,7 @@ namespace meld {
 
   tbb::flow::continue_msg multiplexer::multiplex(message const& msg)
   {
-    auto const& [store, message_id, _] = msg;
+    auto const& [store, message_id] = std::tie(msg.store, msg.id);
     if (debug_) {
       debug("Multiplexing ", store->id(), " with ID ", message_id);
     }

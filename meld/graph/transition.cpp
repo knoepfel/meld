@@ -51,11 +51,9 @@ namespace meld {
   }
 
   std::size_t level_id::back() const { return id_.back(); }
-
   std::size_t level_id::hash() const noexcept { return hash_; }
 
   bool level_id::operator==(level_id const& other) const { return id_ == other.id_; }
-
   bool level_id::operator<(level_id const& other) const { return id_ < other.id_; }
 
   level_id id_for(char const* c_str)

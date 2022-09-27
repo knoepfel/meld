@@ -1,6 +1,7 @@
 #ifndef meld_core_edge_maker_hpp
 #define meld_core_edge_maker_hpp
 
+#include "meld/core/declared_output.hpp"
 #include "meld/core/declared_splitter.hpp"
 #include "meld/core/dot_attributes.hpp"
 #include "meld/core/multiplexer.hpp"
@@ -34,7 +35,7 @@ namespace meld {
   class edge_maker {
   public:
     template <typename... Args>
-    edge_maker(std::string const& filename, Args&... args);
+    edge_maker(std::string const& filename, declared_outputs& outputs, Args&... args);
 
     ~edge_maker()
     {
@@ -44,7 +45,9 @@ namespace meld {
     }
 
     template <typename... Args>
-    void operator()(meld::multiplexer& multi, consumers<Args>... cons);
+    void operator()(tbb::flow::input_node<message>& source,
+                    meld::multiplexer& multi,
+                    consumers<Args>... cons);
 
   private:
     template <typename T>
@@ -70,17 +73,22 @@ namespace meld {
                                 std::string const& source_node,
                                 std::string const& target_node,
                                 dot::attributes attrs);
+    static void dot_output_edge(std::ostream& os,
+                                std::string const& source_node,
+                                std::string const& target_node,
+                                dot::attributes attrs);
 
     std::unique_ptr<std::ofstream> fout_{nullptr};
     std::map<product_name_t, meld::multiplexer::named_output_port> producers_;
+    declared_outputs& outputs_;
     std::map<std::string, dot::attributes> attributes_;
   };
 
   // =============================================================================
   // Implementation
   template <typename... Args>
-  edge_maker::edge_maker(std::string const& filename, Args&... args) :
-    fout_{empty(filename) ? nullptr : std::make_unique<std::ofstream>(filename)}
+  edge_maker::edge_maker(std::string const& filename, declared_outputs& outputs, Args&... args) :
+    fout_{empty(filename) ? nullptr : std::make_unique<std::ofstream>(filename)}, outputs_{outputs}
   {
     (producers_.merge(producing_nodes(args)), ...);
     if (fout_) {
@@ -96,7 +104,7 @@ namespace meld {
       for (auto const& product_name : node->output()) {
         if (empty(product_name))
           continue;
-        result[product_name] = {node_name, &node->sender()};
+        result[product_name] = {node_name, &node->sender(), &node->to_output()};
       }
     }
     return result;
@@ -144,9 +152,31 @@ namespace meld {
   }
 
   template <typename... Args>
-  void edge_maker::operator()(meld::multiplexer& multi, consumers<Args>... cons)
+  void edge_maker::operator()(tbb::flow::input_node<message>& source,
+                              meld::multiplexer& multi,
+                              consumers<Args>... cons)
   {
     (record_attributes(cons), ...);
+
+    // Make from source to multiplexer
+    make_edge(source, multi);
+
+    // Create edges to outputs first
+    for (auto const& [name, output_node] : outputs_) {
+      make_edge(source, output_node->port());
+      if (*fout_) {
+        dot_node_declaration(*fout_, name, "cylinder");
+        dot_output_edge(*fout_, "Source", name, {});
+      }
+      for (auto const& [_, named_port] : producers_) {
+        make_edge(*named_port.to_output, output_node->port());
+        if (fout_) {
+          auto const& src_attributes = attributes_.at(named_port.node_name);
+          dot_output_edge(
+            *fout_, named_port.node_name, name, {.arrowtail = src_attributes.arrowtail});
+        }
+      }
+    }
 
     meld::multiplexer::head_nodes_t head_nodes;
     (head_nodes.merge(edges(cons)), ...);

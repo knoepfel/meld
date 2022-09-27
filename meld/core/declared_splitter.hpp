@@ -73,13 +73,11 @@ namespace meld {
   template <typename T, typename... Args>
   class incomplete_splitter {
     static constexpr auto N = sizeof...(Args);
+    using function_t = std::function<void(generator&, Args...)>;
     class complete_splitter;
 
   public:
-    incomplete_splitter(component<T>& funcs,
-                        std::string name,
-                        tbb::flow::graph& g,
-                        std::function<void(generator&, Args...)> f) :
+    incomplete_splitter(component<T>& funcs, std::string name, tbb::flow::graph& g, function_t f) :
       funcs_{funcs}, name_{move(name)}, graph_{g}, ft_{move(f)}
     {
     }
@@ -122,7 +120,7 @@ namespace meld {
     std::size_t concurrency_{concurrency::serial};
     std::array<std::string, N> input_keys_;
     tbb::flow::graph& graph_;
-    std::function<void(generator&, Args...)> ft_;
+    function_t ft_;
   };
 
   template <typename T, typename... Args>
@@ -131,7 +129,7 @@ namespace meld {
     complete_splitter(std::string name,
                       std::size_t concurrency,
                       tbb::flow::graph& g,
-                      std::function<void(generator&, Args...)>&& f,
+                      function_t&& f,
                       std::array<std::string, N> input,
                       std::vector<std::string> provided_products) :
       declared_splitter{move(name), concurrency},
@@ -144,7 +142,7 @@ namespace meld {
         concurrency,
         [this, ft = std::move(f)](messages_t<N> const& messages) -> tbb::flow::continue_msg {
           auto const& msg = most_derived(messages);
-          auto const& [store, message_id, _] = msg;
+          auto const& store = msg.store;
           if (store->is_flush()) {
             return {};
           }
@@ -165,12 +163,7 @@ namespace meld {
           return {};
         }}
     {
-      if constexpr (N > 1ull) {
-        make_edge(join_, splitter_);
-      }
-      else {
-        make_edge(join_.pass_through, splitter_);
-      }
+      make_edge(join_, splitter_);
     }
 
   private:
@@ -188,7 +181,7 @@ namespace meld {
     }
 
     template <std::size_t... Is>
-    void call(std::function<void(generator&, Args...)> const& ft,
+    void call(function_t const& ft,
               generator& g,
               messages_t<N> const& messages,
               std::index_sequence<Is...>)

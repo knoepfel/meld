@@ -1,6 +1,7 @@
 #ifndef meld_core_component_hpp
 #define meld_core_component_hpp
 
+#include "meld/core/declared_output.hpp"
 #include "meld/core/declared_reduction.hpp"
 #include "meld/core/declared_splitter.hpp"
 #include "meld/core/declared_transform.hpp"
@@ -23,25 +24,37 @@ namespace meld {
   template <typename T>
   class component {
   public:
+    template <typename>
+    friend class component;
+
     component(tbb::flow::graph& g,
               declared_transforms& transforms,
               declared_reductions& reductions,
+              declared_outputs& outputs,
               declared_splitters& splitters) requires(std::same_as<T, void_tag>) :
-      graph_{g}, transforms_{transforms}, reductions_{reductions}, splitters_{splitters}
-    {
-    }
-    template <typename... Args>
-    component(tbb::flow::graph& g,
-              declared_transforms& transforms,
-              declared_reductions& reductions,
-              declared_splitters& splitters,
-              Args&&... args) requires(not std::same_as<T, void_tag>) :
       graph_{g},
       transforms_{transforms},
       reductions_{reductions},
-      splitters_{splitters},
-      bound_obj_{std::make_shared<T>(std::forward<Args>(args)...)}
+      outputs_{outputs},
+      splitters_{splitters}
     {
+    }
+
+    template <typename U, typename... Args>
+    component<U> bind_to(Args&&... args)
+    {
+      return component<U>{graph_,
+                          transforms_,
+                          reductions_,
+                          outputs_,
+                          splitters_,
+                          std::make_shared<U>(std::forward<Args>(args)...)};
+    }
+
+    template <typename FT>
+    auto declare_output(std::string name, FT f)
+    {
+      return incomplete_output{*this, name, graph_, delegate(bound_obj_, f)};
     }
 
     template <typename FT>
@@ -79,15 +92,36 @@ namespace meld {
       reductions_.try_emplace(name, std::move(ptr));
     }
 
+    void add_output(std::string const& name, declared_output_ptr ptr)
+    {
+      outputs_.try_emplace(name, std::move(ptr));
+    }
+
     void add_splitter(std::string const& name, declared_splitter_ptr ptr)
     {
       splitters_.try_emplace(name, std::move(ptr));
     }
 
   private:
+    component(tbb::flow::graph& g,
+              declared_transforms& transforms,
+              declared_reductions& reductions,
+              declared_outputs& outputs,
+              declared_splitters& splitters,
+              std::shared_ptr<T> bound_obj) requires(not std::same_as<T, void_tag>) :
+      graph_{g},
+      transforms_{transforms},
+      reductions_{reductions},
+      outputs_{outputs},
+      splitters_{splitters},
+      bound_obj_{bound_obj}
+    {
+    }
+
     tbb::flow::graph& graph_;
     declared_transforms& transforms_;
     declared_reductions& reductions_;
+    declared_outputs& outputs_;
     declared_splitters& splitters_;
     std::shared_ptr<T> bound_obj_;
   };

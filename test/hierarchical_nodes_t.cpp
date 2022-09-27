@@ -70,6 +70,21 @@ namespace {
   {
     debug(result.id(), ": ", *result, " @ ", stringized_time);
   }
+
+  struct SaveData {
+    void save(message const& msg) const
+    {
+      auto const& store = msg.store;
+      auto const* node_name = msg.node_name;
+      std::ostringstream oss;
+      oss << "Saving data for " << store->id() << " from " << (node_name ? *node_name : "Unknown")
+          << '\n';
+      for (auto const& [product_name, _] : *store) {
+        oss << " -> Product name: " << product_name << '\n';
+      }
+      debug(oss.str());
+    }
+  };
 }
 
 TEST_CASE("Hierarchical nodes", "[graph]")
@@ -126,6 +141,9 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   g.declare_transform("print_result", print_result)
     .concurrency(unlimited)
     .input("result", "strtime");
+
+  auto c = g.make<SaveData>();
+  c.declare_output("save_to_file", &SaveData::save).concurrency(1);
 
   g.execute("hierarchical_nodes_t.gv");
 }

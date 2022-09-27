@@ -22,6 +22,7 @@ namespace meld {
     struct named_output_port {
       std::string node_name;
       tbb::flow::sender<message>* port;
+      tbb::flow::sender<message>* to_output;
     };
     struct named_input_port {
       std::string node_name;

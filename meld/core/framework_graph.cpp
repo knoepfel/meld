@@ -29,11 +29,11 @@ namespace meld {
 
   void framework_graph::finalize(std::string const& dot_file_name)
   {
-    edge_maker make_edges{dot_file_name, transforms_, reductions_};
-    make_edges(multiplexer_,
+    edge_maker make_edges{dot_file_name, outputs_, transforms_, reductions_};
+    make_edges(src_,
+               multiplexer_,
                consumers{transforms_, {.shape = "ellipse"}},
                consumers{reductions_, {.arrowtail = "dot", .shape = "ellipse"}},
                consumers{splitters_, {.shape = "trapezium"}});
-    make_edge(src_, multiplexer_);
   }
 }

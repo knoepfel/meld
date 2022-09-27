@@ -63,7 +63,7 @@ namespace meld {
 
   using product_store_ptr = std::shared_ptr<product_store>;
 
-  product_store_ptr make_product_store();
+  product_store_ptr make_product_store(level_id id = {});
 
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b);
 

@@ -41,8 +41,6 @@ namespace meld {
     return result;
   }
 
-  product_store_ptr const& product_store::parent() const noexcept { return parent_; }
-
   product_store_ptr product_store::make_child(std::size_t new_level_number, products new_products)
   {
     return std::make_shared<product_store>(
@@ -54,11 +52,14 @@ namespace meld {
     return std::make_shared<product_store>(shared_from_this(), new_level_number, processing_stage);
   }
 
+  product_store_ptr const& product_store::parent() const noexcept { return parent_; }
   level_id const& product_store::id() const noexcept { return id_; }
-
   bool product_store::is_flush() const noexcept { return stage_ == stage::flush; }
 
-  product_store_ptr make_product_store() { return std::make_shared<product_store>(); }
+  product_store_ptr make_product_store(level_id id)
+  {
+    return std::make_shared<product_store>(std::move(id));
+  }
 
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b)
   {

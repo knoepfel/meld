@@ -61,6 +61,15 @@ namespace meld {
        << ";\n";
   }
 
+  void edge_maker::dot_output_edge(std::ostream& os,
+                                   std::string const& source_node,
+                                   std::string const& target_node,
+                                   dot::attributes attrs)
+  {
+    os << "  " << source_node << " -> " << target_node
+       << attributes_str(dir("both"), color("gray"), arrowtail(attrs.arrowtail)) << ";\n";
+  }
+
   void edge_maker::dot_multiplexing_edge(std::ostream& os,
                                          std::string const& source_node,
                                          std::string const& target_node,
