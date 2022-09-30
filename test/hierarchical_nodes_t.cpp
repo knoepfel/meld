@@ -9,7 +9,7 @@
 //      |       |
 //      |     scale
 //      |       |
-//     print_result
+//     print_result [also includes output module]
 //
 // where the asterisk (*) indicates a reduction step.  In terms of the
 // data model, whenever the add node receives the flush token, a
