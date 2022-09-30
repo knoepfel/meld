@@ -17,9 +17,10 @@ namespace meld {
         return it->second;
       }
       if (id == level_id{}) {
-        return new_store(make_product_store());
+        return new_store(make_product_store({}, source_name_));
       }
-      return new_store(get_empty_store(id.parent())->make_child(id.back(), processing_stage));
+      return new_store(
+        get_empty_store(id.parent())->make_child(id.back(), source_name_, processing_stage));
     }
 
   private:
@@ -28,6 +29,7 @@ namespace meld {
       return product_stores_.try_emplace(store->id(), store).first->second;
     }
 
+    std::string const source_name_{"Source"};
     std::map<level_id, product_store_ptr> product_stores_;
   };
 

@@ -19,6 +19,7 @@
 #include "meld/core/product_store.hpp"
 #include "meld/graph/transition.hpp"
 #include "meld/utilities/debug.hpp"
+#include "test/products_for_output.hpp"
 
 #include "catch2/catch.hpp"
 
@@ -102,6 +103,9 @@ TEST_CASE("Splitting the processing", "[graph]")
   g.declare_splitter("split", split).concurrency(unlimited).input("max_number").provides({"num"});
   g.declare_reduction("add", add).concurrency(unlimited).input("num").output("sum");
   g.declare_transform("check_sum", check_sum).concurrency(unlimited).input("sum");
+  g.make<test::products_for_output>()
+    .declare_output("save", &test::products_for_output::save)
+    .concurrency(1);
 
   g.execute("splitter_t.gv");
 }

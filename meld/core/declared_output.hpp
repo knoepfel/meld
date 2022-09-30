@@ -19,7 +19,7 @@
 
 namespace meld {
   namespace detail {
-    using output_function_t = std::function<void(message const&)>;
+    using output_function_t = std::function<void(product_store const&)>;
   }
   class declared_output {
   public:
@@ -31,7 +31,7 @@ namespace meld {
       concurrency_{concurrency},
       node_{g, concurrency_, [f = move(ft)](message const& msg) -> tbb::flow::continue_msg {
               if (not msg.store->is_flush()) {
-                f(msg);
+                f(*msg.store);
               }
               return {};
             }}

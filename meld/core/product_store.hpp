@@ -22,9 +22,17 @@ namespace meld {
     using ptr = std::shared_ptr<product_store>;
 
   public:
-    explicit product_store(level_id id = {}, stage processing_stage = stage::process);
-    explicit product_store(ptr parent, std::size_t new_level_number, products new_products);
-    explicit product_store(ptr parent, std::size_t new_level_number, stage processing_stage);
+    explicit product_store(level_id id = {},
+                           std::string source = {},
+                           stage processing_stage = stage::process);
+    explicit product_store(ptr parent,
+                           std::size_t new_level_number,
+                           std::string source,
+                           products new_products);
+    explicit product_store(ptr parent,
+                           std::size_t new_level_number,
+                           std::string source,
+                           stage processing_stage);
 
     // FIXME: 'stores_for_products()' may need to become a lazy range.
     std::map<std::string, std::weak_ptr<product_store>> stores_for_products();
@@ -32,9 +40,12 @@ namespace meld {
     auto begin() const noexcept { return products_.begin(); }
     auto end() const noexcept { return products_.end(); }
 
+    std::string const& source() const noexcept;
     ptr const& parent() const noexcept;
-    ptr make_child(std::size_t new_level_number, products new_products);
-    ptr make_child(std::size_t new_level_number, stage st = stage::process);
+    ptr make_child(std::size_t new_level_number, std::string source, products new_products);
+    ptr make_child(std::size_t new_level_number,
+                   std::string source = {},
+                   stage st = stage::process);
     level_id const& id() const noexcept;
     bool is_flush() const noexcept;
 
@@ -58,12 +69,13 @@ namespace meld {
     ptr parent_{nullptr};
     products products_{};
     level_id id_;
+    std::string source_;
     stage stage_;
   };
 
   using product_store_ptr = std::shared_ptr<product_store>;
 
-  product_store_ptr make_product_store(level_id id = {});
+  product_store_ptr make_product_store(level_id id = {}, std::string source = {});
 
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b);
 

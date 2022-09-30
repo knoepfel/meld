@@ -32,7 +32,6 @@ namespace meld {
     explicit framework_graph(FT ft) :
       src_{graph_,
            [this, user_function = std::move(ft)](tbb::flow_control& fc) mutable -> message {
-             static std::string const source_name{"Source"};
              auto store = user_function();
              if (not store) {
                fc.stop();
@@ -50,7 +49,7 @@ namespace meld {
 
              // FIXME: Need to find way to cleanup the original message-IDs map.
              original_message_ids_.try_emplace(store->id(), calls_);
-             return {store, calls_, .node_name = &source_name};
+             return {store, calls_};
            }},
       multiplexer_{graph_}
     {

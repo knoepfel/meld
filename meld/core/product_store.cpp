@@ -6,25 +6,31 @@
 
 namespace meld {
 
-  product_store::product_store(level_id id, stage processing_stage) :
-    id_{std::move(id)}, stage_{processing_stage}
+  product_store::product_store(level_id id, std::string source, stage processing_stage) :
+    id_{std::move(id)}, source_{move(source)}, stage_{processing_stage}
   {
   }
 
   product_store::product_store(product_store_ptr parent,
                                std::size_t new_level_number,
+                               std::string source,
                                products new_products) :
     parent_{parent},
     products_{std::move(new_products)},
     id_{parent->id().make_child(new_level_number)},
+    source_{move(source)},
     stage_{stage::process}
   {
   }
 
   product_store::product_store(product_store_ptr parent,
                                std::size_t new_level_number,
+                               std::string source,
                                stage processing_stage) :
-    parent_{parent}, id_{parent->id().make_child(new_level_number)}, stage_{processing_stage}
+    parent_{parent},
+    id_{parent->id().make_child(new_level_number)},
+    source_{move(source)},
+    stage_{processing_stage}
   {
   }
 
@@ -41,24 +47,30 @@ namespace meld {
     return result;
   }
 
-  product_store_ptr product_store::make_child(std::size_t new_level_number, products new_products)
+  product_store_ptr product_store::make_child(std::size_t new_level_number,
+                                              std::string source,
+                                              products new_products)
   {
     return std::make_shared<product_store>(
-      shared_from_this(), new_level_number, std::move(new_products));
+      shared_from_this(), new_level_number, move(source), std::move(new_products));
   }
 
-  product_store_ptr product_store::make_child(std::size_t new_level_number, stage processing_stage)
+  product_store_ptr product_store::make_child(std::size_t new_level_number,
+                                              std::string source,
+                                              stage processing_stage)
   {
-    return std::make_shared<product_store>(shared_from_this(), new_level_number, processing_stage);
+    return std::make_shared<product_store>(
+      shared_from_this(), new_level_number, move(source), processing_stage);
   }
 
+  std::string const& product_store::source() const noexcept { return source_; }
   product_store_ptr const& product_store::parent() const noexcept { return parent_; }
   level_id const& product_store::id() const noexcept { return id_; }
   bool product_store::is_flush() const noexcept { return stage_ == stage::flush; }
 
-  product_store_ptr make_product_store(level_id id)
+  product_store_ptr make_product_store(level_id id, std::string source)
   {
-    return std::make_shared<product_store>(std::move(id));
+    return std::make_shared<product_store>(std::move(id), move(source));
   }
 
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b)

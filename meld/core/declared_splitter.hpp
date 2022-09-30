@@ -32,6 +32,7 @@ namespace meld {
   class generator {
   public:
     explicit generator(product_store_ptr const& parent,
+                       std::string const& node_name,
                        multiplexer& m,
                        std::atomic<std::size_t>& counter);
     void make_child(std::size_t i, products new_products = {});
@@ -39,6 +40,7 @@ namespace meld {
 
   private:
     product_store_ptr parent_;
+    std::string const& node_name_;
     multiplexer& multiplexer_;
     std::atomic<std::size_t>& counter_;
     std::atomic<std::size_t> calls_{};
@@ -157,7 +159,7 @@ namespace meld {
             return {};
           }
 
-          generator g{msg.store, multiplexer_, counter_};
+          generator g{msg.store, this->name(), multiplexer_, counter_};
           call(ft, g, messages, std::index_sequence_for<Args...>{});
           multiplexer_.try_put(g.flush_message());
           return {};

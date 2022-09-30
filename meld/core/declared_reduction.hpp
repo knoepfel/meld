@@ -140,9 +140,9 @@ namespace meld {
             call(ft, messages, std::index_sequence_for<Args...>{});
             ++it->second->count;
           }
-          auto parent = make_product_store(parent_id);
+          auto parent = make_product_store(parent_id, this->name());
           if (auto const [complete, original_message_id] = reduction_complete(*parent); complete) {
-            get<0>(outputs).try_put({parent, original_message_id, .node_name = &this->name()});
+            get<0>(outputs).try_put({parent, original_message_id});
           }
         }}
     {

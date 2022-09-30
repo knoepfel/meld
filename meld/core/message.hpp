@@ -18,7 +18,6 @@ namespace meld {
     product_store_ptr store;
     std::size_t id;
     std::size_t original_id{-1ull}; // Used during flush
-    std::string const* node_name{nullptr};
   };
 
   template <std::size_t N>

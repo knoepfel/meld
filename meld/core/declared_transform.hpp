@@ -134,16 +134,15 @@ namespace meld {
             return;
           }
 
-          auto const* node_name = &this->name();
           if (typename decltype(stores_)::const_accessor a; stores_.find(a, store->id())) {
-            stay_in_graph.try_put({a->second, message_id, .node_name = node_name});
+            stay_in_graph.try_put({a->second, message_id});
             return;
           }
 
           typename decltype(stores_)::accessor a;
           bool const new_insert = stores_.insert(a, store->id());
           if (!new_insert) {
-            stay_in_graph.try_put({a->second, message_id, .node_name = node_name});
+            stay_in_graph.try_put({a->second, message_id});
             return;
           }
 
@@ -153,12 +152,12 @@ namespace meld {
           }
           else {
             auto result = call(ft, messages, std::index_sequence_for<Args...>{});
-            auto new_store = make_product_store(store->id());
+            auto new_store = make_product_store(store->id(), this->name());
             new_store->add_product(output_[0], result);
             a->second = new_store;
           }
 
-          message const new_msg{a->second, message_id, .node_name = node_name};
+          message const new_msg{a->second, message_id};
           stay_in_graph.try_put(new_msg);
           to_output.try_put(new_msg);
         }}
