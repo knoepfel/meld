@@ -6,8 +6,13 @@ namespace meld {
   generator::generator(product_store_ptr const& parent,
                        std::string const& node_name,
                        multiplexer& m,
+                       tbb::flow::broadcast_node<message>& to_output,
                        std::atomic<std::size_t>& counter) :
-    parent_{parent}, node_name_{node_name}, multiplexer_{m}, counter_{counter}
+    parent_{parent},
+    node_name_{node_name},
+    multiplexer_{m},
+    to_output_{to_output},
+    counter_{counter}
   {
   }
 
@@ -15,8 +20,9 @@ namespace meld {
   {
     ++counter_;
     ++calls_;
-    auto child = parent_->make_child(i, node_name_, std::move(new_products));
-    multiplexer_.try_put({child, counter_});
+    message const msg{parent_->make_child(i, node_name_, std::move(new_products)), counter_};
+    to_output_.try_put(msg);
+    multiplexer_.try_put(msg);
   }
 
   message generator::flush_message()
@@ -32,7 +38,6 @@ namespace meld {
   }
 
   declared_splitter::~declared_splitter() = default;
-
   std::string const& declared_splitter::name() const noexcept { return name_; }
   std::size_t declared_splitter::concurrency() const noexcept { return concurrency_; }
 

@@ -162,6 +162,8 @@ namespace meld {
     make_edge(source, multi);
 
     // Create edges to outputs first
+    auto& splitters = std::get<consumers<meld::declared_splitters>&>(std::tie(cons...));
+
     for (auto const& [name, output_node] : outputs_) {
       make_edge(source, output_node->port());
       if (*fout_) {
@@ -174,6 +176,13 @@ namespace meld {
           auto const& src_attributes = attributes_.at(named_port.node_name);
           dot_output_edge(
             *fout_, named_port.node_name, name, {.arrowtail = src_attributes.arrowtail});
+        }
+      }
+      for (auto const& [splitter_name, splitter] : splitters.data) {
+        make_edge(splitter->to_output(), output_node->port());
+        if (fout_) {
+          auto const& src_attributes = attributes_.at(splitter_name);
+          dot_output_edge(*fout_, splitter_name, name, {.arrowtail = src_attributes.arrowtail});
         }
       }
     }
@@ -192,8 +201,6 @@ namespace meld {
 
     std::map<std::string, std::vector<std::string>> consumed_products;
     (get_consumed_products(cons, consumed_products), ...);
-
-    auto& splitters = std::get<consumers<meld::declared_splitters>&>(std::tie(cons...));
 
     std::set<std::string> head_nodes_to_remove;
     for (auto const& [name, splitter] : splitters.data) {

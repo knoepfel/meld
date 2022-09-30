@@ -34,6 +34,7 @@ namespace meld {
     explicit generator(product_store_ptr const& parent,
                        std::string const& node_name,
                        multiplexer& m,
+                       tbb::flow::broadcast_node<message>& to_output,
                        std::atomic<std::size_t>& counter);
     void make_child(std::size_t i, products new_products = {});
     message flush_message();
@@ -42,6 +43,7 @@ namespace meld {
     product_store_ptr parent_;
     std::string const& node_name_;
     multiplexer& multiplexer_;
+    tbb::flow::broadcast_node<message>& to_output_;
     std::atomic<std::size_t>& counter_;
     std::atomic<std::size_t> calls_{};
     std::size_t const original_message_id_{counter_};
@@ -56,6 +58,7 @@ namespace meld {
     std::string const& name() const noexcept;
     std::size_t concurrency() const noexcept;
     tbb::flow::receiver<message>& port(std::string const& product_name);
+    virtual tbb::flow::sender<message>& to_output() = 0;
     virtual std::span<std::string const, std::dynamic_extent> input() const = 0;
     virtual std::vector<std::string> const& provided_products() const = 0;
     virtual void finalize(multiplexer::head_nodes_t head_nodes) = 0;
@@ -159,11 +162,12 @@ namespace meld {
             return {};
           }
 
-          generator g{msg.store, this->name(), multiplexer_, counter_};
+          generator g{msg.store, this->name(), multiplexer_, to_output_, counter_};
           call(ft, g, messages, std::index_sequence_for<Args...>{});
           multiplexer_.try_put(g.flush_message());
           return {};
-        }}
+        }},
+      to_output_{g}
     {
       make_edge(join_, splitter_);
     }
@@ -173,6 +177,7 @@ namespace meld {
     {
       return receiver_for<N>(join_, input_, product_name);
     }
+    tbb::flow::sender<message>& to_output() override { return to_output_; }
 
     std::span<std::string const, std::dynamic_extent> input() const override { return input_; }
     std::vector<std::string> const& provided_products() const override { return provided_; }
@@ -196,6 +201,7 @@ namespace meld {
     multiplexer multiplexer_;
     join_or_none_t<N> join_;
     tbb::flow::function_node<messages_t<N>> splitter_;
+    tbb::flow::broadcast_node<message> to_output_;
     tbb::concurrent_hash_map<level_id, product_store_ptr> stores_;
     std::atomic<std::size_t> counter_{}; // Is this sufficient?  Probably not.
   };
