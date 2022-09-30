@@ -40,14 +40,14 @@ namespace meld {
 
              ++calls_;
              if (store->is_flush()) {
-               // debug("Parent ID: ", store->parent()->id());
-               auto it = original_message_ids_.find(store->parent()->id());
-               assert(it != cend(original_message_ids_));
-               std::size_t const original_message_id = it->second;
+               // Original message ID no longer needed after this message.
+               auto h = original_message_ids_.extract(store->id().parent());
+               assert(h);
+               std::size_t const original_message_id = h.mapped();
                return {store, calls_, original_message_id};
              }
 
-             // FIXME: Need to find way to cleanup the original message-IDs map.
+             // debug("Inserting message ID for ", store->id(), ": ", calls_);
              original_message_ids_.try_emplace(store->id(), calls_);
              return {store, calls_};
            }},

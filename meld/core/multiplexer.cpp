@@ -17,7 +17,7 @@ namespace meld {
     using accessor = decltype(flushes_required_)::accessor;
     if (store->is_flush()) {
       accessor a;
-      bool const found = flushes_required_.find(a, store->parent()->id());
+      bool const found = flushes_required_.find(a, store->id().parent());
       if (!found) {
         a.release();
         // FIXME: This is the case where (a) no nodes exist, or (b)

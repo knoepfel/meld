@@ -22,6 +22,8 @@ namespace {
         return h ^= f + 0x9e3779b9 + (h << 6) + (h >> 2);
       });
   }
+
+  meld::level_id const base_id{};
 }
 
 namespace meld {
@@ -33,6 +35,11 @@ namespace meld {
   }
   level_id::level_id(std::vector<std::size_t> numbers) : id_{move(numbers)}, hash_{hash_nums(id_)}
   {
+  }
+
+  level_id const& level_id::base()
+  {
+    return base_id;
   }
 
   std::size_t level_id::depth() const noexcept { return id_.size(); }

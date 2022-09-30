@@ -81,7 +81,7 @@ namespace meld {
 
     template <typename U>
     explicit handle(product<U> const& prod,
-                    level_id const& id = {}) requires detail::same_handle_type<T, U> :
+                    level_id const& id = level_id::base()) requires detail::same_handle_type<T, U> :
       rep_{&prod.obj},
       id_{&id}
     {

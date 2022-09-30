@@ -21,6 +21,7 @@ namespace meld {
   class level_id {
   public:
     level_id();
+    static level_id const& base();
     explicit level_id(std::initializer_list<std::size_t> numbers);
     explicit level_id(std::vector<std::size_t> numbers);
     level_id make_child(std::size_t new_level_number) const;

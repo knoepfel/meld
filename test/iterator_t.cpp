@@ -84,7 +84,7 @@ namespace {
 
 int main()
 {
-  std::size_t sum = 0;
+  std::size_t sum [[maybe_unused]] = 0;
 
   bool const full = false;
   int n = 15'000;

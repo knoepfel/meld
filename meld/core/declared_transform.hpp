@@ -130,6 +130,10 @@ namespace meld {
           auto const& [store, message_id] = std::tie(msg.store, msg.id);
           auto& [stay_in_graph, to_output] = output;
           if (store->is_flush()) {
+            // FIXME: Depending on timing, the following may introduce
+            //        weird effects (e.g. deleting cached stores
+            //        before the user function has been invoked).
+            stores_.erase(store->id().parent());
             stay_in_graph.try_put(msg);
             return;
           }
