@@ -37,10 +37,7 @@ namespace meld {
   {
   }
 
-  level_id const& level_id::base()
-  {
-    return base_id;
-  }
+  level_id const& level_id::base() { return base_id; }
 
   std::size_t level_id::depth() const noexcept { return id_.size(); }
 

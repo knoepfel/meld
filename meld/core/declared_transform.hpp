@@ -8,6 +8,7 @@
 #include "meld/core/product_store.hpp"
 #include "meld/graph/transition.hpp"
 #include "meld/utilities/sized_tuple.hpp"
+#include "meld/utilities/type_deduction.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
@@ -73,8 +74,12 @@ namespace meld {
       return *this;
     }
 
-    auto input(std::array<std::string, N> input_keys)
+    template <std::size_t Nsize>
+    auto input(std::array<std::string, Nsize> input_keys)
     {
+      static_assert(N == Nsize,
+                    "The number of function parameters is not the same as the number of specified "
+                    "input arguments.");
       if constexpr (std::same_as<R, void>) {
         funcs_.add_transform(
           name_,
@@ -157,7 +162,7 @@ namespace meld {
           else {
             auto result = call(ft, messages, std::index_sequence_for<Args...>{});
             auto new_store = make_product_store(store->id(), this->name());
-            new_store->add_product(output_[0], result);
+            add_to(*new_store, result, output_);
             a->second = new_store;
           }
 
@@ -195,6 +200,8 @@ namespace meld {
 
   template <typename T, typename R, typename... Args>
   class incomplete_transform<T, R, Args...>::transform_requires_output {
+    static constexpr std::size_t M = number_outputs<R>;
+
   public:
     transform_requires_output(component<T>& funcs,
                               std::string name,
@@ -211,9 +218,13 @@ namespace meld {
     {
     }
 
-    template <std::size_t M>
-    void output(std::array<std::string, M> output_keys)
+    template <std::size_t Msize>
+    void output(std::array<std::string, Msize> output_keys)
     {
+      static_assert(
+        M == Msize,
+        "The number of function parameters is not the same as the number of returned output "
+        "objects.");
       funcs_.add_transform(
         name_,
         std::make_unique<complete_transform<M>>(
@@ -224,8 +235,11 @@ namespace meld {
     void output(Ts... ts)
     {
       static_assert(std::conjunction_v<std::is_convertible<Ts, std::string>...>);
-      // FIXME: Eventually make a static_assert so that # of output arguments matches sizeof...(Ts)
-      output(std::array<std::string, sizeof...(Ts)>{ts...});
+      static_assert(
+        M == sizeof...(Ts),
+        "The number of function parameters is not the same as the number of returned output "
+        "objects.");
+      output(std::array<std::string, M>{ts...});
     }
 
   private:

@@ -45,6 +45,12 @@ namespace meld {
   {
     return std::function{[t = obj, f](Args... args) mutable -> R { return ((*t).*f)(args...); }};
   }
+
+  template <typename T>
+  constexpr std::size_t number_outputs = 1ull;
+
+  template <typename... Args>
+  constexpr std::size_t number_outputs<std::tuple<Args...>> = sizeof...(Args);
 }
 
 #endif /* meld_utilities_type_deduction_hpp */

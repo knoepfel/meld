@@ -42,17 +42,17 @@ namespace {
     }
   };
 
-  void verify_results(std::tuple<int, double, std::string> const& result)
+  void verify_results(int number, double temperature, std::string const& name)
   {
     auto const expected = std::make_tuple(3, 98.5, "John");
-    CHECK(result == expected);
+    CHECK(std::tie(number, temperature, name) == expected);
   }
 }
 
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
   std::array const product_names{"number"s, "temperature"s, "name"s};
-  std::array const result{"result"s};
+  std::array const oproduct_names{"onumber"s, "otemperature"s, "oname"s};
 
   auto store = make_product_store();
   store->add_product("number", 3);
@@ -64,43 +64,43 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   SECTION("No framework")
   {
     a_component.declare_transform("no_framework", &A::no_framework)
-      .concurrency(tbb::flow::unlimited)
+      .concurrency(unlimited)
       .input(product_names)
-      .output(result);
+      .output(oproduct_names);
   }
   SECTION("No framework, all references")
   {
     a_component.declare_transform("no_framework_all_refs", &A::no_framework_all_refs)
-      .concurrency(tbb::flow::unlimited)
+      .concurrency(unlimited)
       .input(product_names)
-      .output(result);
+      .output(oproduct_names);
   }
   SECTION("No framework, all pointers")
   {
     a_component.declare_transform("no_framework_all_ptrs", &A::no_framework_all_ptrs)
-      .concurrency(tbb::flow::unlimited)
+      .concurrency(unlimited)
       .input(product_names)
-      .output(result);
+      .output(oproduct_names);
   }
   SECTION("One framework argument")
   {
     a_component.declare_transform("one_framework_arg", &A::one_framework_arg)
-      .concurrency(tbb::flow::unlimited)
+      .concurrency(unlimited)
       .input(product_names)
-      .output(result);
+      .output(oproduct_names);
   }
   SECTION("All framework arguments")
   {
     a_component.declare_transform("all_framework_args", &A::all_framework_args)
-      .concurrency(tbb::flow::unlimited)
+      .concurrency(unlimited)
       .input(product_names)
-      .output(result);
+      .output(oproduct_names);
   }
 
   // The following is invoked for *each* section above
   g.declare_transform("verify_results", verify_results)
-    .concurrency(tbb::flow::unlimited)
-    .input("result");
+    .concurrency(unlimited)
+    .input(oproduct_names);
 
-  g.execute();
+  g.execute("class_component_t.gv");
 }

@@ -4,6 +4,7 @@
 #include "meld/core/handle.hpp"
 #include "meld/graph/transition.hpp"
 
+#include <array>
 #include <cstddef>
 #include <map>
 #include <memory>
@@ -78,6 +79,24 @@ namespace meld {
   product_store_ptr make_product_store(level_id id = {},
                                        std::string source = {},
                                        stage processing_stage = stage::process);
+
+  template <typename T>
+  void add_to(product_store& store, T const& t, std::array<std::string, 1u> const& name)
+  {
+    store.add_product(name[0], t);
+  }
+
+  template <typename... Ts>
+  void add_to(product_store& store,
+              std::tuple<Ts...> const& ts,
+              std::array<std::string, sizeof...(Ts)> const& names)
+  {
+    [&store, &names ]<std::size_t... Is>(auto const& ts, std::index_sequence<Is...>)
+    {
+      (store.add_product(names[Is], std::get<Is>(ts)), ...);
+    }
+    (ts, std::index_sequence_for<Ts...>{});
+  }
 
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b);
 
