@@ -1,6 +1,7 @@
 #include "meld/core/load_module.hpp"
-#include "meld/core/source_worker.hpp"
-#include "meld/graph/module_worker.hpp"
+#include "meld/core/framework_graph.hpp"
+#include "meld/module.hpp"
+#include "meld/source.hpp"
 
 #include "boost/algorithm/string.hpp"
 #include "boost/dll/import.hpp"
@@ -17,8 +18,8 @@ namespace meld {
   namespace {
     // If factory function goes out of scope, then the library is
     // unloaded...and that's bad.
-    std::vector<std::function<module_creator_t>> create_module;
-    std::function<source_creator_t> create_source;
+    std::vector<std::function<detail::module_creator_t>> create_module;
+    std::function<detail::source_creator_t> create_source;
 
     template <typename creator_t>
     std::function<creator_t> plugin_loader(std::string const& spec, std::string const& symbol_name)
@@ -45,18 +46,18 @@ namespace meld {
     }
   }
 
-  std::unique_ptr<module_worker> load_module(boost::json::value const& config)
+  void load_module(framework_graph& g, boost::json::value const& config)
   {
     auto const& spec = value_to<std::string>(config.at("plugin"));
     auto& creator =
-      create_module.emplace_back(plugin_loader<module_creator_t>(spec, "create_module"));
-    return creator(config);
+      create_module.emplace_back(plugin_loader<detail::module_creator_t>(spec, "create_module"));
+    creator(g, config);
   }
 
-  std::unique_ptr<source_worker> load_source(boost::json::value const& config)
+  std::function<product_store_ptr()> load_source(boost::json::value const& config)
   {
     auto const& spec = value_to<std::string>(config.at("plugin"));
-    create_source = plugin_loader<source_creator_t>(spec, "create_source");
+    create_source = plugin_loader<detail::source_creator_t>(spec, "create_source");
     return create_source(config);
   }
 }

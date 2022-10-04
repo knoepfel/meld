@@ -27,33 +27,7 @@ namespace meld {
     static constexpr run_once_t run_once{};
 
     explicit framework_graph(run_once_t, product_store_ptr store);
-
-    template <typename FT>
-    explicit framework_graph(FT ft) :
-      src_{graph_,
-           [this, user_function = std::move(ft)](tbb::flow_control& fc) mutable -> message {
-             auto store = user_function();
-             if (not store) {
-               fc.stop();
-               return {};
-             }
-
-             ++calls_;
-             if (store->is_flush()) {
-               // Original message ID no longer needed after this message.
-               auto h = original_message_ids_.extract(store->id().parent());
-               assert(h);
-               std::size_t const original_message_id = h.mapped();
-               return {store, calls_, original_message_id};
-             }
-
-             // debug("Inserting message ID for ", store->id(), ": ", calls_);
-             original_message_ids_.try_emplace(store->id(), calls_);
-             return {store, calls_};
-           }},
-      multiplexer_{graph_}
-    {
-    }
+    explicit framework_graph(std::function<product_store_ptr()>&& f);
 
     void execute(std::string const& dot_file_name = {});
 

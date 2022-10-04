@@ -2,6 +2,7 @@
 #define meld_core_fwd_hpp
 
 namespace meld {
+  class framework_graph;
   class product_store;
   template <typename T>
   class component;

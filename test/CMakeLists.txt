@@ -26,6 +26,9 @@ function(add_catch_test BASENAME)
   endif()
 endfunction()
 
+add_library(module_t SHARED module_t.cpp)
+target_link_libraries(module_t PRIVATE meld::core)
+
 add_unit_test(iterator_t)
 add_unit_test(sized_tuple_t LIBRARIES meld::utilities)
 add_unit_test(string_literal_t LIBRARIES meld::utilities)
