@@ -7,18 +7,27 @@
 
 #include <memory>
 
-namespace meld {
+namespace meld::detail {
+  template <typename T>
+  T make(boost::json::value const& obj)
+  {
+    if constexpr (requires { T{obj}; }) {
+      return T{obj};
+    }
+    else {
+      return T{};
+    }
+  }
+
   template <typename T>
   std::function<product_store_ptr()> create_next(boost::json::value const& obj)
   {
-    return [t = T{obj}]() mutable -> product_store_ptr { return t.next(); };
+    return [t = make<T>(obj)]() mutable -> product_store_ptr { return t.next(); };
   }
 
-  namespace detail {
-    using source_creator_t = std::function<product_store_ptr()>(boost::json::value const&);
-  }
+  using source_creator_t = std::function<product_store_ptr()>(boost::json::value const&);
 }
 
-#define DEFINE_SOURCE(source) BOOST_DLL_ALIAS(create_next<source>, create_source)
+#define DEFINE_SOURCE(source) BOOST_DLL_ALIAS(meld::detail::create_next<source>, create_source)
 
 #endif /* meld_source_hpp */

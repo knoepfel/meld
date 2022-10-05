@@ -32,6 +32,7 @@
 #include "meld/core/framework_graph.hpp"
 #include "meld/graph/transition.hpp"
 #include "meld/utilities/debug.hpp"
+#include "test/cached_execution_source.hpp"
 
 #include "catch2/catch.hpp"
 #include "oneapi/tbb/flow_graph.h"
@@ -63,52 +64,8 @@ namespace {
 
 TEST_CASE("Cached function calls", "[data model]")
 {
-  constexpr std::size_t n_runs{1};
-  constexpr std::size_t n_subruns{2u};
-  constexpr std::size_t n_events{5u};
-
-  std::vector<transition> transitions;
-  level_id const job_id{};
-  transitions.emplace_back(level_id{}, stage::process);
-  for (std::size_t i = 0; i != n_runs; ++i) {
-    auto const run_id = job_id.make_child(i);
-    transitions.emplace_back(run_id, stage::process);
-    for (std::size_t j = 0; j != n_subruns; ++j) {
-      auto const subrun_id = run_id.make_child(j);
-      transitions.emplace_back(subrun_id, stage::process);
-      for (std::size_t k = 0; k != n_events; ++k) {
-        transitions.emplace_back(subrun_id.make_child(k), stage::process);
-      }
-      transitions.emplace_back(subrun_id.make_child(n_events), stage::flush);
-    }
-    transitions.emplace_back(run_id.make_child(n_subruns), stage::flush);
-  }
-  transitions.emplace_back(job_id.make_child(n_runs), stage::flush);
-
-  auto it = cbegin(transitions);
-  auto const e = cend(transitions);
-  cached_product_stores stores;
-  framework_graph g{[&stores, it, e]() mutable -> product_store_ptr {
-    if (it == e) {
-      return nullptr;
-    }
-    auto const& [id, stage] = *it++;
-
-    auto store = stores.get_empty_store(id, stage);
-    if (store->is_flush()) {
-      return store;
-    }
-    if (store->id().depth() == 1ull) {
-      store->add_product<int>("number", 2 * store->id().back());
-    }
-    if (store->id().depth() == 2ull) {
-      store->add_product<int>("another", 3 * store->id().back());
-    }
-    if (store->id().depth() == 3ull) {
-      store->add_product<int>("still", 4 * store->id().back());
-    }
-    return store;
-  }};
+  test::cached_execution_source source;
+  framework_graph g{[&source]() mutable { return source.next(); }};
 
   std::atomic<unsigned int> a1_counter{};
   g.make<OneArg>(a1_counter)
@@ -151,6 +108,7 @@ TEST_CASE("Cached function calls", "[data model]")
 
   g.execute("cached_execution_t.gv");
 
+  using namespace test;
   CHECK(a1_counter == n_runs);
   CHECK(a2_counter == n_runs);
   CHECK(a3_counter == n_runs);

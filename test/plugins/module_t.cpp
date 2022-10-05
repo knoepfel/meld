@@ -1,5 +1,5 @@
 #include "meld/module.hpp"
-#include "test/add.hpp"
+#include "test/plugins/add.hpp"
 
 using namespace meld::concurrency;
 
