@@ -1,9 +1,6 @@
+#include "boost/program_options.hpp"
 #include "meld/app/run_meld.hpp"
 #include "meld/app/version.hpp"
-
-#include "CLI/App.hpp"
-#include "CLI/Config.hpp"
-#include "CLI/Formatter.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -11,6 +8,7 @@
 
 using namespace std::string_literals;
 using namespace boost;
+namespace bpo = boost::program_options;
 
 namespace {
   std::variant<json::value, json::error_code> read_json(std::string const& config)
@@ -38,28 +36,59 @@ namespace {
 
 int main(int argc, char* argv[])
 {
-  CLI::App app{"meld is a framework to explore processing DUNE data."};
-  bool maybe_version{false};
-  // unsigned num_nodes{1};
-  std::string config_file;
-  app.add_flag("--version", maybe_version, "Print version of meld ("s + meld::version() + ")"s);
-  // app.add_option("-n", num_nodes, "Number of nodes to process (default is 1)");
-  app.add_option("--config", config_file, "Configuration file to use.")->required();
-  CLI11_PARSE(app, argc, argv);
+  std::ostringstream descstr;
+  descstr << "\nUsage: " << std::filesystem::path(argv[0]).filename().native()
+          << " -c <config-file> [other-options]\n\n"
+          << "Basic options";
+  bpo::options_description desc{
+    descstr.str()}; //{"meld is a framework to explore processing DUNE data"};
 
-  if (maybe_version) {
+  std::string config_file;
+  // clang-format off
+  desc.add_options()
+    ("help,h", "Produce help message")
+    ("version", ("Print meld version ("s + meld::version() + ")").c_str())
+    ("config,c", bpo::value<std::string>(&config_file), "Configuration file.");
+  // clang-format on
+
+  // Parse the command line.
+  bpo::variables_map vm;
+  try {
+    bpo::store(
+      bpo::command_line_parser(argc, argv)
+        .options(desc)
+        .style(bpo::command_line_style::default_style & ~bpo::command_line_style::allow_guessing)
+        .run(),
+      vm);
+    bpo::notify(vm);
+  }
+  catch (bpo::error const& e) {
+    std::cerr << "Exception from command line processing in " << argv[0] << ": " << e.what()
+              << '\n';
+    return 1;
+  }
+
+  if (vm.count("help")) {
+    std::cout << desc << '\n';
+    return 0;
+  }
+
+  if (vm.count("version")) {
     std::cout << "meld " << meld::version() << '\n';
     return 0;
+  }
+
+  if (not vm.count("config")) {
+    std::cerr << "Error: No configuration file given.\n";
+    return 2;
   }
 
   std::cout << "Using configuration file: " << config_file << '\n';
   auto result = read_json(config_file);
   if (auto ecp = get_if<boost::json::error_code>(&result)) {
     std::cerr << ecp->what() << '\n';
-    return 1;
+    return 2;
   }
-
-  // TODO: Load all required plugins into a manager, and then allow 'run_it' to use the plugin manager.
 
   meld::run_it(get<boost::json::value>(result));
 }
