@@ -6,4 +6,4 @@ target_link_libraries(source_t PRIVATE meld::core)
 
 
 add_test(NAME job:add_t
-         COMMAND meld -c ${CMAKE_CURRENT_SOURCE_DIR}/add.json)
+         COMMAND meld -c ${CMAKE_CURRENT_SOURCE_DIR}/add.jsonnet)

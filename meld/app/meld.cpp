@@ -1,4 +1,5 @@
 #include "boost/program_options.hpp"
+#include "libjsonnet++.h"
 #include "meld/app/run_meld.hpp"
 #include "meld/app/version.hpp"
 
@@ -9,30 +10,6 @@
 using namespace std::string_literals;
 using namespace boost;
 namespace bpo = boost::program_options;
-
-namespace {
-  std::variant<json::value, json::error_code> read_json(std::string const& config)
-  {
-    json::stream_parser p{{}, json::parse_options{.allow_comments = true}};
-    json::error_code ec;
-    std::ifstream config_file{config};
-    if (!config_file) {
-      throw std::runtime_error("Malformed configuration file: " + config + ".");
-    }
-    for (std::string line; getline(config_file, line);) {
-      // getline removes the trailing '\n' character; we add it back
-      // because boost::json requires it when supporting comments.
-      line.push_back('\n');
-      p.write(line, ec);
-      if (ec)
-        return ec;
-    }
-    p.finish(ec);
-    if (ec)
-      return ec;
-    return p.release();
-  }
-}
 
 int main(int argc, char* argv[])
 {
@@ -83,12 +60,20 @@ int main(int argc, char* argv[])
     return 2;
   }
 
-  std::cout << "Using configuration file: " << config_file << '\n';
-  auto result = read_json(config_file);
-  if (auto ecp = get_if<boost::json::error_code>(&result)) {
-    std::cerr << ecp->what() << '\n';
+  jsonnet::Jsonnet j;
+  if (not j.init()) {
+    std::cerr << "Error: Could not initialize Jsonnet parser.\n";
     return 2;
   }
 
-  meld::run_it(get<boost::json::value>(result));
+  std::cout << "Using configuration file: " << config_file << '\n';
+
+  std::string config_str;
+  auto rc = j.evaluateFile(config_file, &config_str);
+  if (not rc) {
+    std::cerr << j.lastError() << '\n';
+    return 2;
+  }
+
+  meld::run_it(json::parse(config_str));
 }
