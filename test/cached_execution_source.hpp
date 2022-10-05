@@ -19,6 +19,10 @@ namespace test {
 
   class cached_execution_source {
   public:
+    // Uncopyable due to iterator
+    cached_execution_source(cached_execution_source const&) = delete;
+    cached_execution_source& operator=(cached_execution_source const&) = delete;
+
     cached_execution_source()
     {
       using namespace meld;

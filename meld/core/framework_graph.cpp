@@ -15,7 +15,7 @@ namespace meld {
   {
   }
 
-  framework_graph::framework_graph(std::function<product_store_ptr()>&& f) :
+  framework_graph::framework_graph(std::function<product_store_ptr()> f) :
     src_{graph_,
          [this, user_function = move(f)](tbb::flow_control& fc) mutable -> message {
            auto store = user_function();

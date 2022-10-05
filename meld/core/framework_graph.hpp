@@ -27,7 +27,7 @@ namespace meld {
     static constexpr run_once_t run_once{};
 
     explicit framework_graph(run_once_t, product_store_ptr store);
-    explicit framework_graph(std::function<product_store_ptr()>&& f);
+    explicit framework_graph(std::function<product_store_ptr()> f);
 
     void execute(std::string const& dot_file_name = {});
 

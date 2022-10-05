@@ -28,14 +28,11 @@
 // the B transforms must use "cached" data from the A transforms.
 // ===================================================================
 
-#include "meld/core/cached_product_stores.hpp"
 #include "meld/core/framework_graph.hpp"
-#include "meld/graph/transition.hpp"
-#include "meld/utilities/debug.hpp"
+#include "meld/source.hpp"
 #include "test/cached_execution_source.hpp"
 
 #include "catch2/catch.hpp"
-#include "oneapi/tbb/flow_graph.h"
 
 using namespace meld;
 using namespace meld::concurrency;
@@ -64,8 +61,7 @@ namespace {
 
 TEST_CASE("Cached function calls", "[data model]")
 {
-  test::cached_execution_source source;
-  framework_graph g{[&source]() mutable { return source.next(); }};
+  framework_graph g{detail::create_next<test::cached_execution_source>()};
 
   std::atomic<unsigned int> a1_counter{};
   g.make<OneArg>(a1_counter)
