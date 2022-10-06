@@ -4,16 +4,12 @@ add_library(meld_core SHARED
   declared_reduction.cpp
   edge_maker.cpp
   framework_graph.cpp
-  load_module.cpp
   message.cpp
   multiplexer.cpp
   product_store.cpp
   )
 target_include_directories(meld_core PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(meld_core PRIVATE Boost::boost TBB::tbb meld::graph)
-
-# We'll use C++17's filesystem insteead of Boost's
-target_compile_definitions(meld_core PRIVATE BOOST_DLL_USE_STD_FS)
 
 # Interface library
 add_library(meld_core_int INTERFACE)

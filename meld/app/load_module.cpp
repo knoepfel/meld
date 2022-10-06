@@ -1,4 +1,4 @@
-#include "meld/core/load_module.hpp"
+#include "meld/app/load_module.hpp"
 #include "meld/core/framework_graph.hpp"
 #include "meld/module.hpp"
 #include "meld/source.hpp"
@@ -6,7 +6,6 @@
 #include "boost/algorithm/string.hpp"
 #include "boost/dll/import.hpp"
 #include "boost/json.hpp"
-#include "boost/json/src.hpp" // FIXME: Yuck...but yet per Boost guidance.
 
 #include <functional>
 #include <string>

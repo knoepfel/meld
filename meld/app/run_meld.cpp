@@ -1,6 +1,6 @@
 #include "meld/app/run_meld.hpp"
+#include "meld/app/load_module.hpp"
 #include "meld/core/framework_graph.hpp"
-#include "meld/core/load_module.hpp"
 
 namespace meld {
   void run_it(boost::json::value const& configurations)

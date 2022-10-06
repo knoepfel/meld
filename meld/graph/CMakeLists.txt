@@ -3,7 +3,7 @@ add_library(meld_graph SHARED
   transition.cpp
   )
 target_include_directories(meld_graph PRIVATE ${PROJECT_SOURCE_DIR})
-target_link_libraries(meld_graph PRIVATE TBB::tbb Boost::boost)
+target_link_libraries(meld_graph PRIVATE Boost::boost TBB::tbb)
 
 # Interface library
 add_library(meld_graph_int INTERFACE)

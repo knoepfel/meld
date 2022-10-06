@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_BUILD_TYPE "Debug")
 add_compile_options(-Wall -Werror -pedantic)
 
-find_package(Boost REQUIRED COMPONENTS program_options)
+find_package(Boost REQUIRED COMPONENTS json program_options)
 find_package(TBB REQUIRED)
 
 add_subdirectory(meld)

@@ -17,15 +17,14 @@ int main(int argc, char* argv[])
   descstr << "\nUsage: " << std::filesystem::path(argv[0]).filename().native()
           << " -c <config-file> [other-options]\n\n"
           << "Basic options";
-  bpo::options_description desc{
-    descstr.str()}; //{"meld is a framework to explore processing DUNE data"};
+  bpo::options_description desc{descstr.str()};
 
   std::string config_file;
   // clang-format off
   desc.add_options()
     ("help,h", "Produce help message")
-    ("version", ("Print meld version ("s + meld::version() + ")").c_str())
-    ("config,c", bpo::value<std::string>(&config_file), "Configuration file.");
+    ("config,c", bpo::value<std::string>(&config_file), "Configuration file.")
+    ("version", ("Print meld version ("s + meld::version() + ")").c_str());
   // clang-format on
 
   // Parse the command line.

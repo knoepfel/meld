@@ -32,7 +32,7 @@ add_unit_test(string_literal_t LIBRARIES meld::utilities)
 
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 
-add_catch_test(cached_execution_t LIBRARIES meld::core TEST_DOT_GRAPH)
+add_catch_test(cached_execution_t LIBRARIES meld::core Boost::json TEST_DOT_GRAPH)
 add_catch_test(cached_product_stores_t LIBRARIES meld::core)
 add_catch_test(cartesian_product_t LIBRARIES meld::utilities)
 add_catch_test(class_component_t LIBRARIES meld::core meld::core)
