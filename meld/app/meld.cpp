@@ -23,8 +23,10 @@ int main(int argc, char* argv[])
   // clang-format off
   desc.add_options()
     ("help,h", "Produce help message")
-    ("config,c", bpo::value<std::string>(&config_file), "Configuration file.")
-    ("version", ("Print meld version ("s + meld::version() + ")").c_str());
+    ("config,c", bpo::value<std::string>(&config_file), "Configuration file")
+    ("version", ("Print meld version ("s + meld::version() + ")").c_str())
+    ("dot-file,g",
+       bpo::value<std::string>(), "Produce DOT file representing graph of framework nodes.");
   // clang-format on
 
   // Parse the command line.
@@ -59,6 +61,16 @@ int main(int argc, char* argv[])
     return 2;
   }
 
+  std::optional<std::string> dot_file{};
+  if (vm.count("dot-file")) {
+    auto filename = vm["dot-file"].as<std::string>();
+    if (std::empty(filename)) {
+      std::cerr << "Error: The 'dot-file|g' option cannot use an empty filename.\n";
+      return 3;
+    }
+    dot_file = make_optional(std::move(filename));
+  }
+
   jsonnet::Jsonnet j;
   if (not j.init()) {
     std::cerr << "Error: Could not initialize Jsonnet parser.\n";
@@ -74,5 +86,5 @@ int main(int argc, char* argv[])
     return 2;
   }
 
-  meld::run_it(json::parse(config_str));
+  meld::run_it(json::parse(config_str), std::move(dot_file));
 }

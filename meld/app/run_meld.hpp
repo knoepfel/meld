@@ -4,7 +4,7 @@
 #include "boost/json.hpp"
 
 namespace meld {
-  void run_it(boost::json::value const& configurations);
+  void run_it(boost::json::value const& configurations, std::optional<std::string> dot_file);
 }
 
 #endif /* meld_app_run_meld_hpp */
