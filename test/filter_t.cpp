@@ -3,6 +3,7 @@
 
 #include "catch2/catch.hpp"
 #include "oneapi/tbb/concurrent_hash_map.h"
+#include "oneapi/tbb/concurrent_vector.h"
 #include "oneapi/tbb/flow_graph.h"
 
 #include <cassert>
@@ -219,6 +220,25 @@ namespace {
     T const max_;
     T i_{};
   };
+
+  constexpr auto evens_only()
+  {
+    return [](unsigned int const i) -> bool { return i % 2 == 0; };
+  }
+  constexpr auto odds_only()
+  {
+    return [](unsigned int const i) -> bool { return i % 2 != 0; };
+  }
+
+  constexpr bool in_range(unsigned int const b, unsigned int const e, unsigned int const i)
+  {
+    return i >= b and i < e;
+  }
+
+  constexpr auto not_in_range(unsigned int const b, unsigned int const e)
+  {
+    return [b, e](unsigned int const i) -> bool { return not in_range(b, e, i); };
+  }
 }
 
 TEST_CASE("Filter decision", "[filtering]")
@@ -250,9 +270,7 @@ TEST_CASE("One filter", "[filtering]")
   flow::graph g;
   flow::input_node src{g, source{10u}};
 
-  filter_node<unsigned int> filter{
-    g, flow::unlimited, [](unsigned int const i) -> bool { return i % 2 == 0; }};
-
+  filter_node<unsigned int> filter{g, flow::unlimited, evens_only()};
   filter_aggregator<unsigned int> collector{g, 1u, 1u};
 
   std::atomic<unsigned int> sum{};
@@ -273,11 +291,8 @@ TEST_CASE("Two filters in series", "[filtering]")
   flow::graph g;
   flow::input_node src{g, source{10u}};
 
-  filter_node<unsigned int> filter_evens{
-    g, flow::unlimited, [](unsigned int const i) -> bool { return i % 2 == 0; }};
-
-  filter_node<unsigned int> filter_odds{
-    g, flow::unlimited, [](unsigned int const i) -> bool { return i % 2 != 0; }};
+  filter_node<unsigned int> filter_evens{g, flow::unlimited, evens_only()};
+  filter_node<unsigned int> filter_odds{g, flow::unlimited, odds_only()};
 
   filter_aggregator<unsigned int> collector_evens{g, 1u, 1u};
   filter_aggregator<unsigned int> collector_odds{g, 1u, 1u};
@@ -315,11 +330,8 @@ TEST_CASE("Two filters in parallel", "[filtering]")
   flow::graph g;
   flow::input_node src{g, source{10u}};
 
-  filter_node<unsigned int> filter_evens{
-    g, flow::unlimited, [](unsigned int const i) -> bool { return i % 2 == 0; }};
-
-  filter_node<unsigned int> filter_odds{
-    g, flow::unlimited, [](unsigned int const i) -> bool { return i % 2 != 0; }};
+  filter_node<unsigned int> filter_evens{g, flow::unlimited, evens_only()};
+  filter_node<unsigned int> filter_odds{g, flow::unlimited, odds_only()};
 
   filter_aggregator<unsigned int> collector{g, 2u, 1u};
 
@@ -334,4 +346,32 @@ TEST_CASE("Two filters in parallel", "[filtering]")
   g.wait_for_all();
 
   CHECK(sum == 0u);
+}
+
+TEST_CASE("Three filters in parallel", "[filtering]")
+{
+  flow::graph g;
+  flow::input_node src{g, source{10u}};
+
+  filter_node<unsigned int> filter_0_to_4{g, flow::unlimited, not_in_range(0, 4)};
+  filter_node<unsigned int> filter_6_to_7{g, flow::unlimited, not_in_range(6, 7)};
+  filter_node<unsigned int> filter_gt_8{g, flow::unlimited, not_in_range(8, -1u)};
+
+  filter_aggregator<unsigned int> collector{g, 3u, 1u};
+
+  concurrent_vector<unsigned int> nums;
+  sink_node<unsigned int> add{
+    g, flow::unlimited, [&nums](unsigned int const i) { nums.push_back(i); }};
+
+  nodes(src)->nodes(filter_0_to_4, filter_6_to_7, filter_gt_8, input_port<1>(collector));
+  nodes(filter_0_to_4, filter_6_to_7, filter_gt_8)->nodes(input_port<0>(collector));
+  nodes(output_port<0>(collector))->nodes(add);
+
+  src.activate();
+  g.wait_for_all();
+
+  std::vector actual(std::begin(nums), std::end(nums));
+  sort(begin(actual), end(actual));
+  std::vector const expected{4u, 5u, 7u};
+  CHECK(actual == expected);
 }
