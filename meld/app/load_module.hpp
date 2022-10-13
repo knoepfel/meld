@@ -1,5 +1,5 @@
-#ifndef meld_core_load_module_hpp
-#define meld_core_load_module_hpp
+#ifndef meld_app_load_module_hpp
+#define meld_app_load_module_hpp
 
 #include "meld/core/fwd.hpp"
 #include "meld/source.hpp"
@@ -13,4 +13,4 @@ namespace meld {
   std::function<product_store_ptr()> load_source(boost::json::value const& config);
 }
 
-#endif /* meld_core_load_module_hpp */
+#endif /* meld_app_load_module_hpp */
