@@ -1,6 +1,8 @@
 #ifndef meld_graph_transition_hpp
 #define meld_graph_transition_hpp
 
+#include "fmt/format.h"
+#include "fmt/ranges.h"
 #include "oneapi/tbb/concurrent_hash_map.h"
 
 #include <cstddef>
@@ -34,6 +36,7 @@ namespace meld {
     bool operator<(level_id const& other) const;
 
     friend transitions transitions_between(level_id from, level_id const& to, level_counter& c);
+    friend struct fmt::formatter<level_id>;
     friend std::ostream& operator<<(std::ostream& os, level_id const& id);
 
   private:
@@ -43,6 +46,18 @@ namespace meld {
 
   level_id id_for(char const* str);
   level_id operator"" _id(char const* str, std::size_t);
+}
+
+namespace fmt {
+  template <>
+  struct formatter<meld::level_id> : formatter<std::vector<std::size_t>> {
+    // parse is inherited from formatter<std::vector<std::size_t>>.
+    template <typename FormatContext>
+    auto format(meld::level_id const& id, FormatContext& ctx)
+    {
+      return formatter<std::vector<std::size_t>>::format(id.id_, ctx);
+    }
+  };
 }
 
 namespace std {

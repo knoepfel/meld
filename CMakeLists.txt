@@ -9,6 +9,8 @@ add_compile_options(-Wall -Werror -pedantic)
 
 find_package(Boost REQUIRED COMPONENTS json program_options)
 find_package(TBB REQUIRED)
+find_package(fmt REQUIRED)
+find_package(spdlog REQUIRED)
 
 add_subdirectory(meld)
 

@@ -3,6 +3,8 @@
 #include "meld/core/edge_maker.hpp"
 #include "meld/core/product_store.hpp"
 
+#include "spdlog/cfg/env.h"
+
 namespace meld {
   framework_graph::framework_graph(run_once_t, product_store_ptr store) :
     framework_graph{[store, executed = false]() mutable -> product_store_ptr {
@@ -39,6 +41,7 @@ namespace meld {
          }},
     multiplexer_{graph_}
   {
+    spdlog::cfg::load_env_levels();
   }
 
   void framework_graph::execute(std::string const& dot_file_name)

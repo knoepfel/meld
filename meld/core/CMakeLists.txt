@@ -9,7 +9,7 @@ add_library(meld_core SHARED
   product_store.cpp
   )
 target_include_directories(meld_core PRIVATE ${PROJECT_SOURCE_DIR})
-target_link_libraries(meld_core PRIVATE Boost::boost TBB::tbb meld::graph)
+target_link_libraries(meld_core PRIVATE Boost::boost TBB::tbb meld::graph meld::utilities)
 
 # Interface library
 add_library(meld_core_int INTERFACE)
