@@ -62,11 +62,13 @@ namespace meld {
     void finalize(std::string const& dot_file_name);
 
     tbb::flow::graph graph_{};
+    declared_filters filters_{};
     declared_transforms transforms_{};
     declared_reductions reductions_{};
     declared_outputs outputs_{};
     declared_splitters splitters_{};
-    component<void_tag> unbound_functions_{graph_, transforms_, reductions_, outputs_, splitters_};
+    component<void_tag> unbound_functions_{
+      graph_, filters_, transforms_, reductions_, outputs_, splitters_};
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
     std::map<level_id, std::size_t> original_message_ids_;

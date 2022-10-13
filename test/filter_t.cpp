@@ -1,132 +1,337 @@
-#include "meld/graph/dynamic_join_node.hpp"
 #include "meld/graph/make_edges.hpp"
 #include "meld/utilities/debug.hpp"
-#include "meld/utilities/thread_counter.hpp"
 
 #include "catch2/catch.hpp"
+#include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"
+
+#include <cassert>
 
 using namespace meld;
 using namespace oneapi::tbb;
 
-namespace meld {
+namespace {
+  struct filter_result {
+    unsigned int msg_id;
+    bool result;
+  };
 
-  enum class state : std::size_t { fail = 0, pass };
+  constexpr unsigned int true_value{-1u};
+  constexpr unsigned int false_value{-2u};
 
-  template <typename Input>
-  using data_msg_base = flow::tagged_msg<std::underlying_type_t<state>, bool, Input>;
+  constexpr bool is_complete(unsigned int value)
+  {
+    return value == false_value or value == true_value;
+  }
 
-  template <typename Input>
-  class data_msg {
+  constexpr bool to_boolean(unsigned int value)
+  {
+    assert(is_complete(value));
+    return value == true_value;
+  }
+
+  template <typename T>
+  class data_map {
   public:
-    data_msg() : data_msg{0u} {}
-    explicit data_msg(unsigned int const msg_number, Input const& input) :
-      msg_{static_cast<std::underlying_type_t<state>>(state::pass), input}, msg_number_{msg_number}
+    explicit data_map(unsigned int const nargs) : nargs_{nargs} {}
+
+    void update(T const& t)
     {
+      typename decltype(data_)::accessor a;
+      if (data_.insert(a, t)) { // data serving as proxy for msg_id
+        a->second.reserve(nargs_);
+      }
+      a->second.push_back(t);
     }
 
-    auto pass(Input const& t) const { return data_msg<Input>{msg_number_, t}; }
-    auto fail() const { return data_msg<Input>{msg_number_}; }
-
-    unsigned msg_id() const { return msg_number_; }
-
-    // Necessary API for tagged_msg
-    template <typename T>
-    auto& cast_to() const
+    bool is_complete(unsigned int msg_id) const
     {
-      return msg_.template cast_to<T>();
+      typename decltype(data_)::const_accessor a;
+      if (data_.find(a, msg_id)) {
+        return a->second.size() == nargs_;
+      }
+      return false;
     }
-    auto tag() const { return msg_.tag(); }
+
+    std::vector<T> release_data(unsigned int msg_id)
+    {
+      typename decltype(data_)::accessor a;
+      bool const rc [[maybe_unused]] = data_.find(a, msg_id);
+      assert(rc);
+      return std::move(a->second);
+    }
+
+    void erase(unsigned int msg_id) { data_.erase(msg_id); }
 
   private:
-    explicit data_msg(unsigned int const msg_number) :
-      msg_{static_cast<std::underlying_type_t<state>>(state::fail), false}, msg_number_{msg_number}
-    {
-    }
-
-    data_msg_base<Input> msg_;
-    unsigned msg_number_;
+    std::size_t nargs_;
+    concurrent_hash_map<unsigned int, std::vector<T>> data_;
   };
 
-  template <typename Input>
-  using filter_node_base = tbb::flow::function_node<Input, Input>;
+  class decision_map {
+  public:
+    explicit decision_map(unsigned int total_decisions) : total_decisions_{total_decisions} {}
 
-  template <typename Input>
-  class filter_node : public filter_node_base<data_msg<Input>> {
+    void update(filter_result result)
+    {
+      decltype(results_)::accessor a;
+      results_.insert(a, result.msg_id);
+
+      // First check that the decision is not already complete
+      if (is_complete(a->second)) {
+        return;
+      }
+
+      if (not result.result) {
+        a->second = false_value;
+        return;
+      }
+
+      ++a->second;
+
+      if (a->second == total_decisions_) {
+        a->second = true_value;
+      }
+    }
+
+    unsigned int value(unsigned int msg_id) const
+    {
+      decltype(results_)::const_accessor a;
+      if (results_.find(a, msg_id)) {
+        return a->second;
+      }
+      return 0u;
+    }
+
+    void erase(unsigned int msg_id) { results_.erase(msg_id); }
+
+  private:
+    unsigned int const total_decisions_;
+    concurrent_hash_map<unsigned int, unsigned int> results_;
+  };
+
+  template <typename T>
+  using filter_node_base = flow::function_node<T, filter_result>;
+
+  template <typename T>
+  class filter_node : public filter_node_base<T> {
   public:
     template <typename FT>
-    filter_node(tbb::flow::graph& g, std::size_t concurrency, FT ft) :
-      filter_node_base<data_msg<Input>>{
-        g, concurrency, [filter = std::move(ft)](data_msg<Input> const& input) {
-          if (input.tag() == 0) {
-            return input.fail();
-          }
-          if (auto res = filter(input.template cast_to<Input>())) {
-            return input.pass(*res);
-          }
-          return input.fail();
-        }}
+    filter_node(flow::graph& g, std::size_t concurrency, FT ft) :
+      filter_node_base<T>{g, concurrency, [f = std::move(ft)](T const& t) -> filter_result {
+                            return {.msg_id = t, .result = f(t)};
+                          }}
     {
     }
   };
 
-  template <typename Input>
-  using producer_node_base = tbb::flow::function_node<Input, Input>;
-
-  template <typename Input>
-  class producer_node : public producer_node_base<data_msg<Input>> {
+  template <typename T>
+  using sink_node_base = flow::function_node<T, flow::continue_msg>;
+  template <typename T>
+  class sink_node : public sink_node_base<T> {
   public:
     template <typename FT>
-    producer_node(tbb::flow::graph& g, std::size_t concurrency, FT ft) :
-      producer_node_base<data_msg<Input>>{
-        g, concurrency, [produce = std::move(ft)](data_msg<Input> const& input) {
-          if (input.tag() == 0) {
-            return input.fail();
-          }
-          return input.pass(produce(input.template cast_to<Input>()));
-        }}
+    sink_node(tbb::flow::graph& g, std::size_t concurrency, FT ft) :
+      sink_node_base<T>{g, concurrency, [f = std::move(ft)](T const& t) -> flow::continue_msg {
+                          f(t);
+                          return {};
+                        }}
     {
     }
   };
 
-  using data_msg_t = data_msg<unsigned int>;
+  template <typename T>
+  using aggregator = flow::composite_node<std::tuple<filter_result, T>, std::tuple<T>>;
+
+  template <typename T>
+  class filter_aggregator : public aggregator<T> {
+    using indexer_t = flow::indexer_node<filter_result, T>;
+    using tag_t = typename indexer_t::output_type;
+
+  public:
+    using typename aggregator<T>::input_ports_type;
+    using typename aggregator<T>::output_ports_type;
+
+    explicit filter_aggregator(flow::graph& g, unsigned int ndecisions, unsigned nargs) :
+      aggregator<T>{g},
+      decisions_{ndecisions},
+      data_{nargs},
+      indexer_{g},
+      filter_{g, flow::unlimited, [this](tag_t const& t, auto& outputs) {
+                unsigned int msg_id{};
+                if (t.template is_a<T>()) {
+                  msg_id = t.template cast_to<T>();
+                  data_.update(msg_id); // msg_id serves as proxy for data
+                }
+                else {
+                  auto const& result = t.template cast_to<filter_result>();
+                  decisions_.update(result);
+                  msg_id = result.msg_id;
+                }
+
+                auto const filter_decision = decisions_.value(msg_id);
+                if (not is_complete(filter_decision)) {
+                  return;
+                }
+
+                if (not data_.is_complete(msg_id)) {
+                  return;
+                }
+
+                if (to_boolean(filter_decision)) {
+                  auto& out = std::get<0>(outputs);
+                  auto const data = data_.release_data(msg_id);
+                  for (auto const& d : data) {
+                    out.try_put(d);
+                  }
+                  data_.erase(msg_id);
+                  decisions_.erase(msg_id);
+                }
+              }}
+    {
+      make_edge(indexer_, filter_);
+      aggregator<T>::set_external_ports(
+        input_ports_type{input_port<0>(indexer_), input_port<1>(indexer_)},
+        output_ports_type{output_port<0>(filter_)});
+    }
+
+  private:
+    decision_map decisions_;
+    data_map<T> data_;
+    indexer_t indexer_;
+    flow::multifunction_node<tag_t, std::tuple<T>> filter_;
+  };
+
+  template <typename T>
+  class source {
+  public:
+    explicit source(T const max_n) : max_{max_n} {}
+    unsigned int operator()(flow_control& fc)
+    {
+      if (i_ < max_) {
+        return i_++;
+      }
+      fc.stop();
+      return {};
+    }
+
+  private:
+    T const max_;
+    T i_{};
+  };
 }
 
-TEST_CASE("Filter node + continue node", "[multithreading]")
+TEST_CASE("Filter decision", "[filtering]")
+{
+  decision_map decisions{2};
+  decisions.update({1, false});
+  {
+    auto const value = decisions.value(1);
+    CHECK(is_complete(value));
+    CHECK(to_boolean(value) == false);
+    decisions.erase(1);
+  }
+  decisions.update({3, true});
+  {
+    auto const value = decisions.value(3);
+    CHECK(not is_complete(value));
+  }
+  decisions.update({3, true});
+  {
+    auto const value = decisions.value(3);
+    CHECK(is_complete(value));
+    CHECK(to_boolean(value) == true);
+    decisions.erase(3);
+  }
+}
+
+TEST_CASE("One filter", "[filtering]")
 {
   flow::graph g;
-  flow::input_node src{g, [i = 0u](flow_control& fc) mutable -> data_msg_t {
-                         if (i < 10u) {
-                           return data_msg_t{i, ++i};
-                         }
-                         fc.stop();
-                         return {};
-                       }};
+  flow::input_node src{g, source{10u}};
 
   filter_node<unsigned int> filter{
-    g, flow::unlimited, [](unsigned int const i) -> std::optional<unsigned int> {
-      debug("Filtering ", i);
-      if (i % 2 != 0) {
-        return std::nullopt;
-      }
-      return std::make_optional(i);
-    }};
+    g, flow::unlimited, [](unsigned int const i) -> bool { return i % 2 == 0; }};
 
-  producer_node<unsigned int> producer1{
-    g, flow::unlimited, [](unsigned int const i) -> unsigned int {
-      debug("Producer 1: ", i);
-      return i;
-    }};
+  filter_aggregator<unsigned int> collector{g, 1u, 1u};
 
-  dynamic_join_node synchronize{g, [](data_msg_t const& msg) { return msg.msg_id(); }};
-  producer_node<unsigned int> producer2{
-    g, flow::unlimited, [](unsigned int const i) -> unsigned int {
-      debug("Producer 2: ", i);
-      return i;
-    }};
+  std::atomic<unsigned int> sum{};
+  sink_node<unsigned int> add{g, flow::unlimited, [&sum](unsigned int const i) { sum += i; }};
 
-  nodes(src)->nodes(filter, producer1)->nodes(synchronize)->nodes(producer2);
+  nodes(src)->nodes(filter, input_port<1>(collector));
+  nodes(filter)->nodes(input_port<0>(collector));
+  nodes(output_port<0>(collector))->nodes(add);
 
   src.activate();
   g.wait_for_all();
+
+  CHECK(sum == 20u);
+}
+
+TEST_CASE("Two filters in series", "[filtering]")
+{
+  flow::graph g;
+  flow::input_node src{g, source{10u}};
+
+  filter_node<unsigned int> filter_evens{
+    g, flow::unlimited, [](unsigned int const i) -> bool { return i % 2 == 0; }};
+
+  filter_node<unsigned int> filter_odds{
+    g, flow::unlimited, [](unsigned int const i) -> bool { return i % 2 != 0; }};
+
+  filter_aggregator<unsigned int> collector_evens{g, 1u, 1u};
+  filter_aggregator<unsigned int> collector_odds{g, 1u, 1u};
+
+  std::atomic<unsigned int> sum{};
+  sink_node<unsigned int> add{g, flow::unlimited, [&sum](unsigned int const i) { sum += i; }};
+
+  SECTION("Filter evens then odds")
+  {
+    nodes(src)->nodes(filter_evens, input_port<1>(collector_evens));
+    nodes(filter_evens)->nodes(input_port<0>(collector_evens));
+    nodes(output_port<0>(collector_evens))->nodes(filter_odds, input_port<1>(collector_odds));
+    nodes(filter_odds)->nodes(input_port<0>(collector_odds));
+    nodes(output_port<0>(collector_odds))->nodes(add);
+  }
+
+  SECTION("Filter odds then evens")
+  {
+    nodes(src)->nodes(filter_odds, input_port<1>(collector_odds));
+    nodes(filter_odds)->nodes(input_port<0>(collector_odds));
+    nodes(output_port<0>(collector_odds))->nodes(filter_evens, input_port<1>(collector_evens));
+    nodes(filter_evens)->nodes(input_port<0>(collector_evens));
+    nodes(output_port<0>(collector_evens))->nodes(add);
+  }
+
+  // The following is invoked for *each* section above
+  src.activate();
+  g.wait_for_all();
+
+  CHECK(sum == 0u);
+}
+
+TEST_CASE("Two filters in parallel", "[filtering]")
+{
+  flow::graph g;
+  flow::input_node src{g, source{10u}};
+
+  filter_node<unsigned int> filter_evens{
+    g, flow::unlimited, [](unsigned int const i) -> bool { return i % 2 == 0; }};
+
+  filter_node<unsigned int> filter_odds{
+    g, flow::unlimited, [](unsigned int const i) -> bool { return i % 2 != 0; }};
+
+  filter_aggregator<unsigned int> collector{g, 2u, 1u};
+
+  std::atomic<unsigned int> sum{};
+  sink_node<unsigned int> add{g, flow::unlimited, [&sum](unsigned int const i) { sum += i; }};
+
+  nodes(src)->nodes(filter_evens, filter_odds, input_port<1>(collector));
+  nodes(filter_evens, filter_odds)->nodes(input_port<0>(collector));
+  nodes(output_port<0>(collector))->nodes(add);
+
+  src.activate();
+  g.wait_for_all();
+
+  CHECK(sum == 0u);
 }
