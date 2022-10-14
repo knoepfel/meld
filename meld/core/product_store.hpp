@@ -50,6 +50,9 @@ namespace meld {
     level_id const& id() const noexcept;
     bool is_flush() const noexcept;
 
+    // Product interface
+    bool contains_product(std::string const& key) const;
+
     template <typename T>
     T const& get_product(std::string const& key) const;
 

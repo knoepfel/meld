@@ -4,6 +4,7 @@
 #include "meld/core/declared_output.hpp"
 #include "meld/core/declared_splitter.hpp"
 #include "meld/core/dot_attributes.hpp"
+#include "meld/core/filter/result_collector.hpp"
 #include "meld/core/multiplexer.hpp"
 
 #include <fstream>
@@ -46,7 +47,8 @@ namespace meld {
 
     template <typename... Args>
     void operator()(tbb::flow::input_node<message>& source,
-                    meld::multiplexer& multi,
+                    multiplexer& multi,
+                    std::map<std::string, result_collector>& filter_collectors,
                     consumers<Args>... cons);
 
   private:
@@ -57,7 +59,8 @@ namespace meld {
     void record_attributes(T& consumers);
 
     template <typename T>
-    multiplexer::head_nodes_t edges(T& consumers);
+    multiplexer::head_nodes_t edges(std::map<std::string, result_collector>& filter_collectors,
+                                    T& consumers);
 
     static void dot_prolog(std::ostream& os);
     static void dot_epilog(std::ostream& os);
@@ -120,7 +123,8 @@ namespace meld {
   }
 
   template <typename T>
-  multiplexer::head_nodes_t edge_maker::edges(T& consumers)
+  multiplexer::head_nodes_t edge_maker::edges(
+    std::map<std::string, result_collector>& filter_collectors, T& consumers)
   {
     using namespace dot;
     multiplexer::head_nodes_t result;
@@ -129,11 +133,18 @@ namespace meld {
       if (fout_) {
         dot_node_declaration(*fout_, node_name, attributes.shape);
       }
+
+      tbb::flow::receiver<message>* collector = nullptr;
+      if (auto coll_it = filter_collectors.find(node_name); coll_it != cend(filter_collectors)) {
+        collector = &coll_it->second.data_port();
+      }
+
       for (auto const& product_name : node->input()) {
         auto it = producers_.find(product_name);
         if (it == cend(producers_)) {
+          auto* input_port = collector ? collector : &node->port(product_name);
           // Is there a way to detect mis-specified product dependencies?
-          result[product_name] = {node_name, &node->port(product_name)};
+          result.emplace(product_name, multiplexer::named_input_port{node_name, input_port});
           continue;
         }
 
@@ -154,6 +165,7 @@ namespace meld {
   template <typename... Args>
   void edge_maker::operator()(tbb::flow::input_node<message>& source,
                               meld::multiplexer& multi,
+                              std::map<std::string, result_collector>& filter_collectors,
                               consumers<Args>... cons)
   {
     (record_attributes(cons), ...);
@@ -161,7 +173,7 @@ namespace meld {
     // Make from source to multiplexer
     make_edge(source, multi);
 
-    // Create edges to outputs first
+    // Create edges to outputs
     auto& splitters = std::get<consumers<meld::declared_splitters>&>(std::tie(cons...));
 
     for (auto const& [name, output_node] : outputs_) {
@@ -187,8 +199,9 @@ namespace meld {
       }
     }
 
+    // Create normal edges
     meld::multiplexer::head_nodes_t head_nodes;
-    (head_nodes.merge(edges(cons)), ...);
+    (head_nodes.merge(edges(filter_collectors, cons)), ...);
 
     // Create head nodes for splitters
     auto get_consumed_products = [](auto const& cons, auto& products) {
@@ -206,12 +219,15 @@ namespace meld {
     for (auto const& [name, splitter] : splitters.data) {
       meld::multiplexer::head_nodes_t heads;
       for (auto const& product_name : splitter->provided_products()) {
-        auto it = head_nodes.find(product_name);
-        heads.insert(*it);
-        head_nodes_to_remove.insert(product_name);
-        if (fout_) {
-          dot_multiplexing_edge(*fout_, name, it->second.node_name, {.label = product_name});
+        // There can be multiple head nodes that require the same product.
+        auto [it, e] = head_nodes.equal_range(product_name);
+        for (; it != e; ++it) {
+          heads.insert(*it);
+          if (fout_) {
+            dot_multiplexing_edge(*fout_, name, it->second.node_name, {.label = product_name});
+          }
         }
+        head_nodes_to_remove.insert(product_name);
       }
       splitter->finalize(std::move(heads));
     }

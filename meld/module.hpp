@@ -2,7 +2,7 @@
 #define meld_module_hpp
 
 #include "boost/dll/alias.hpp"
-#include "meld/core/concurrency.hpp"
+#include "meld/concurrency.hpp"
 #include "meld/core/framework_graph.hpp"
 
 #include "boost/json.hpp"

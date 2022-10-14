@@ -2,9 +2,11 @@
 #define meld_core_framework_graph_hpp
 
 #include "meld/core/component.hpp"
+#include "meld/core/declared_filter.hpp"
 #include "meld/core/declared_reduction.hpp"
 #include "meld/core/declared_splitter.hpp"
 #include "meld/core/declared_transform.hpp"
+#include "meld/core/filter/result_collector.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/multiplexer.hpp"
 #include "meld/core/product_store.hpp"
@@ -32,10 +34,14 @@ namespace meld {
     void execute(std::string const& dot_file_name = {});
 
     // Framework function registrations
-    template <typename R, typename... Args>
-    auto declare_transform(std::string name, R (*f)(Args...))
+
+    // N.B. declare_output() is not directly accessible through framework_graph.  Is this
+    //      right?
+
+    template <typename... Args>
+    auto declare_filter(std::string name, bool (*f)(Args...))
     {
-      return unbound_functions_.declare_transform(move(name), f);
+      return unbound_functions_.declare_filter(move(name), f);
     }
 
     template <typename R, typename... Args, typename... InitArgs>
@@ -51,6 +57,12 @@ namespace meld {
       return unbound_functions_.declare_splitter(move(name), f);
     }
 
+    template <typename R, typename... Args>
+    auto declare_transform(std::string name, R (*f)(Args...))
+    {
+      return unbound_functions_.declare_transform(move(name), f);
+    }
+
     template <typename T, typename... Args>
     auto make(Args&&... args)
     {
@@ -63,12 +75,13 @@ namespace meld {
 
     tbb::flow::graph graph_{};
     declared_filters filters_{};
-    declared_transforms transforms_{};
-    declared_reductions reductions_{};
     declared_outputs outputs_{};
+    declared_reductions reductions_{};
     declared_splitters splitters_{};
+    declared_transforms transforms_{};
+    std::map<std::string, result_collector> filter_collectors_{};
     component<void_tag> unbound_functions_{
-      graph_, filters_, transforms_, reductions_, outputs_, splitters_};
+      graph_, filters_, outputs_, reductions_, splitters_, transforms_};
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
     std::map<level_id, std::size_t> original_message_ids_;

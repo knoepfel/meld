@@ -1,9 +1,13 @@
 add_library(meld_core SHARED
+  consumer.cpp
+  declared_filter.cpp
+  declared_output.cpp
   declared_splitter.cpp
   declared_transform.cpp
   declared_reduction.cpp
   edge_maker.cpp
   filter/filter_impl.cpp
+  filter/result_collector.cpp
   framework_graph.cpp
   message.cpp
   multiplexer.cpp

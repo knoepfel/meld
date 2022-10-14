@@ -15,8 +15,8 @@ using namespace std::string_literals;
 namespace meld {
 
   namespace {
-    // If factory function goes out of scope, then the library is
-    // unloaded...and that's bad.
+    // If factory function goes out of scope, then the library is unloaded...and that's
+    // bad.
     std::vector<std::function<detail::module_creator_t>> create_module;
     std::function<detail::source_creator_t> create_source;
 

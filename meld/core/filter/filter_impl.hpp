@@ -8,6 +8,7 @@
 #include "oneapi/tbb/flow_graph.h"
 
 #include <cassert>
+#include <span>
 
 namespace meld {
   struct filter_result {
@@ -43,18 +44,25 @@ namespace meld {
   };
 
   class data_map {
+    using stores_t = oneapi::tbb::concurrent_hash_map<std::size_t, std::vector<product_store_ptr>>;
+
   public:
-    explicit data_map(unsigned int const nargs);
+    using accessor = stores_t::accessor;
+
+    struct for_output_t {};
+    static constexpr for_output_t for_output{};
+    explicit data_map(for_output_t);
+    explicit data_map(std::span<std::string const> product_names);
 
     bool is_complete(std::size_t const msg_id) const;
 
     void update(std::size_t const msg_id, product_store_ptr const& store);
-    std::vector<product_store_ptr> release_data(std::size_t const msg_id);
-    void erase(std::size_t const msg_id);
+    std::vector<product_store_ptr> release_data(accessor& a, std::size_t const msg_id);
 
   private:
-    std::size_t nargs_;
     oneapi::tbb::concurrent_hash_map<std::size_t, std::vector<product_store_ptr>> stores_;
+    std::span<std::string const> product_names_;
+    std::size_t nargs_;
   };
 }
 

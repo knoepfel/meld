@@ -22,12 +22,10 @@ namespace meld {
 
     void activate()
     {
-      // The serializer must not be activated until it resides in its
-      // final resting spot.  IOW, if a container of serializers
-      // grows, the locations of the serializers can move around,
-      // introducing memory errors if try_put(...) has been attempted
-      // in a different location than when it's used during the graph
-      // execution.
+      // The serializer must not be activated until it resides in its final resting spot.
+      // IOW, if a container of serializers grows, the locations of the serializers can
+      // move around, introducing memory errors if try_put(...) has been attempted in a
+      // different location than when it's used during the graph execution.
       try_put(1);
     }
 

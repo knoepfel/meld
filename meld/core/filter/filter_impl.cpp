@@ -1,6 +1,10 @@
 #include "meld/core/filter/filter_impl.hpp"
 
-#include <cassert>
+#include <string>
+
+namespace {
+  std::vector<std::string> const for_output_only{"for_output_only"};
+}
 
 namespace meld {
   decision_map::decision_map(unsigned int total_decisions) : total_decisions_{total_decisions} {}
@@ -38,15 +42,34 @@ namespace meld {
 
   void decision_map::erase(std::size_t const msg_id) { results_.erase(msg_id); }
 
-  data_map::data_map(unsigned int const nargs) : nargs_{nargs} {}
+  data_map::data_map(std::span<std::string const> product_names) :
+    product_names_{product_names}, nargs_{product_names_.size()}
+  {
+  }
+
+  data_map::data_map(for_output_t) : data_map{for_output_only} {}
 
   void data_map::update(std::size_t const msg_id, product_store_ptr const& store)
   {
     decltype(stores_)::accessor a;
     if (stores_.insert(a, msg_id)) {
-      a->second.reserve(nargs_);
+      a->second = std::vector<product_store_ptr>(nargs_);
     }
-    a->second.push_back(store);
+    auto& elem = a->second;
+    if (nargs_ == 1ull) {
+      // We do not check that the product is in the store if only one argument is
+      // forwarded.  This enables us to forward arguments for regular nodes and also
+      // output nodes, which do not take individual data products.
+      elem[0] = store;
+      return;
+    }
+
+    // Fill slots in the order of the input arguments to the downstream node.
+    for (std::size_t i = 0; i != nargs_; ++i) {
+      if (elem[i] or not store->contains_product(product_names_[i]))
+        continue;
+      elem[i] = store;
+    }
   }
 
   bool data_map::is_complete(std::size_t const msg_id) const
@@ -58,14 +81,13 @@ namespace meld {
     return false;
   }
 
-  std::vector<product_store_ptr> data_map::release_data(std::size_t const msg_id)
+  std::vector<product_store_ptr> data_map::release_data(accessor& a, std::size_t const msg_id)
   {
-    decltype(stores_)::accessor a;
-    bool const rc [[maybe_unused]] = stores_.find(a, msg_id);
-    assert(rc);
-    return std::move(a->second);
+    std::vector<product_store_ptr> result;
+    if (stores_.find(a, msg_id)) {
+      result = std::move(a->second);
+      stores_.erase(a);
+    }
+    return result;
   }
-
-  void data_map::erase(std::size_t const msg_id) { stores_.erase(msg_id); }
-
 }

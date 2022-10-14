@@ -1,7 +1,9 @@
 #ifndef meld_core_declared_filter_hpp
 #define meld_core_declared_filter_hpp
 
-#include "meld/core/concurrency.hpp"
+#include "meld/concurrency.hpp"
+#include "meld/core/consumer.hpp"
+#include "meld/core/filter/filter_impl.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/handle.hpp"
 #include "meld/core/message.hpp"
@@ -28,24 +30,16 @@
 
 namespace meld {
 
-  class declared_filter {
+  class declared_filter : public consumer {
   public:
-    declared_filter(std::string name, std::size_t concurrency);
-
+    declared_filter(std::string name, std::vector<std::string> preceding_filters);
     virtual ~declared_filter();
 
     std::string const& name() const noexcept;
-    std::size_t concurrency() const noexcept;
-    tbb::flow::receiver<message>& port(std::string const& product_name);
-    virtual tbb::flow::sender<message>& sender() = 0;
-    virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual std::span<std::string const, std::dynamic_extent> input() const = 0;
+    virtual tbb::flow::sender<filter_result>& sender() = 0;
 
   private:
-    virtual tbb::flow::receiver<message>& port_for(std::string const& product_name) = 0;
-
     std::string name_;
-    std::size_t concurrency_;
   };
 
   using declared_filter_ptr = std::unique_ptr<declared_filter>;
@@ -72,15 +66,23 @@ namespace meld {
       return *this;
     }
 
+    // Icky?
+    incomplete_filter& filtered_by(std::vector<std::string> preceding_filters)
+    {
+      preceding_filters_ = move(preceding_filters);
+      return *this;
+    }
+
     template <std::size_t Nsize>
     auto input(std::array<std::string, Nsize> input_keys)
     {
       static_assert(N == Nsize,
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      funcs_.add_filter(name_,
-                        std::make_unique<complete_filter>(
-                          name_, concurrency_, graph_, move(ft_), move(input_keys)));
+      funcs_.add_filter(
+        name_,
+        std::make_unique<complete_filter>(
+          name_, concurrency_, move(preceding_filters_), graph_, move(ft_), move(input_keys)));
     }
 
     auto input(std::convertible_to<std::string> auto&&... ts)
@@ -95,6 +97,7 @@ namespace meld {
     component<T>& funcs_;
     std::string name_;
     std::size_t concurrency_{concurrency::serial};
+    std::vector<std::string> preceding_filters_{};
     tbb::flow::graph& graph_;
     function_t ft_;
   };
@@ -104,40 +107,35 @@ namespace meld {
   public:
     complete_filter(std::string name,
                     std::size_t concurrency,
+                    std::vector<std::string> preceding_filters,
                     tbb::flow::graph& g,
                     function_t&& f,
                     std::array<std::string, N> input) :
-      declared_filter{move(name), concurrency},
+      declared_filter{move(name), move(preceding_filters)},
       input_{move(input)},
       join_{g, type_for_t<MessageHasher, Args>{}...},
       filter_{
-        g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages, auto& output) {
+        g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages) -> filter_result {
           auto const& msg = most_derived(messages);
           auto const& [store, message_id] = std::tie(msg.store, msg.id);
-          auto& [stay_in_graph, to_output] = output;
           if (store->is_flush()) {
-            // FIXME: Depending on timing, the following may introduce
-            //        weird effects (e.g. deleting cached stores
-            //        before the user function has been invoked).
-            stores_.erase(store->id().parent());
-            stay_in_graph.try_put(msg);
-            return;
+            // FIXME: Depending on timing, the following may introduce weird effects
+            //        (e.g. deleting cached stores before the user function has been
+            //        invoked).
+            results_.erase(store->id().parent());
+            return {};
           }
 
-          if (typename decltype(stores_)::const_accessor a; stores_.find(a, store->id())) {
-            stay_in_graph.try_put({a->second, message_id});
-            return;
+          if (typename decltype(results_)::const_accessor a; results_.find(a, store->id())) {
+            return {message_id, a->second.result};
           }
 
-          typename decltype(stores_)::accessor a;
-          bool const new_insert = stores_.insert(a, store->id());
-          if (!new_insert) {
-            stay_in_graph.try_put({a->second, message_id});
-            return;
+          typename decltype(results_)::accessor a;
+          if (results_.insert(a, store->id())) {
+            bool const rc = call(ft, messages, std::index_sequence_for<Args...>{});
+            a->second = {message_id, rc};
           }
-
-          bool const rc [[maybe_unused]] = call(ft, messages, std::index_sequence_for<Args...>{});
-          a->second = {};
+          return a->second;
         }}
     {
       make_edge(join_, filter_);
@@ -149,8 +147,7 @@ namespace meld {
       return receiver_for<N>(join_, input_, product_name);
     }
 
-    tbb::flow::sender<message>& sender() override { return output_port<0>(filter_); }
-    tbb::flow::sender<message>& to_output() override { return output_port<1>(filter_); }
+    tbb::flow::sender<filter_result>& sender() override { return filter_; }
     std::span<std::string const, std::dynamic_extent> input() const override { return input_; }
 
     template <std::size_t... Is>
@@ -161,8 +158,8 @@ namespace meld {
 
     std::array<std::string, N> input_;
     join_or_none_t<N> join_;
-    tbb::flow::multifunction_node<messages_t<N>, messages_t<2u>> filter_;
-    tbb::concurrent_hash_map<level_id, product_store_ptr> stores_;
+    tbb::flow::function_node<messages_t<N>, filter_result> filter_;
+    tbb::concurrent_hash_map<level_id, filter_result> results_;
   };
 }
 

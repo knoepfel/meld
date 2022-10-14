@@ -20,12 +20,11 @@ namespace meld {
       bool const found = flushes_required_.find(a, store->id().parent());
       if (!found) {
         a.release();
-        // FIXME: This is the case where (a) no nodes exist, or (b)
-        // the flush message has been received before any other
-        // messages.  In case (b), we send the flush message to all
-        // nodes as we do not yet know which nodes will process a
-        // given processing level.  For case (a), ideally we would
-        // find a better solution.
+        // FIXME: This is the case where (a) no nodes exist, or (b) the flush message has
+        //        been received before any other messages.  In case (b), we send the flush
+        //        message to all nodes as we do not yet know which nodes will process a
+        //        given processing level.  For case (a), ideally we would find a better
+        //        solution.
         for (auto const& [_, node] : head_nodes_) {
           node.port->try_put(msg);
         }
@@ -39,11 +38,11 @@ namespace meld {
       return {};
     }
 
-    // TODO: Add option to send directly to any functions that specify
-    // they are of a certain processing level.
+    // TODO: Add option to send directly to any functions that specify they are of a
+    //       certain processing level.
     for (auto const& [key, store_ptr] : store->stores_for_products()) {
-      if (auto it = head_nodes_.find(key); it != cend(head_nodes_)) {
-        auto store_to_send = store_ptr.lock();
+      auto store_to_send = store_ptr.lock();
+      for (auto [it, e] = head_nodes_.equal_range(key); it != e; ++it) {
         it->second.port->try_put({store_to_send, message_id});
         if (auto& parent = store_to_send->parent()) {
           accessor a;

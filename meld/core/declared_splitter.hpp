@@ -1,7 +1,8 @@
 #ifndef meld_core_declared_splitter_hpp
 #define meld_core_declared_splitter_hpp
 
-#include "meld/core/concurrency.hpp"
+#include "meld/concurrency.hpp"
+#include "meld/core/consumer.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/handle.hpp"
 #include "meld/core/message.hpp"
@@ -49,25 +50,18 @@ namespace meld {
     std::size_t const original_message_id_{counter_};
   };
 
-  class declared_splitter {
+  class declared_splitter : public consumer {
   public:
-    declared_splitter(std::string name, std::size_t concurrency);
-
+    declared_splitter(std::string name, std::vector<std::string> preceding_filters);
     virtual ~declared_splitter();
 
     std::string const& name() const noexcept;
-    std::size_t concurrency() const noexcept;
-    tbb::flow::receiver<message>& port(std::string const& product_name);
     virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual std::span<std::string const, std::dynamic_extent> input() const = 0;
     virtual std::vector<std::string> const& provided_products() const = 0;
     virtual void finalize(multiplexer::head_nodes_t head_nodes) = 0;
 
   private:
-    virtual tbb::flow::receiver<message>& port_for(std::string const& product_name) = 0;
-
     std::string name_;
-    std::size_t concurrency_;
   };
 
   using declared_splitter_ptr = std::unique_ptr<declared_splitter>;
@@ -95,6 +89,13 @@ namespace meld {
     }
 
     // Icky?
+    incomplete_splitter& filtered_by(std::vector<std::string> preceding_filters)
+    {
+      preceding_filters_ = move(preceding_filters);
+      return *this;
+    }
+
+    // Icky?
     incomplete_splitter& input(std::array<std::string, N> input_keys)
     {
       input_keys_ = move(input_keys);
@@ -111,16 +112,21 @@ namespace meld {
 
     auto provides(std::vector<std::string> product_names)
     {
-      funcs_.add_splitter(
-        name_,
-        std::make_unique<complete_splitter>(
-          name_, concurrency_, graph_, move(ft_), move(input_keys_), move(product_names)));
+      funcs_.add_splitter(name_,
+                          std::make_unique<complete_splitter>(name_,
+                                                              concurrency_,
+                                                              move(preceding_filters_),
+                                                              graph_,
+                                                              move(ft_),
+                                                              move(input_keys_),
+                                                              move(product_names)));
     }
 
   private:
     component<T>& funcs_;
     std::string name_;
     std::size_t concurrency_{concurrency::serial};
+    std::vector<std::string> preceding_filters_{};
     std::array<std::string, N> input_keys_;
     tbb::flow::graph& graph_;
     function_t ft_;
@@ -131,11 +137,12 @@ namespace meld {
   public:
     complete_splitter(std::string name,
                       std::size_t concurrency,
+                      std::vector<std::string> preceding_filters,
                       tbb::flow::graph& g,
                       function_t&& f,
                       std::array<std::string, N> input,
                       std::vector<std::string> provided_products) :
-      declared_splitter{move(name), concurrency},
+      declared_splitter{move(name), move(preceding_filters)},
       input_{move(input)},
       provided_{move(provided_products)},
       multiplexer_{g},

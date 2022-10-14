@@ -30,16 +30,16 @@ namespace meld {
 
     component(tbb::flow::graph& g,
               declared_filters& filters,
-              declared_transforms& transforms,
-              declared_reductions& reductions,
               declared_outputs& outputs,
-              declared_splitters& splitters) requires(std::same_as<T, void_tag>) :
+              declared_reductions& reductions,
+              declared_splitters& splitters,
+              declared_transforms& transforms) requires(std::same_as<T, void_tag>) :
       graph_{g},
       filters_{filters},
-      transforms_{transforms},
-      reductions_{reductions},
       outputs_{outputs},
-      splitters_{splitters}
+      reductions_{reductions},
+      splitters_{splitters},
+      transforms_{transforms}
     {
     }
 
@@ -48,10 +48,10 @@ namespace meld {
     {
       return component<U>{graph_,
                           filters_,
-                          transforms_,
-                          reductions_,
                           outputs_,
+                          reductions_,
                           splitters_,
+                          transforms_,
                           std::make_shared<U>(std::forward<Args>(args)...)};
     }
 
@@ -120,27 +120,27 @@ namespace meld {
   private:
     component(tbb::flow::graph& g,
               declared_filters& filters,
-              declared_transforms& transforms,
-              declared_reductions& reductions,
               declared_outputs& outputs,
+              declared_reductions& reductions,
               declared_splitters& splitters,
+              declared_transforms& transforms,
               std::shared_ptr<T> bound_obj) requires(not std::same_as<T, void_tag>) :
       graph_{g},
       filters_{filters},
-      transforms_{transforms},
-      reductions_{reductions},
       outputs_{outputs},
+      reductions_{reductions},
       splitters_{splitters},
+      transforms_{transforms},
       bound_obj_{bound_obj}
     {
     }
 
     tbb::flow::graph& graph_;
     declared_filters& filters_;
-    declared_transforms& transforms_;
-    declared_reductions& reductions_;
     declared_outputs& outputs_;
+    declared_reductions& reductions_;
     declared_splitters& splitters_;
+    declared_transforms& transforms_;
     std::shared_ptr<T> bound_obj_;
   };
 }

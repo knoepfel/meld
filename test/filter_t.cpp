@@ -1,4 +1,6 @@
 #include "meld/core/filter/filter_impl.hpp"
+#include "meld/core/filter/result_collector.hpp"
+#include "meld/core/framework_graph.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
 #include "meld/graph/make_edges.hpp"
@@ -13,19 +15,6 @@ using namespace meld;
 using namespace oneapi::tbb;
 
 namespace {
-  using filter_node_base = flow::function_node<message, filter_result>;
-
-  class filter_node : public filter_node_base {
-  public:
-    template <typename FT>
-    filter_node(flow::graph& g, std::size_t concurrency, FT ft) :
-      filter_node_base{g, concurrency, [f = std::move(ft)](message const& msg) -> filter_result {
-                         return {.msg_id = msg.id, .result = f(msg.store)};
-                       }}
-    {
-    }
-  };
-
   using sink_node_base = flow::function_node<message, flow::continue_msg>;
   class sink_node : public sink_node_base {
   public:
@@ -39,80 +28,19 @@ namespace {
     }
   };
 
-  using aggregator = flow::composite_node<std::tuple<filter_result, message>, messages_t<1>>;
-
-  class filter_aggregator : public aggregator {
-    using indexer_t = flow::indexer_node<filter_result, message>;
-    using tag_t = typename indexer_t::output_type;
-
-  public:
-    using typename aggregator::input_ports_type;
-    using typename aggregator::output_ports_type;
-
-    explicit filter_aggregator(flow::graph& g, unsigned int ndecisions, unsigned nargs) :
-      aggregator{g},
-      decisions_{ndecisions},
-      data_{nargs},
-      indexer_{g},
-      filter_{g, flow::unlimited, [this](tag_t const& t, auto& outputs) {
-                unsigned int msg_id{};
-                if (t.is_a<message>()) {
-                  auto const& msg = t.cast_to<message>();
-                  data_.update(msg.id, msg.store);
-                  msg_id = msg.id;
-                }
-                else {
-                  auto const& result = t.cast_to<filter_result>();
-                  decisions_.update(result);
-                  msg_id = result.msg_id;
-                }
-
-                auto const filter_decision = decisions_.value(msg_id);
-                if (not is_complete(filter_decision)) {
-                  return;
-                }
-
-                if (not data_.is_complete(msg_id)) {
-                  return;
-                }
-
-                if (to_boolean(filter_decision)) {
-                  auto& out = std::get<0>(outputs);
-                  auto const stores = data_.release_data(msg_id);
-                  for (auto const& d : stores) {
-                    out.try_put({d, msg_id});
-                  }
-                }
-                data_.erase(msg_id);
-                decisions_.erase(msg_id);
-              }}
-    {
-      make_edge(indexer_, filter_);
-      set_external_ports(
-        input_ports_type{input_port<0>(indexer_), input_port<1>(indexer_)},
-        output_ports_type{output_port<0>(filter_)});
-    }
-
-  private:
-    decision_map decisions_;
-    data_map data_;
-    indexer_t indexer_;
-    flow::multifunction_node<tag_t, messages_t<1>> filter_;
-  };
-
   class source {
   public:
     explicit source(unsigned const max_n) : max_{max_n} {}
-    message operator()(flow_control& fc)
+    product_store_ptr next()
     {
       if (i_ < max_) {
-        std::size_t const msg_id = i_;
         auto store = make_product_store(level_id{i_});
-        store->add_product<unsigned int>("num", i_++);
-        return {move(store), msg_id};
+        store->add_product<unsigned int>("num", i_);
+        store->add_product<unsigned int>("other_num", 100 + i_);
+        ++i_;
+        return store;
       }
-      fc.stop();
-      return {};
+      return nullptr;
     }
 
   private:
@@ -120,146 +48,167 @@ namespace {
     unsigned i_{};
   };
 
-  constexpr auto evens_only()
-  {
-    return [](product_store_ptr const& store) -> bool {
-      return store->get_product<unsigned int>("num") % 2 == 0;
-    };
-  }
-  constexpr auto odds_only()
-  {
-    return [](product_store_ptr const& store) -> bool {
-      return store->get_product<unsigned int>("num") % 2 != 0;
-    };
-  }
+  constexpr bool evens_only(unsigned int const value) { return value % 2u == 0u; }
+  constexpr bool odds_only(unsigned int const value) { return not evens_only(value); }
 
-  constexpr auto sum_numbers(std::atomic<unsigned int>& sum)
-  {
-    return
-      [&sum](product_store_ptr const& store) { sum += store->get_product<unsigned int>("num"); };
-  }
+  // Hacky!
+  struct sum_numbers {
+    sum_numbers(unsigned int const n) : total{n} {}
+    ~sum_numbers() { CHECK(sum == total); }
+    void add(unsigned int const num) { sum += num; }
+    std::atomic<unsigned int> sum;
+    unsigned int const total;
+  };
 
-  constexpr bool in_range(unsigned int const b, unsigned int const e, unsigned int const i)
+  // Hacky!
+  struct collect_numbers {
+    collect_numbers(std::initializer_list<unsigned int> numbers) : expected{numbers} {}
+    ~collect_numbers()
+    {
+      std::vector<unsigned int> sorted_actual(std::begin(actual), std::end(actual));
+      std::sort(begin(sorted_actual), end(sorted_actual));
+      CHECK(expected == sorted_actual);
+    }
+    void collect(unsigned int const num) { actual.push_back(num); }
+    tbb::concurrent_vector<unsigned int> actual;
+    std::vector<unsigned int> const expected;
+  };
+
+  // Hacky!
+  struct check_multiple_numbers {
+    check_multiple_numbers(int const n) : total{n} {}
+    ~check_multiple_numbers() { CHECK(sum == total); }
+    void add_difference(unsigned int const a, unsigned int const b)
+    {
+      // The difference is calculated to test that add(a, b) yields a different result
+      // than add(b, a).
+      sum += static_cast<int>(b) - static_cast<int>(a);
+    }
+    std::atomic<int> sum;
+    int const total;
+  };
+
+  constexpr bool in_range(unsigned int const b, unsigned int const e, unsigned int const i) noexcept
   {
     return i >= b and i < e;
   }
 
-  constexpr auto not_in_range(unsigned int const b, unsigned int const e)
-  {
-    return [b, e](product_store_ptr const& store) -> bool {
-      return not in_range(b, e, store->get_product<unsigned int>("num"));
-    };
-  }
+  struct not_in_range {
+    explicit not_in_range(unsigned int const b, unsigned int const e) : begin{b}, end{e} {}
+    unsigned int const begin;
+    unsigned int const end;
+    bool filter(unsigned int const i) const noexcept { return not in_range(begin, end, i); }
+  };
 }
 
-TEST_CASE("One filter", "[filtering]")
+TEST_CASE("Two filters", "[filtering]")
 {
-  flow::graph g;
-  flow::input_node src{g, source{10u}};
+  using namespace concurrency;
 
-  filter_node filter{g, flow::unlimited, evens_only()};
-  filter_aggregator collector{g, 1u, 1u};
+  framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
 
-  std::atomic<unsigned int> sum{};
-  sink_node add{g, flow::unlimited, sum_numbers(sum)};
+  g.declare_filter("evens_only", evens_only).concurrency(unlimited).input("num");
+  g.declare_filter("odds_only", odds_only).concurrency(unlimited).input("num");
 
-  nodes(src)->nodes(filter, input_port<1>(collector));
-  nodes(filter)->nodes(input_port<0>(collector));
-  nodes(output_port<0>(collector))->nodes(add);
+  g.make<sum_numbers>(20u)
+    .declare_transform("add_evens", &sum_numbers::add)
+    .concurrency(unlimited)
+    .filtered_by({"evens_only"})
+    .input("num");
 
-  src.activate();
-  g.wait_for_all();
+  g.make<sum_numbers>(25u)
+    .declare_transform("add_odds", &sum_numbers::add)
+    .concurrency(unlimited)
+    .filtered_by({"odds_only"})
+    .input("num");
 
-  CHECK(sum == 20u);
+  g.execute("filter_t.gv");
 }
 
 TEST_CASE("Two filters in series", "[filtering]")
 {
-  flow::graph g;
-  flow::input_node src{g, source{10u}};
+  using namespace concurrency;
 
-  filter_node filter_evens{g, flow::unlimited, evens_only()};
-  filter_node filter_odds{g, flow::unlimited, odds_only()};
+  framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
+  g.declare_filter("evens_only", evens_only).concurrency(unlimited).input("num");
+  g.declare_filter("odds_only", odds_only)
+    .concurrency(unlimited)
+    .filtered_by({"evens_only"})
+    .input("num");
+  g.make<sum_numbers>(0u)
+    .declare_transform("add", &sum_numbers::add)
+    .concurrency(unlimited)
+    .filtered_by({"odds_only"})
+    .input("num");
 
-  filter_aggregator collector_evens{g, 1u, 1u};
-  filter_aggregator collector_odds{g, 1u, 1u};
-
-  std::atomic<unsigned int> sum{};
-  sink_node add{g, flow::unlimited, sum_numbers(sum)};
-
-  SECTION("Filter evens then odds")
-  {
-    nodes(src)->nodes(filter_evens, input_port<1>(collector_evens));
-    nodes(filter_evens)->nodes(input_port<0>(collector_evens));
-    nodes(output_port<0>(collector_evens))->nodes(filter_odds, input_port<1>(collector_odds));
-    nodes(filter_odds)->nodes(input_port<0>(collector_odds));
-    nodes(output_port<0>(collector_odds))->nodes(add);
-  }
-
-  SECTION("Filter odds then evens")
-  {
-    nodes(src)->nodes(filter_odds, input_port<1>(collector_odds));
-    nodes(filter_odds)->nodes(input_port<0>(collector_odds));
-    nodes(output_port<0>(collector_odds))->nodes(filter_evens, input_port<1>(collector_evens));
-    nodes(filter_evens)->nodes(input_port<0>(collector_evens));
-    nodes(output_port<0>(collector_evens))->nodes(add);
-  }
-
-  // The following is invoked for *each* section above
-  src.activate();
-  g.wait_for_all();
-
-  CHECK(sum == 0u);
+  g.execute();
 }
 
 TEST_CASE("Two filters in parallel", "[filtering]")
 {
-  flow::graph g;
-  flow::input_node src{g, source{10u}};
+  using namespace concurrency;
 
-  filter_node filter_evens{g, flow::unlimited, evens_only()};
-  filter_node filter_odds{g, flow::unlimited, odds_only()};
+  framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
+  g.declare_filter("evens_only", evens_only).concurrency(unlimited).input("num");
+  g.declare_filter("odds_only", odds_only).concurrency(unlimited).input("num");
+  g.make<sum_numbers>(0u)
+    .declare_transform("add", &sum_numbers::add)
+    .concurrency(unlimited)
+    .filtered_by({"odds_only", "evens_only"})
+    .input("num");
 
-  filter_aggregator collector{g, 2u, 1u};
-
-  std::atomic<unsigned int> sum{};
-  sink_node add{g, flow::unlimited, sum_numbers(sum)};
-
-  nodes(src)->nodes(filter_evens, filter_odds, input_port<1>(collector));
-  nodes(filter_evens, filter_odds)->nodes(input_port<0>(collector));
-  nodes(output_port<0>(collector))->nodes(add);
-
-  src.activate();
-  g.wait_for_all();
-
-  CHECK(sum == 0u);
+  g.execute();
 }
 
 TEST_CASE("Three filters in parallel", "[filtering]")
 {
-  flow::graph g;
-  flow::input_node src{g, source{10u}};
+  using namespace concurrency;
 
-  filter_node exclude_0_to_4{g, flow::unlimited, not_in_range(0, 4)};
-  filter_node exclude_6_to_7{g, flow::unlimited, not_in_range(6, 7)};
-  filter_node exclude_gt_8{g, flow::unlimited, not_in_range(8, -1u)};
+  struct filter_config {
+    std::string name;
+    unsigned int begin;
+    unsigned int end;
+  };
+  std::vector<filter_config> configs{{.name = "exclude_0_to_4", .begin = 0, .end = 4},
+                                     {.name = "exclude_6_to_7", .begin = 6, .end = 7},
+                                     {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
 
-  filter_aggregator collector{g, 3u, 1u};
+  framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
+  for (auto const& [name, b, e] : configs) {
+    g.make<not_in_range>(b, e)
+      .declare_filter(name, &not_in_range::filter)
+      .concurrency(unlimited)
+      .input("num");
+  }
 
-  concurrent_vector<unsigned int> nums;
-  sink_node add{g, flow::unlimited, [&nums](product_store_ptr const& store) {
-                  nums.push_back(store->get_product<unsigned int>("num"));
-                }};
+  std::vector<std::string> const filter_names{"exclude_0_to_4", "exclude_6_to_7", "exclude_gt_8"};
+  auto const expected_numbers = {4u, 5u, 7u};
+  g.make<collect_numbers>(expected_numbers)
+    .declare_transform("collect", &collect_numbers::collect)
+    .concurrency(unlimited)
+    .filtered_by(filter_names)
+    .input("num");
 
-  nodes(src)->nodes(exclude_0_to_4, exclude_6_to_7, exclude_gt_8, input_port<1>(collector));
-  nodes(exclude_0_to_4, exclude_6_to_7, exclude_gt_8)->nodes(input_port<0>(collector));
-  nodes(output_port<0>(collector))->nodes(add);
+  g.execute();
+}
 
-  src.activate();
-  g.wait_for_all();
+TEST_CASE("Two filters in parallel (each with multiple arguments)", "[filtering]")
+{
+  using namespace concurrency;
 
-  std::vector actual(std::begin(nums), std::end(nums));
-  sort(begin(actual), end(actual));
-  std::vector const expected{4u, 5u, 7u};
-  CHECK(actual == expected);
+  framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
+  g.declare_filter("evens_only", evens_only).concurrency(unlimited).input("num");
+  g.declare_filter("odds_only", odds_only).concurrency(unlimited).input("num");
+  g.make<check_multiple_numbers>(5 * 100)
+    .declare_transform("check_evens", &check_multiple_numbers::add_difference)
+    .concurrency(unlimited)
+    .filtered_by({"evens_only"})
+    .input("num", "other_num"); // <= Note input order
+  g.make<check_multiple_numbers>(-5 * 100)
+    .declare_transform("check_odds", &check_multiple_numbers::add_difference)
+    .concurrency(unlimited)
+    .filtered_by({"odds_only"})
+    .input("other_num", "num"); // <= Note input order
+
+  g.execute();
 }

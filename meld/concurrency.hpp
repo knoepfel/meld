@@ -1,5 +1,5 @@
-#ifndef meld_core_concurrency_hpp
-#define meld_core_concurrency_hpp
+#ifndef meld_concurrency_hpp
+#define meld_concurrency_hpp
 
 #include "oneapi/tbb/flow_graph.h"
 #include "oneapi/tbb/global_control.h"
@@ -20,4 +20,4 @@ namespace meld::concurrency {
   };
 }
 
-#endif /* meld_core_concurrency_hpp */
+#endif /* meld_concurrency_hpp */

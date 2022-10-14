@@ -1,4 +1,4 @@
-// ====================================================================
+// =======================================================================================
 // This test executes splitting functionality using the following graph
 //
 //     Multiplexer
@@ -9,10 +9,10 @@
 //          |
 //     print_result
 //
-// where the asterisk (*) indicates a reduction step.  The difference
-// here is that the *splitter* is responsible for sending the flush
-// token instead of the source/multiplexer.
-// ====================================================================
+// where the asterisk (*) indicates a reduction step.  The difference here is that the
+// *splitter* is responsible for sending the flush token instead of the
+// source/multiplexer.
+// =======================================================================================
 
 #include "meld/core/cached_product_stores.hpp"
 #include "meld/core/framework_graph.hpp"
@@ -100,7 +100,11 @@ TEST_CASE("Splitting the processing", "[graph]")
     return store;
   }};
 
-  g.declare_splitter("split", split).concurrency(unlimited).input("max_number").provides({"num"});
+  g.declare_splitter("split", split)
+    .concurrency(unlimited)
+    .filtered_by({})
+    .input("max_number")
+    .provides({"num"});
   g.declare_reduction("add", add).concurrency(unlimited).input("num").output("sum");
   g.declare_transform("check_sum", check_sum).concurrency(unlimited).input("sum");
   g.make<test::products_for_output>()

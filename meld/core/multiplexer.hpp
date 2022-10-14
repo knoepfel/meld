@@ -28,7 +28,7 @@ namespace meld {
       std::string node_name;
       tbb::flow::receiver<message>* port;
     };
-    using head_nodes_t = std::map<std::string, named_input_port>;
+    using head_nodes_t = std::multimap<std::string, named_input_port>;
 
     explicit multiplexer(tbb::flow::graph& g, bool debug = false) :
       base{g, tbb::flow::unlimited, std::bind_front(&multiplexer::multiplex, this)}, debug_{debug}

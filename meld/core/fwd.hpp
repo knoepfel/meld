@@ -2,10 +2,12 @@
 #define meld_core_fwd_hpp
 
 namespace meld {
-  class framework_graph;
-  class product_store;
   template <typename T>
   class component;
+  class consumer;
+  class declared_output;
+  class framework_graph;
+  class product_store;
 }
 
 #endif /* meld_core_fwd_hpp */

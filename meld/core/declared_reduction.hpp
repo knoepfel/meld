@@ -1,7 +1,8 @@
 #ifndef meld_core_declared_reduction_hpp
 #define meld_core_declared_reduction_hpp
 
-#include "meld/core/concurrency.hpp"
+#include "meld/concurrency.hpp"
+#include "meld/core/consumer.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/handle.hpp"
 #include "meld/core/message.hpp"
@@ -30,25 +31,18 @@
 
 namespace meld {
 
-  class declared_reduction {
+  class declared_reduction : public consumer {
   public:
-    declared_reduction(std::string name, std::size_t concurrency);
-
+    declared_reduction(std::string name, std::vector<std::string> preceding_filters);
     virtual ~declared_reduction();
 
     std::string const& name() const noexcept;
-    std::size_t concurrency() const noexcept;
-    tbb::flow::receiver<message>& port(std::string const& product_name);
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual std::span<std::string const, std::dynamic_extent> input() const = 0;
     virtual std::span<std::string const, std::dynamic_extent> output() const = 0;
 
   private:
-    virtual tbb::flow::receiver<message>& port_for(std::string const& product_name) = 0;
-
     std::string name_;
-    std::size_t concurrency_;
   };
 
   using declared_reduction_ptr = std::unique_ptr<declared_reduction>;
@@ -85,6 +79,12 @@ namespace meld {
       return *this;
     }
 
+    incomplete_reduction& filtered_by(std::vector<std::string> preceding_filters)
+    {
+      preceding_filters_ = move(preceding_filters);
+      return *this;
+    }
+
     auto input(std::array<std::string, N> input_keys);
 
     auto input(std::convertible_to<std::string> auto&&... ts)
@@ -99,6 +99,7 @@ namespace meld {
     component<T>& funcs_;
     std::string name_;
     std::size_t concurrency_{concurrency::serial};
+    std::vector<std::string> preceding_filters_{};
     tbb::flow::graph& graph_;
     function_t ft_;
     InitTuple initializer_;
@@ -111,20 +112,21 @@ namespace meld {
   public:
     complete_reduction(std::string name,
                        std::size_t concurrency,
+                       std::vector<std::string> preceding_filters,
                        tbb::flow::graph& g,
                        function_t&& f,
                        InitTuple initializer,
                        std::array<std::string, N> input,
                        std::array<std::string, M> output) :
-      declared_reduction{move(name), concurrency},
+      declared_reduction{move(name), move(preceding_filters)},
       initializer_{std::move(initializer)},
       input_{move(input)},
       output_{move(output)},
       join_{g, type_for_t<MessageHasher, Args>{}...},
       reduction_{
         g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages, auto& outputs) {
-          // N.B. The assumption is that a reduction will *never* need
-          //      to cache the product store it creates.
+          // N.B. The assumption is that a reduction will *never* need to cache the
+          //      product store it creates.
           auto const& msg = most_derived(messages);
           auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
           auto const parent_id = store->id().parent();
@@ -215,11 +217,10 @@ namespace meld {
       else {
         store.add_product(output()[0], move(result));
       }
-      // Reclaim some memory; it would be better to erase the entire
-      // entry from the map, but that is not thread-safe.
+      // Reclaim some memory; it would be better to erase the entire entry from the map,
+      // but that is not thread-safe.
 
-      // N.B. Calling reset() is safe even if move(result) has been
-      // called.
+      // N.B. Calling reset() is safe even if move(result) has been called.
       result.reset();
     }
 
@@ -246,16 +247,22 @@ namespace meld {
     if constexpr (std::same_as<
                     R,
                     void>) { // FIXME: It is suspect to have a void return type for reductions.
-      funcs_.add_reduction(
-        name_,
-        std::make_unique<complete_reduction<0ull>>(
-          name_, concurrency_, graph_, move(ft_), std::move(initializer_), move(input_keys), {}));
+      funcs_.add_reduction(name_,
+                           std::make_unique<complete_reduction<0ull>>(name_,
+                                                                      concurrency_,
+                                                                      move(preceding_filters_),
+                                                                      graph_,
+                                                                      move(ft_),
+                                                                      std::move(initializer_),
+                                                                      move(input_keys),
+                                                                      {}));
       return;
     }
     else {
       return reduction_requires_output{funcs_,
                                        move(name_),
                                        concurrency_,
+                                       move(preceding_filters_),
                                        graph_,
                                        move(ft_),
                                        std::move(initializer_),
@@ -269,12 +276,14 @@ namespace meld {
     reduction_requires_output(component<T>& funcs,
                               std::string name,
                               std::size_t concurrency,
+                              std::vector<std::string> preceding_filters,
                               tbb::flow::graph& g,
                               function_t&& f,
                               InitTuple initializer,
                               std::array<std::string, N> input_keys) :
       funcs_{funcs},
       name_{move(name)},
+      preceding_filters_{move(preceding_filters)},
       concurrency_{concurrency},
       graph_{g},
       ft_{move(f)},
@@ -289,6 +298,7 @@ namespace meld {
       funcs_.add_reduction(name_,
                            std::make_unique<complete_reduction<M>>(name_,
                                                                    concurrency_,
+                                                                   move(preceding_filters_),
                                                                    graph_,
                                                                    move(ft_),
                                                                    std::move(initializer_),
@@ -305,6 +315,7 @@ namespace meld {
   private:
     component<T>& funcs_;
     std::string name_;
+    std::vector<std::string> preceding_filters_;
     std::size_t concurrency_;
     tbb::flow::graph& graph_;
     function_t ft_;

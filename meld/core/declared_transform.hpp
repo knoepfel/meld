@@ -1,7 +1,8 @@
 #ifndef meld_core_declared_transform_hpp
 #define meld_core_declared_transform_hpp
 
-#include "meld/core/concurrency.hpp"
+#include "meld/concurrency.hpp"
+#include "meld/core/consumer.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/handle.hpp"
 #include "meld/core/message.hpp"
@@ -28,25 +29,19 @@
 
 namespace meld {
 
-  class declared_transform {
+  class declared_transform : public consumer {
   public:
-    declared_transform(std::string name, std::size_t concurrency);
-
+    declared_transform(std::string name, std::vector<std::string> preceding_filters);
     virtual ~declared_transform();
 
     std::string const& name() const noexcept;
-    std::size_t concurrency() const noexcept;
-    tbb::flow::receiver<message>& port(std::string const& product_name);
+
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual std::span<std::string const, std::dynamic_extent> input() const = 0;
     virtual std::span<std::string const, std::dynamic_extent> output() const = 0;
 
   private:
-    virtual tbb::flow::receiver<message>& port_for(std::string const& product_name) = 0;
-
     std::string name_;
-    std::size_t concurrency_;
   };
 
   using declared_transform_ptr = std::unique_ptr<declared_transform>;
@@ -75,6 +70,13 @@ namespace meld {
       return *this;
     }
 
+    // Icky?
+    incomplete_transform& filtered_by(std::vector<std::string> preceding_filters)
+    {
+      preceding_filters_ = move(preceding_filters);
+      return *this;
+    }
+
     template <std::size_t Nsize>
     auto input(std::array<std::string, Nsize> input_keys)
     {
@@ -86,6 +88,7 @@ namespace meld {
           name_,
           std::make_unique<complete_transform<0ull>>(name_,
                                                      concurrency_,
+                                                     move(preceding_filters_),
                                                      graph_,
                                                      move(ft_),
                                                      move(input_keys),
@@ -93,8 +96,13 @@ namespace meld {
         return;
       }
       else {
-        return transform_requires_output{
-          funcs_, move(name_), concurrency_, graph_, move(ft_), move(input_keys)};
+        return transform_requires_output{funcs_,
+                                         move(name_),
+                                         concurrency_,
+                                         move(preceding_filters_),
+                                         graph_,
+                                         move(ft_),
+                                         move(input_keys)};
       }
     }
 
@@ -110,6 +118,7 @@ namespace meld {
     component<T>& funcs_;
     std::string name_;
     std::size_t concurrency_{concurrency::serial};
+    std::vector<std::string> preceding_filters_{};
     tbb::flow::graph& graph_;
     function_t ft_;
   };
@@ -120,11 +129,12 @@ namespace meld {
   public:
     complete_transform(std::string name,
                        std::size_t concurrency,
+                       std::vector<std::string> preceding_filters,
                        tbb::flow::graph& g,
                        function_t&& f,
                        std::array<std::string, N> input,
                        std::array<std::string, M> output) :
-      declared_transform{move(name), concurrency},
+      declared_transform{move(name), move(preceding_filters)},
       input_{move(input)},
       output_{move(output)},
       join_{g, type_for_t<MessageHasher, Args>{}...},
@@ -134,9 +144,9 @@ namespace meld {
           auto const& [store, message_id] = std::tie(msg.store, msg.id);
           auto& [stay_in_graph, to_output] = output;
           if (store->is_flush()) {
-            // FIXME: Depending on timing, the following may introduce
-            //        weird effects (e.g. deleting cached stores
-            //        before the user function has been invoked).
+            // FIXME: Depending on timing, the following may introduce weird effects
+            //        (e.g. deleting cached stores before the user function has been
+            //        invoked).
             stores_.erase(store->id().parent());
             stay_in_graph.try_put(msg);
             return;
@@ -205,12 +215,14 @@ namespace meld {
     transform_requires_output(component<T>& funcs,
                               std::string name,
                               std::size_t concurrency,
+                              std::vector<std::string> preceding_filters,
                               tbb::flow::graph& g,
                               function_t&& f,
                               std::array<std::string, N> input_keys) :
       funcs_{funcs},
       name_{move(name)},
       concurrency_{concurrency},
+      preceding_filters_{move(preceding_filters)},
       graph_{g},
       ft_{move(f)},
       input_keys_{move(input_keys)}
@@ -224,10 +236,14 @@ namespace meld {
         M == Msize,
         "The number of function parameters is not the same as the number of returned output "
         "objects.");
-      funcs_.add_transform(
-        name_,
-        std::make_unique<complete_transform<M>>(
-          name_, concurrency_, graph_, move(ft_), move(input_keys_), move(output_keys)));
+      funcs_.add_transform(name_,
+                           std::make_unique<complete_transform<M>>(name_,
+                                                                   concurrency_,
+                                                                   move(preceding_filters_),
+                                                                   graph_,
+                                                                   move(ft_),
+                                                                   move(input_keys_),
+                                                                   move(output_keys)));
     }
 
     void output(std::convertible_to<std::string> auto&&... ts)
@@ -243,6 +259,7 @@ namespace meld {
     component<T>& funcs_;
     std::string name_;
     std::size_t concurrency_;
+    std::vector<std::string> preceding_filters_;
     tbb::flow::graph& graph_;
     function_t ft_;
     std::array<std::string, N> input_keys_;

@@ -53,6 +53,10 @@ namespace meld {
       return "Cannot get product '" + key + "' with type '" + demangle_symbol(typeid(T)) + "'.";
     }
 
+    bool contains(std::string const& product_name) const
+    {
+      return products_.contains(product_name);
+    }
     auto begin() const noexcept { return products_.begin(); }
     auto end() const noexcept { return products_.end(); }
 

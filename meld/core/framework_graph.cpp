@@ -56,13 +56,49 @@ namespace meld {
     graph_.wait_for_all();
   }
 
+  namespace {
+    template <typename T>
+    auto internal_edges_for_filters(oneapi::tbb::flow::graph& g,
+                                    declared_filters& filters,
+                                    T const& consumers)
+    {
+      std::map<std::string, result_collector> result;
+      for (auto const& [name, consumer] : consumers) {
+        auto const& preceding_filters = consumer->filtered_by();
+        if (empty(preceding_filters)) {
+          continue;
+        }
+
+        auto [it, success] = result.try_emplace(name, g, *consumer);
+        // debug("Preceding filters for ", name, ": ", preceding_filters);
+        for (auto const& filter_name : preceding_filters) {
+          auto fit = filters.find(filter_name);
+          if (fit == cend(filters)) {
+            throw std::runtime_error("A non-existent filter with the name '" + filter_name +
+                                     "' was specified for " + name);
+          }
+          make_edge(fit->second->sender(), it->second.filter_port());
+        }
+      }
+      return result;
+    }
+  }
+
   void framework_graph::finalize(std::string const& dot_file_name)
   {
+    filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, filters_));
+    filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, outputs_));
+    filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, reductions_));
+    filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, splitters_));
+    filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, transforms_));
+
     edge_maker make_edges{dot_file_name, outputs_, transforms_, reductions_};
     make_edges(src_,
                multiplexer_,
+               filter_collectors_,
                consumers{transforms_, {.shape = "ellipse"}},
                consumers{reductions_, {.arrowtail = "dot", .shape = "ellipse"}},
+               consumers{filters_, {.shape = "invtrapezium"}},
                consumers{splitters_, {.shape = "trapezium"}});
   }
 }

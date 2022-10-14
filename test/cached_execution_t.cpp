@@ -1,4 +1,4 @@
-// ===================================================================
+// =======================================================================================
 // This test executes the following graph
 //
 //    Multiplexer
@@ -11,22 +11,22 @@
 //      | \| \|
 //     A3 B2  C
 //
-// where A1, A2, and A3 are transforms that execute at the "run"
-// level; B1 and B2 are transforms that execute at the "subrun" level;
-// and C is a transform that executes at the event level.
+// where A1, A2, and A3 are transforms that execute at the "run" level; B1 and B2 are
+// transforms that execute at the "subrun" level; and C is a transform that executes at
+// the event level.
 //
-// This test verifies that for each "run", "subrun", and "event", the
-// corresponding transforms execute only once.  This test assumes:
+// This test verifies that for each "run", "subrun", and "event", the corresponding
+// transforms execute only once.  This test assumes:
 //
 //  1 run
 //    2 subruns per run
 //      5 events per subrun
 //
-// Note that B1 and B2 rely on the output from A1 and A2; and C relies
-// on the output from B1.  However, because the A transforms execute
-// at a different cadence than the B transforms (and similar for C),
-// the B transforms must use "cached" data from the A transforms.
-// ===================================================================
+// Note that B1 and B2 rely on the output from A1 and A2; and C relies on the output from
+// B1.  However, because the A transforms execute at a different cadence than the B
+// transforms (and similar for C), the B transforms must use "cached" data from the A
+// transforms.
+// =======================================================================================
 
 #include "meld/core/framework_graph.hpp"
 #include "meld/source.hpp"

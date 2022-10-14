@@ -1,7 +1,7 @@
 #ifndef meld_core_declared_output_hpp
 #define meld_core_declared_output_hpp
 
-#include "meld/core/concurrency.hpp"
+#include "meld/concurrency.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
@@ -25,26 +25,17 @@ namespace meld {
   public:
     declared_output(std::string name,
                     std::size_t concurrency,
+                    std::vector<std::string> preceding_filters,
                     tbb::flow::graph& g,
-                    detail::output_function_t&& ft) :
-      name_{move(name)},
-      concurrency_{concurrency},
-      node_{g, concurrency_, [f = move(ft)](message const& msg) -> tbb::flow::continue_msg {
-              if (not msg.store->is_flush()) {
-                f(*msg.store);
-              }
-              return {};
-            }}
-    {
-    }
+                    detail::output_function_t&& ft);
 
     std::string const& name() const noexcept;
-    std::size_t concurrency() const noexcept;
-    tbb::flow::receiver<message>& port() noexcept { return node_; }
+    std::vector<std::string> const& filtered_by() const noexcept;
+    tbb::flow::receiver<message>& port() noexcept;
 
   private:
     std::string name_;
-    std::size_t concurrency_;
+    std::vector<std::string> preceding_filters_;
     tbb::flow::function_node<message> node_;
   };
 
@@ -59,14 +50,24 @@ namespace meld {
     {
     }
 
+    // Icky?
+    incomplete_output& filtered_by(std::vector<std::string> preceding_filters)
+    {
+      preceding_filters_ = move(preceding_filters);
+      return *this;
+    }
+
     void concurrency(std::size_t n)
     {
-      funcs_.add_output(name_, std::make_unique<declared_output>(name_, n, graph_, move(ft_)));
+      funcs_.add_output(
+        name_,
+        std::make_unique<declared_output>(name_, n, move(preceding_filters_), graph_, move(ft_)));
     }
 
   private:
     component<T>& funcs_;
     std::string name_;
+    std::vector<std::string> preceding_filters_;
     tbb::flow::graph& graph_;
     detail::output_function_t ft_;
   };

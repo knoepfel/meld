@@ -68,6 +68,11 @@ namespace meld {
   level_id const& product_store::id() const noexcept { return id_; }
   bool product_store::is_flush() const noexcept { return stage_ == stage::flush; }
 
+  bool product_store::contains_product(std::string const& product_name) const
+  {
+    return products_.contains(product_name);
+  }
+
   product_store_ptr make_product_store(level_id id, std::string source, stage processing_stage)
   {
     return std::make_shared<product_store>(std::move(id), move(source), processing_stage);

@@ -1,7 +1,8 @@
 #ifndef meld_core_cached_product_stores_hpp
 #define meld_core_cached_product_stores_hpp
 
-// FIXME: only intended to be used in a single-threaded context as std::map is not thread-safe.
+// FIXME: only intended to be used in a single-threaded context as std::map is not
+//        thread-safe.
 
 #include "meld/core/product_store.hpp"
 #include "meld/graph/transition.hpp"
