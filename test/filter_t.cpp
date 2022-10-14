@@ -82,13 +82,13 @@ namespace {
                   for (auto const& d : stores) {
                     out.try_put({d, msg_id});
                   }
-                  data_.erase(msg_id);
-                  decisions_.erase(msg_id);
                 }
+                data_.erase(msg_id);
+                decisions_.erase(msg_id);
               }}
     {
       make_edge(indexer_, filter_);
-      aggregator::set_external_ports(
+      set_external_ports(
         input_ports_type{input_port<0>(indexer_), input_port<1>(indexer_)},
         output_ports_type{output_port<0>(filter_)});
     }
