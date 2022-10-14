@@ -1,0 +1,36 @@
+#include "meld/core/filter/filter_impl.hpp"
+
+#include "catch2/catch.hpp"
+
+using namespace meld;
+
+TEST_CASE("Filter values", "[filtering]")
+{
+  CHECK(is_complete(true_value));
+  CHECK(is_complete(false_value));
+  CHECK(not is_complete(0u));
+}
+
+TEST_CASE("Filter decision", "[filtering]")
+{
+  decision_map decisions{2};
+  decisions.update({1, false});
+  {
+    auto const value = decisions.value(1);
+    CHECK(is_complete(value));
+    CHECK(to_boolean(value) == false);
+    decisions.erase(1);
+  }
+  decisions.update({3, true});
+  {
+    auto const value = decisions.value(3);
+    CHECK(not is_complete(value));
+  }
+  decisions.update({3, true});
+  {
+    auto const value = decisions.value(3);
+    CHECK(is_complete(value));
+    CHECK(to_boolean(value) == true);
+    decisions.erase(3);
+  }
+}

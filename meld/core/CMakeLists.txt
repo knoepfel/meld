@@ -3,6 +3,7 @@ add_library(meld_core SHARED
   declared_transform.cpp
   declared_reduction.cpp
   edge_maker.cpp
+  filter/filter_impl.cpp
   framework_graph.cpp
   message.cpp
   multiplexer.cpp
