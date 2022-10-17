@@ -14,6 +14,7 @@
 #include "oneapi/tbb/flow_graph.h"
 
 #include <array>
+#include <concepts>
 #include <cstddef>
 #include <functional>
 #include <iterator>
@@ -97,14 +98,12 @@ namespace meld {
       }
     }
 
-    template <typename... Ts>
-    auto input(Ts... ts)
+    auto input(std::convertible_to<std::string> auto&&... ts)
     {
-      static_assert(std::conjunction_v<std::is_convertible<Ts, std::string>...>);
-      static_assert(N == sizeof...(Ts),
+      static_assert(N == sizeof...(ts),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      return input(std::array<std::string, N>{ts...});
+      return input(std::array<std::string, N>{std::forward<decltype(ts)>(ts)...});
     }
 
   private:
@@ -231,15 +230,13 @@ namespace meld {
           name_, concurrency_, graph_, move(ft_), move(input_keys_), move(output_keys)));
     }
 
-    template <typename... Ts>
-    void output(Ts... ts)
+    void output(std::convertible_to<std::string> auto&&... ts)
     {
-      static_assert(std::conjunction_v<std::is_convertible<Ts, std::string>...>);
       static_assert(
-        M == sizeof...(Ts),
+        M == sizeof...(ts),
         "The number of function parameters is not the same as the number of returned output "
         "objects.");
-      output(std::array<std::string, M>{ts...});
+      output(std::array<std::string, M>{std::forward<decltype(ts)>(ts)...});
     }
 
   private:
