@@ -139,17 +139,23 @@ namespace meld {
         collector = &coll_it->second.data_port();
       }
 
+      if (fout_) {
+        for (auto const& filter_name : node->filtered_by()) {
+          dot_normal_edge(*fout_, filter_name, node_name, {});
+        }
+      }
+
       for (auto const& product_name : node->input()) {
         auto it = producers_.find(product_name);
+        auto* input_port = collector ? collector : &node->port(product_name);
         if (it == cend(producers_)) {
-          auto* input_port = collector ? collector : &node->port(product_name);
           // Is there a way to detect mis-specified product dependencies?
           result.emplace(product_name, multiplexer::named_input_port{node_name, input_port});
           continue;
         }
 
         auto const& [sender_node, sender_name] = std::tie(it->second, it->second.node_name);
-        make_edge(*sender_node.port, node->port(product_name));
+        make_edge(*sender_node.port, *input_port);
         if (fout_) {
           auto const& src_attributes = attributes_.at(sender_name);
           dot_normal_edge(*fout_,
@@ -170,7 +176,6 @@ namespace meld {
   {
     (record_attributes(cons), ...);
 
-    // Make from source to multiplexer
     make_edge(source, multi);
 
     // Create edges to outputs
@@ -242,6 +247,7 @@ namespace meld {
         dot_multiplexing_edge(*fout_, "Multiplexer", node.node_name, {.label = product_name});
       }
     }
+
     multi.finalize(move(head_nodes));
   }
 }
