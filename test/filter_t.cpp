@@ -12,6 +12,7 @@
 #include "oneapi/tbb/flow_graph.h"
 
 using namespace meld;
+using namespace meld::concurrency;
 using namespace oneapi::tbb;
 
 namespace {
@@ -103,23 +104,18 @@ namespace {
 
 TEST_CASE("Two filters", "[filtering]")
 {
-  using namespace concurrency;
-
   framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
-
   g.declare_filter("evens_only", evens_only).concurrency(unlimited).input("num");
   g.declare_filter("odds_only", odds_only).concurrency(unlimited).input("num");
-
   g.make<sum_numbers>(20u)
     .declare_transform("add_evens", &sum_numbers::add)
     .concurrency(unlimited)
-    .filtered_by({"evens_only"})
+    .filtered_by("evens_only")
     .input("num");
-
   g.make<sum_numbers>(25u)
     .declare_transform("add_odds", &sum_numbers::add)
     .concurrency(unlimited)
-    .filtered_by({"odds_only"})
+    .filtered_by("odds_only")
     .input("num");
 
   g.execute("filter_t.gv");
@@ -127,18 +123,16 @@ TEST_CASE("Two filters", "[filtering]")
 
 TEST_CASE("Two filters in series", "[filtering]")
 {
-  using namespace concurrency;
-
   framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
   g.declare_filter("evens_only", evens_only).concurrency(unlimited).input("num");
   g.declare_filter("odds_only", odds_only)
     .concurrency(unlimited)
-    .filtered_by({"evens_only"})
+    .filtered_by("evens_only")
     .input("num");
   g.make<sum_numbers>(0u)
     .declare_transform("add", &sum_numbers::add)
     .concurrency(unlimited)
-    .filtered_by({"odds_only"})
+    .filtered_by("odds_only")
     .input("num");
 
   g.execute();
@@ -146,15 +140,13 @@ TEST_CASE("Two filters in series", "[filtering]")
 
 TEST_CASE("Two filters in parallel", "[filtering]")
 {
-  using namespace concurrency;
-
   framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
   g.declare_filter("evens_only", evens_only).concurrency(unlimited).input("num");
   g.declare_filter("odds_only", odds_only).concurrency(unlimited).input("num");
   g.make<sum_numbers>(0u)
     .declare_transform("add", &sum_numbers::add)
     .concurrency(unlimited)
-    .filtered_by({"odds_only", "evens_only"})
+    .filtered_by("odds_only", "evens_only")
     .input("num");
 
   g.execute();
@@ -162,8 +154,6 @@ TEST_CASE("Two filters in parallel", "[filtering]")
 
 TEST_CASE("Three filters in parallel", "[filtering]")
 {
-  using namespace concurrency;
-
   struct filter_config {
     std::string name;
     unsigned int begin;
@@ -194,20 +184,18 @@ TEST_CASE("Three filters in parallel", "[filtering]")
 
 TEST_CASE("Two filters in parallel (each with multiple arguments)", "[filtering]")
 {
-  using namespace concurrency;
-
   framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
   g.declare_filter("evens_only", evens_only).concurrency(unlimited).input("num");
   g.declare_filter("odds_only", odds_only).concurrency(unlimited).input("num");
   g.make<check_multiple_numbers>(5 * 100)
     .declare_transform("check_evens", &check_multiple_numbers::add_difference)
     .concurrency(unlimited)
-    .filtered_by({"evens_only"})
+    .filtered_by("evens_only")
     .input("num", "other_num"); // <= Note input order
   g.make<check_multiple_numbers>(-5 * 100)
     .declare_transform("check_odds", &check_multiple_numbers::add_difference)
     .concurrency(unlimited)
-    .filtered_by({"odds_only"})
+    .filtered_by("odds_only")
     .input("other_num", "num"); // <= Note input order
 
   g.execute();

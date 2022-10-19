@@ -102,7 +102,7 @@ TEST_CASE("Splitting the processing", "[graph]")
 
   g.declare_splitter("split", split)
     .concurrency(unlimited)
-    .filtered_by({})
+    .filtered_by()
     .input("max_number")
     .provides({"num"});
   g.declare_reduction("add", add).concurrency(unlimited).input("num").output("sum");

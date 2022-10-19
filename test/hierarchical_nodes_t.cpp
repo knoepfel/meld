@@ -111,7 +111,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   }};
 
   g.declare_transform("get_the_time", strtime)
-    .filtered_by({})
+    .filtered_by()
     .concurrency(unlimited)
     .input("time")
     .output("strtime");
@@ -120,7 +120,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     .input("number")
     .output("squared_number");
   g.declare_reduction("add", add, 15u)
-    .filtered_by({})
+    .filtered_by()
     .concurrency(unlimited)
     .input("squared_number")
     .output("added_data");
@@ -130,7 +130,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     .input("result", "strtime");
 
   auto c = g.make<test::products_for_output>();
-  c.declare_output("save_to_file", &test::products_for_output::save).filtered_by({}).concurrency(1);
+  c.declare_output("save_to_file", &test::products_for_output::save).filtered_by().concurrency(1);
 
   g.execute("hierarchical_nodes_t.gv");
 }

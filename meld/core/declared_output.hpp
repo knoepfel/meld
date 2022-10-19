@@ -57,6 +57,11 @@ namespace meld {
       return *this;
     }
 
+    auto& filtered_by(std::convertible_to<std::string> auto&&... names)
+    {
+      return filtered_by(std::vector<std::string>{std::forward<decltype(names)>(names)...});
+    }
+
     void concurrency(std::size_t n)
     {
       funcs_.add_output(

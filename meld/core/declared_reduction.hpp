@@ -85,6 +85,11 @@ namespace meld {
       return *this;
     }
 
+    auto& filtered_by(std::convertible_to<std::string> auto&&... names)
+    {
+      return filtered_by(std::vector<std::string>{std::forward<decltype(names)>(names)...});
+    }
+
     auto input(std::array<std::string, N> input_keys);
 
     auto input(std::convertible_to<std::string> auto&&... ts)

@@ -95,6 +95,11 @@ namespace meld {
       return *this;
     }
 
+    auto& filtered_by(std::convertible_to<std::string> auto&&... names)
+    {
+      return filtered_by(std::vector<std::string>{std::forward<decltype(names)>(names)...});
+    }
+
     // Icky?
     incomplete_splitter& input(std::array<std::string, N> input_keys)
     {
