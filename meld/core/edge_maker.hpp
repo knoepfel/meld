@@ -68,6 +68,9 @@ namespace meld {
     static void dot_node_declaration(std::ostream& os,
                                      std::string const& node_name,
                                      std::string const& node_shape);
+    static void dot_filter_edge(std::ostream& os,
+                                std::string const& source_node,
+                                std::string const& target_node);
     static void dot_multiplexing_edge(std::ostream& os,
                                       std::string const& source_node,
                                       std::string const& target_node,
@@ -141,7 +144,7 @@ namespace meld {
 
       if (fout_) {
         for (auto const& filter_name : node->filtered_by()) {
-          dot_normal_edge(*fout_, filter_name, node_name, {});
+          dot_filter_edge(*fout_, filter_name, node_name);
         }
       }
 

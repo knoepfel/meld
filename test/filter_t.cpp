@@ -118,7 +118,7 @@ TEST_CASE("Two filters", "[filtering]")
     .filtered_by("odds_only")
     .input("num");
 
-  g.execute("filter_t.gv");
+  g.execute("two_independent_filters_t.gv");
 }
 
 TEST_CASE("Two filters in series", "[filtering]")
@@ -135,7 +135,7 @@ TEST_CASE("Two filters in series", "[filtering]")
     .filtered_by("odds_only")
     .input("num");
 
-  g.execute();
+  g.execute("two_filters_in_series_t.gv");
 }
 
 TEST_CASE("Two filters in parallel", "[filtering]")
@@ -149,7 +149,7 @@ TEST_CASE("Two filters in parallel", "[filtering]")
     .filtered_by("odds_only", "evens_only")
     .input("num");
 
-  g.execute();
+  g.execute("two_filters_in_parallel_t.gv");
 }
 
 TEST_CASE("Three filters in parallel", "[filtering]")
@@ -179,7 +179,7 @@ TEST_CASE("Three filters in parallel", "[filtering]")
     .filtered_by(filter_names)
     .input("num");
 
-  g.execute();
+  g.execute("three_filters_in_parallel_t.gv");
 }
 
 TEST_CASE("Two filters in parallel (each with multiple arguments)", "[filtering]")
@@ -198,5 +198,5 @@ TEST_CASE("Two filters in parallel (each with multiple arguments)", "[filtering]
     .filtered_by("odds_only")
     .input("other_num", "num"); // <= Note input order
 
-  g.execute();
+  g.execute("two_filters_in_parallel_multiarg_t.gv");
 }

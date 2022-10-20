@@ -50,6 +50,24 @@ namespace meld {
     os << "  " << node_name << attributes_str(shape(node_shape)) << ";\n";
   }
 
+  void edge_maker::dot_filter_edge(std::ostream& os,
+                                   std::string const& source_node,
+                                   std::string const& target_node)
+  {
+    os << "  " << source_node << " -> " << target_node << attributes_str(color("red")) << ";\n";
+  }
+
+  void edge_maker::dot_multiplexing_edge(std::ostream& os,
+                                         std::string const& source_node,
+                                         std::string const& target_node,
+                                         dot::attributes attrs)
+  {
+    os << "  " << source_node << " -> " << target_node
+       << attributes_str(
+            color("blue"), style("dashed"), label(attrs.label), fontsize(default_fontsize))
+       << ";\n";
+  }
+
   void edge_maker::dot_normal_edge(std::ostream& os,
                                    std::string const& source_node,
                                    std::string const& target_node,
@@ -68,16 +86,5 @@ namespace meld {
   {
     os << "  " << source_node << " -> " << target_node
        << attributes_str(dir("both"), color("gray"), arrowtail(attrs.arrowtail)) << ";\n";
-  }
-
-  void edge_maker::dot_multiplexing_edge(std::ostream& os,
-                                         std::string const& source_node,
-                                         std::string const& target_node,
-                                         dot::attributes attrs)
-  {
-    os << "  " << source_node << " -> " << target_node
-       << attributes_str(
-            color("blue"), style("dashed"), label(attrs.label), fontsize(default_fontsize))
-       << ";\n";
   }
 }

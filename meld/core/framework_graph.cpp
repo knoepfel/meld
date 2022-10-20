@@ -98,7 +98,7 @@ namespace meld {
                filter_collectors_,
                consumers{transforms_, {.shape = "ellipse"}},
                consumers{reductions_, {.arrowtail = "dot", .shape = "ellipse"}},
-               consumers{filters_, {.shape = "invtrapezium"}},
+               consumers{filters_, {.shape = "box"}},
                consumers{splitters_, {.shape = "trapezium"}});
   }
 }
