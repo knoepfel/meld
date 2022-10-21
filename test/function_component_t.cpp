@@ -88,7 +88,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   }
 
   // The following is invoked for *each* section above
-  g.declare_transform("verify_results", verify_results).input(product_names);
+  g.declare_monitor("verify_results", verify_results).input(product_names);
 
   g.execute();
 }

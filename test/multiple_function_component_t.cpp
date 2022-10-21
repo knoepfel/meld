@@ -81,6 +81,6 @@ TEST_CASE("Call multiple functions", "[programming model]")
   }
 
   // The following is invoked for *each* section above
-  g.declare_transform("verify_result", verify_result).input("result");
+  g.declare_monitor("verify_result", verify_result).input("result");
   g.execute();
 }

@@ -125,9 +125,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     .input("squared_number")
     .output("added_data");
   g.declare_transform("scale", scale).concurrency(unlimited).input("added_data").output("result");
-  g.declare_transform("print_result", print_result)
-    .concurrency(unlimited)
-    .input("result", "strtime");
+  g.declare_monitor("print_result", print_result).concurrency(unlimited).input("result", "strtime");
 
   auto c = g.make<test::products_for_output>();
   c.declare_output("save_to_file", &test::products_for_output::save).filtered_by().concurrency(1);

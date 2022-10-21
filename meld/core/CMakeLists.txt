@@ -1,6 +1,7 @@
 add_library(meld_core SHARED
   consumer.cpp
   declared_filter.cpp
+  declared_monitor.cpp
   declared_output.cpp
   declared_splitter.cpp
   declared_transform.cpp

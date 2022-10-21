@@ -98,9 +98,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   }
 
   // The following is invoked for *each* section above
-  g.declare_transform("verify_results", verify_results)
-    .concurrency(unlimited)
-    .input(oproduct_names);
+  g.declare_monitor("verify_results", verify_results).concurrency(unlimited).input(oproduct_names);
 
   g.execute("class_component_t.gv");
 }

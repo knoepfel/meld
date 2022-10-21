@@ -6,6 +6,7 @@ namespace meld {
   class component;
   class consumer;
   class declared_output;
+  class generator;
   class framework_graph;
   class product_store;
 }

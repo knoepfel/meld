@@ -2,6 +2,7 @@
 #define meld_core_declared_transform_hpp
 
 #include "meld/concurrency.hpp"
+#include "meld/core/concepts.hpp"
 #include "meld/core/consumer.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/handle.hpp"
@@ -49,7 +50,7 @@ namespace meld {
 
   // Registering concrete transforms
 
-  template <typename T, typename R, typename... Args>
+  template <typename T, not_void R, typename... Args>
   class incomplete_transform {
     static constexpr auto N = sizeof...(Args);
     using function_t = std::function<R(Args...)>;
@@ -88,27 +89,13 @@ namespace meld {
       static_assert(N == Nsize,
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      if constexpr (std::same_as<R, void>) {
-        funcs_.add_transform(
-          name_,
-          std::make_unique<complete_transform<0ull>>(name_,
-                                                     concurrency_,
-                                                     move(preceding_filters_),
-                                                     graph_,
-                                                     move(ft_),
-                                                     move(input_keys),
-                                                     std::array<std::string, 0ull>{}));
-        return;
-      }
-      else {
-        return transform_requires_output{funcs_,
-                                         move(name_),
-                                         concurrency_,
-                                         move(preceding_filters_),
-                                         graph_,
-                                         move(ft_),
-                                         move(input_keys)};
-      }
+      return transform_requires_output{funcs_,
+                                       move(name_),
+                                       concurrency_,
+                                       move(preceding_filters_),
+                                       graph_,
+                                       move(ft_),
+                                       move(input_keys)};
     }
 
     auto input(std::convertible_to<std::string> auto&&... ts)
@@ -128,93 +115,9 @@ namespace meld {
     function_t ft_;
   };
 
-  template <typename T, typename R, typename... Args>
-  template <std::size_t M>
-  class incomplete_transform<T, R, Args...>::complete_transform : public declared_transform {
-  public:
-    complete_transform(std::string name,
-                       std::size_t concurrency,
-                       std::vector<std::string> preceding_filters,
-                       tbb::flow::graph& g,
-                       function_t&& f,
-                       std::array<std::string, N> input,
-                       std::array<std::string, M> output) :
-      declared_transform{move(name), move(preceding_filters)},
-      input_{move(input)},
-      output_{move(output)},
-      join_{g, type_for_t<MessageHasher, Args>{}...},
-      transform_{
-        g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages, auto& output) {
-          auto const& msg = most_derived(messages);
-          auto const& [store, message_id] = std::tie(msg.store, msg.id);
-          auto& [stay_in_graph, to_output] = output;
-          if (store->is_flush()) {
-            // FIXME: Depending on timing, the following may introduce weird effects
-            //        (e.g. deleting cached stores before the user function has been
-            //        invoked).
-            stores_.erase(store->id().parent());
-            stay_in_graph.try_put(msg);
-            return;
-          }
-
-          if (typename decltype(stores_)::const_accessor a; stores_.find(a, store->id())) {
-            stay_in_graph.try_put({a->second, message_id});
-            return;
-          }
-
-          typename decltype(stores_)::accessor a;
-          bool const new_insert = stores_.insert(a, store->id());
-          if (!new_insert) {
-            stay_in_graph.try_put({a->second, message_id});
-            return;
-          }
-
-          if constexpr (std::same_as<R, void>) {
-            call(ft, messages, std::index_sequence_for<Args...>{});
-            a->second = {};
-          }
-          else {
-            auto result = call(ft, messages, std::index_sequence_for<Args...>{});
-            auto new_store = make_product_store(store->id(), this->name());
-            add_to(*new_store, result, output_);
-            a->second = new_store;
-          }
-
-          message const new_msg{a->second, message_id};
-          stay_in_graph.try_put(new_msg);
-          to_output.try_put(new_msg);
-        }}
-    {
-      make_edge(join_, transform_);
-    }
-
-  private:
-    tbb::flow::receiver<message>& port_for(std::string const& product_name) override
-    {
-      return receiver_for<N>(join_, input_, product_name);
-    }
-
-    tbb::flow::sender<message>& sender() override { return output_port<0>(transform_); }
-    tbb::flow::sender<message>& to_output() override { return output_port<1>(transform_); }
-    std::span<std::string const, std::dynamic_extent> input() const override { return input_; }
-    std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
-
-    template <std::size_t... Is>
-    R call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
-    {
-      return std::invoke(ft, get_handle_for<Is, N, Args>(messages, input_)...);
-    }
-
-    std::array<std::string, N> input_;
-    std::array<std::string, M> output_;
-    join_or_none_t<N> join_;
-    tbb::flow::multifunction_node<messages_t<N>, messages_t<2u>> transform_;
-    tbb::concurrent_hash_map<level_id, product_store_ptr> stores_;
-  };
-
-  template <typename T, typename R, typename... Args>
+  template <typename T, not_void R, typename... Args>
   class incomplete_transform<T, R, Args...>::transform_requires_output {
-    static constexpr std::size_t M = number_outputs<R>;
+    static constexpr std::size_t M = number_types<R>;
 
   public:
     transform_requires_output(component<T>& funcs,
@@ -268,6 +171,84 @@ namespace meld {
     tbb::flow::graph& graph_;
     function_t ft_;
     std::array<std::string, N> input_keys_;
+  };
+
+  template <typename T, not_void R, typename... Args>
+  template <std::size_t M>
+  class incomplete_transform<T, R, Args...>::complete_transform : public declared_transform {
+  public:
+    complete_transform(std::string name,
+                       std::size_t concurrency,
+                       std::vector<std::string> preceding_filters,
+                       tbb::flow::graph& g,
+                       function_t&& f,
+                       std::array<std::string, N> input,
+                       std::array<std::string, M> output) :
+      declared_transform{move(name), move(preceding_filters)},
+      input_{move(input)},
+      output_{move(output)},
+      join_{g, type_for_t<MessageHasher, Args>{}...},
+      transform_{
+        g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages, auto& output) {
+          auto const& msg = most_derived(messages);
+          auto const& [store, message_id] = std::tie(msg.store, msg.id);
+          auto& [stay_in_graph, to_output] = output;
+          if (store->is_flush()) {
+            // FIXME: Depending on timing, the following may introduce weird effects
+            //        (e.g. deleting cached stores before the user function has been
+            //        invoked).
+            stores_.erase(store->id().parent());
+            stay_in_graph.try_put(msg);
+            return;
+          }
+
+          if (typename decltype(stores_)::const_accessor a; stores_.find(a, store->id())) {
+            stay_in_graph.try_put({a->second, message_id});
+            return;
+          }
+
+          typename decltype(stores_)::accessor a;
+          bool const new_insert = stores_.insert(a, store->id());
+          if (!new_insert) {
+            stay_in_graph.try_put({a->second, message_id});
+            return;
+          }
+
+          auto result = call(ft, messages, std::index_sequence_for<Args...>{});
+          auto new_store = make_product_store(store->id(), this->name());
+          add_to(*new_store, result, output_);
+          a->second = new_store;
+
+          message const new_msg{a->second, message_id};
+          stay_in_graph.try_put(new_msg);
+          to_output.try_put(new_msg);
+        }}
+    {
+      make_edge(join_, transform_);
+    }
+
+  private:
+    tbb::flow::receiver<message>& port_for(std::string const& product_name) override
+    {
+      return receiver_for<N>(join_, input_, product_name);
+    }
+
+    tbb::flow::sender<message>& sender() override { return output_port<0>(transform_); }
+    tbb::flow::sender<message>& to_output() override { return output_port<1>(transform_); }
+    std::span<std::string const, std::dynamic_extent> input() const override { return input_; }
+    std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
+
+    template <std::size_t... Is>
+    R call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
+    {
+      return std::invoke(ft, get_handle_for<Is, N, Args>(messages, input_)...);
+    }
+
+    std::array<std::string, N> input_;
+    std::array<std::string, M> output_;
+    join_or_none_t<N> join_;
+    tbb::flow::multifunction_node<messages_t<N>, messages_t<2u>> transform_;
+    tbb::concurrent_hash_map<level_id, product_store_ptr> stores_;
   };
 }
 

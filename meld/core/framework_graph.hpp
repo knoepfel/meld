@@ -44,6 +44,12 @@ namespace meld {
       return unbound_functions_.declare_filter(move(name), f);
     }
 
+    template <typename... Args>
+    auto declare_monitor(std::string name, void (*f)(Args...))
+    {
+      return unbound_functions_.declare_monitor(move(name), f);
+    }
+
     template <typename R, typename... Args, typename... InitArgs>
     auto declare_reduction(std::string name, void (*f)(R&, Args...), InitArgs&&... init_args)
     {
@@ -75,13 +81,14 @@ namespace meld {
 
     tbb::flow::graph graph_{};
     declared_filters filters_{};
+    declared_monitors monitors_{};
     declared_outputs outputs_{};
     declared_reductions reductions_{};
     declared_splitters splitters_{};
     declared_transforms transforms_{};
     std::map<std::string, result_collector> filter_collectors_{};
     component<void_tag> unbound_functions_{
-      graph_, filters_, outputs_, reductions_, splitters_, transforms_};
+      graph_, filters_, monitors_, outputs_, reductions_, splitters_, transforms_};
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
     std::map<level_id, std::size_t> original_message_ids_;

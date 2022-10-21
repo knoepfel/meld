@@ -87,6 +87,7 @@ namespace meld {
   void framework_graph::finalize(std::string const& dot_file_name)
   {
     filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, filters_));
+    filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, monitors_));
     filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, outputs_));
     filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, reductions_));
     filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, splitters_));
@@ -96,9 +97,10 @@ namespace meld {
     make_edges(src_,
                multiplexer_,
                filter_collectors_,
-               consumers{transforms_, {.shape = "ellipse"}},
-               consumers{reductions_, {.arrowtail = "dot", .shape = "ellipse"}},
                consumers{filters_, {.shape = "box"}},
-               consumers{splitters_, {.shape = "trapezium"}});
+               consumers{monitors_, {.shape = "ellipse"}},
+               consumers{reductions_, {.arrowtail = "dot", .shape = "ellipse"}},
+               consumers{splitters_, {.shape = "trapezium"}},
+               consumers{transforms_, {.shape = "ellipse"}});
   }
 }

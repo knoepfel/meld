@@ -8,8 +8,5 @@ using namespace meld::concurrency;
 DEFINE_MODULE(m)
 {
   m.declare_transform("add", test::add).concurrency(unlimited).input("i", "j").output("sum");
-  m.declare_transform("verify_zero", test::verify_zero)
-    .concurrency(unlimited)
-    .input("sum")
-    .output(""); // FIXME: Should not have to specify output of ""
+  m.declare_monitor("verify_zero", test::verify_zero).concurrency(unlimited).input("sum");
 }

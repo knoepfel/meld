@@ -2,6 +2,7 @@
 #define meld_core_declared_reduction_hpp
 
 #include "meld/concurrency.hpp"
+#include "meld/core/concepts.hpp"
 #include "meld/core/consumer.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/handle.hpp"
@@ -16,7 +17,6 @@
 #include <array>
 #include <atomic>
 #include <cassert>
-#include <concepts>
 #include <cstddef>
 #include <functional>
 #include <iterator>
@@ -50,13 +50,13 @@ namespace meld {
 
   // Registering concrete reductions
 
-  template <typename T, typename R, typename InitTuple, typename... Args>
+  template <typename T, not_void R, typename InitTuple, typename... Args>
   class incomplete_reduction {
     static constexpr auto N = sizeof...(Args);
     using function_t = std::function<void(R&, Args...)>;
+    class reduction_requires_output;
     template <std::size_t M>
     class complete_reduction;
-    class reduction_requires_output;
 
   public:
     incomplete_reduction(component<T>& funcs,
@@ -110,7 +110,7 @@ namespace meld {
     InitTuple initializer_;
   };
 
-  template <typename T, typename R, typename InitTuple, typename... Args>
+  template <typename T, not_void R, typename InitTuple, typename... Args>
   template <std::size_t M>
   class incomplete_reduction<T, R, InitTuple, Args...>::complete_reduction :
     public declared_reduction {
@@ -246,36 +246,20 @@ namespace meld {
   // =================================================================================
   // Implementation
 
-  template <typename T, typename R, typename InitTuple, typename... Args>
+  template <typename T, not_void R, typename InitTuple, typename... Args>
   auto incomplete_reduction<T, R, InitTuple, Args...>::input(std::array<std::string, N> input_keys)
   {
-    if constexpr (std::same_as<
-                    R,
-                    void>) { // FIXME: It is suspect to have a void return type for reductions.
-      funcs_.add_reduction(name_,
-                           std::make_unique<complete_reduction<0ull>>(name_,
-                                                                      concurrency_,
-                                                                      move(preceding_filters_),
-                                                                      graph_,
-                                                                      move(ft_),
-                                                                      std::move(initializer_),
-                                                                      move(input_keys),
-                                                                      {}));
-      return;
-    }
-    else {
-      return reduction_requires_output{funcs_,
-                                       move(name_),
-                                       concurrency_,
-                                       move(preceding_filters_),
-                                       graph_,
-                                       move(ft_),
-                                       std::move(initializer_),
-                                       move(input_keys)};
-    }
+    return reduction_requires_output{funcs_,
+                                     move(name_),
+                                     concurrency_,
+                                     move(preceding_filters_),
+                                     graph_,
+                                     move(ft_),
+                                     std::move(initializer_),
+                                     move(input_keys)};
   }
 
-  template <typename T, typename R, typename InitTuple, typename... Args>
+  template <typename T, not_void R, typename InitTuple, typename... Args>
   class incomplete_reduction<T, R, InitTuple, Args...>::reduction_requires_output {
   public:
     reduction_requires_output(component<T>& funcs,

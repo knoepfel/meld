@@ -106,7 +106,7 @@ TEST_CASE("Splitting the processing", "[graph]")
     .input("max_number")
     .provides({"num"});
   g.declare_reduction("add", add).concurrency(unlimited).input("num").output("sum");
-  g.declare_transform("check_sum", check_sum).concurrency(unlimited).input("sum");
+  g.declare_monitor("check_sum", check_sum).concurrency(unlimited).input("sum");
   g.make<test::products_for_output>()
     .declare_output("save", &test::products_for_output::save)
     .concurrency(1);
