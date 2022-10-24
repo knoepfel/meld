@@ -8,7 +8,7 @@
 #include "meld/core/declared_reduction.hpp"
 #include "meld/core/declared_splitter.hpp"
 #include "meld/core/declared_transform.hpp"
-#include "meld/utilities/type_deduction.hpp"
+#include "meld/metaprogramming/delegate.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 #include "oneapi/tbb/global_control.h"

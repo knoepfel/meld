@@ -1,8 +1,6 @@
-#ifndef meld_utilities_type_deduction_hpp
-#define meld_utilities_type_deduction_hpp
+#ifndef meld_metaprogramming_type_deduction_hpp
+#define meld_metaprogramming_type_deduction_hpp
 
-#include <functional>
-#include <memory>
 #include <tuple>
 
 namespace meld {
@@ -63,6 +61,9 @@ namespace meld {
 
     template <typename R, typename... Args>
     std::tuple<Args...> parameter_types(R (*)(Args...) noexcept);
+
+    template <typename T>
+    using input_parameter_types = decltype(parameter_types(std::declval<T>()));
 
     // ============================================================================
     // Primary template is assumed to be a lambda
@@ -131,25 +132,33 @@ namespace meld {
     constexpr std::size_t number_output_objects<R(Args...) noexcept> = number_types_not_void<R>();
   }
 
-  struct void_tag {};
+  template <typename T, typename... Args>
+  struct check_parameters {
+    using input_parameters = detail::input_parameter_types<T>;
+    static_assert(std::tuple_size<input_parameters>{} >= sizeof...(Args));
 
-  template <typename R, typename... Args>
-  auto delegate(std::shared_ptr<void_tag>&, R (*f)(Args...))
-  {
-    return std::function{f};
-  }
+    template <std::size_t... Is>
+    static constexpr bool check_params_for(std::index_sequence<Is...>)
+    {
+      return std::conjunction_v<std::is_same<std::tuple_element_t<Is, input_parameters>, Args>...>;
+    }
 
-  template <typename R, typename T, typename... Args>
-  auto delegate(std::shared_ptr<T>& obj, R (T::*f)(Args...))
-  {
-    return std::function{[t = obj, f](Args... args) mutable -> R { return ((*t).*f)(args...); }};
-  }
+    constexpr operator bool() noexcept { return value; }
+    static constexpr bool value = check_params_for(std::index_sequence_for<Args...>{});
+  };
 
-  template <typename R, typename T, typename... Args>
-  auto delegate(std::shared_ptr<T>& obj, R (T::*f)(Args...) const)
-  {
-    return std::function{[t = obj, f](Args... args) mutable -> R { return ((*t).*f)(args...); }};
-  }
+  // ===================================================================
+  template <typename T>
+  struct is_non_const_lvalue_reference : std::is_lvalue_reference<T> {
+  };
+
+  template <typename T>
+  struct is_non_const_lvalue_reference<T const&> : std::false_type {
+  };
+
+  // ===================================================================
+  template <typename T, std::size_t I>
+  using parameter_type_for = std::tuple_element_t<I, detail::input_parameter_types<T>>;
 }
 
-#endif /* meld_utilities_type_deduction_hpp */
+#endif /* meld_metaprogramming_type_deduction_hpp */

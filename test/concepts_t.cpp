@@ -10,11 +10,6 @@ namespace {
   struct A {
     int call(int, int) const noexcept { return 1; };
   };
-
-  template <is_transform_like FT>
-  void declare_transform(FT)
-  {
-  }
 }
 
 int main()

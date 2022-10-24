@@ -9,7 +9,6 @@
 #include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
 #include "meld/graph/transition.hpp"
-#include "meld/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"

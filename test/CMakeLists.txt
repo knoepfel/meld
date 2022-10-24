@@ -38,7 +38,7 @@ add_unit_test(concepts_t LIBRARIES meld::core)
 add_unit_test(iterator_t)
 add_unit_test(sized_tuple_t LIBRARIES meld::utilities)
 add_unit_test(string_literal_t LIBRARIES meld::utilities)
-add_unit_test(type_deduction_t LIBRARIES meld::utilities)
+add_unit_test(type_deduction_t LIBRARIES meld::metaprogramming)
 
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 
