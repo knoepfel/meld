@@ -1,140 +1,34 @@
 #ifndef meld_metaprogramming_type_deduction_hpp
 #define meld_metaprogramming_type_deduction_hpp
 
+#include "meld/metaprogramming/detail/number_output_objects.hpp"
+#include "meld/metaprogramming/detail/number_parameters.hpp"
+#include "meld/metaprogramming/detail/parameter_types.hpp"
+#include "meld/metaprogramming/detail/return_type.hpp"
+
 #include <tuple>
 
 namespace meld {
   template <typename T>
-  constexpr std::size_t number_types = 1ull;
+  using return_type = decltype(detail::return_type_impl(std::declval<T>()));
 
-  template <typename... Args>
-  constexpr std::size_t number_types<std::tuple<Args...>> = sizeof...(Args);
+  template <typename T>
+  using parameter_types = decltype(detail::parameter_types_impl(std::declval<T>()));
 
-  template <typename R>
-  constexpr std::size_t number_types_not_void()
-  {
-    if constexpr (std::is_same<R, void>{}) {
-      return 0ull;
-    }
-    else {
-      return number_types<R>;
-    }
-  }
+  template <std::size_t I, typename T>
+  using parameter_type = std::tuple_element_t<I, parameter_types<T>>;
 
-  namespace detail {
-    // ============================================================================
-    template <typename T, typename R, typename... Args>
-    R return_type(R (T::*)(Args...));
+  template <typename T>
+  constexpr std::size_t number_parameters = detail::number_parameters_impl<T>;
 
-    template <typename T, typename R, typename... Args>
-    R return_type(R (T::*)(Args...) const);
+  template <typename T>
+  constexpr std::size_t number_output_objects = detail::number_output_objects_impl<T>;
 
-    template <typename R, typename... Args>
-    R return_type(R (*)(Args...));
-
-    // noexcept overlaods
-    template <typename T, typename R, typename... Args>
-    R return_type(R (T::*)(Args...) noexcept);
-
-    template <typename T, typename R, typename... Args>
-    R return_type(R (T::*)(Args...) const noexcept);
-
-    template <typename R, typename... Args>
-    R return_type(R (*)(Args...) noexcept);
-
-    // ============================================================================
-    template <typename T, typename R, typename... Args>
-    std::tuple<Args...> parameter_types(R (T::*)(Args...));
-
-    template <typename T, typename R, typename... Args>
-    std::tuple<Args...> parameter_types(R (T::*)(Args...) const);
-
-    template <typename R, typename... Args>
-    std::tuple<Args...> parameter_types(R (*)(Args...));
-
-    // noexcept overloads
-    template <typename T, typename R, typename... Args>
-    std::tuple<Args...> parameter_types(R (T::*)(Args...) noexcept);
-
-    template <typename T, typename R, typename... Args>
-    std::tuple<Args...> parameter_types(R (T::*)(Args...) const noexcept);
-
-    template <typename R, typename... Args>
-    std::tuple<Args...> parameter_types(R (*)(Args...) noexcept);
-
-    template <typename T>
-    using input_parameter_types = decltype(parameter_types(std::declval<T>()));
-
-    // ============================================================================
-    // Primary template is assumed to be a lambda
-    template <typename T>
-    constexpr std::size_t number_input_parameters =
-      number_input_parameters<decltype(&T::operator())>;
-
-    template <typename R, typename T, typename... Args>
-    constexpr std::size_t number_input_parameters<R (T::*)(Args...)> = sizeof...(Args);
-
-    template <typename R, typename T, typename... Args>
-    constexpr std::size_t number_input_parameters<R (T::*)(Args...) const> = sizeof...(Args);
-
-    template <typename R, typename... Args>
-    constexpr std::size_t number_input_parameters<R (*)(Args...)> = sizeof...(Args);
-
-    template <typename R, typename... Args>
-    constexpr std::size_t number_input_parameters<R(Args...)> = sizeof...(Args);
-
-    // noexcept specializations
-    template <typename R, typename T, typename... Args>
-    constexpr std::size_t number_input_parameters<R (T::*)(Args...) noexcept> = sizeof...(Args);
-
-    template <typename R, typename T, typename... Args>
-    constexpr std::size_t number_input_parameters<R (T::*)(Args...) const noexcept> =
-      sizeof...(Args);
-
-    template <typename R, typename... Args>
-    constexpr std::size_t number_input_parameters<R (*)(Args...) noexcept> = sizeof...(Args);
-
-    template <typename R, typename... Args>
-    constexpr std::size_t number_input_parameters<R(Args...) noexcept> = sizeof...(Args);
-
-    // ============================================================================
-    // Primary template is assumed to be a lambda
-    template <typename T>
-    constexpr std::size_t number_output_objects = number_output_objects<decltype(&T::operator())>;
-
-    template <typename R, typename T, typename... Args>
-    constexpr std::size_t number_output_objects<R (T::*)(Args...)> = number_types_not_void<R>();
-
-    template <typename R, typename T, typename... Args>
-    constexpr std::size_t number_output_objects<R (T::*)(Args...) const> =
-      number_types_not_void<R>();
-
-    template <typename R, typename... Args>
-    constexpr std::size_t number_output_objects<R (*)(Args...)> = number_types_not_void<R>();
-
-    template <typename R, typename... Args>
-    constexpr std::size_t number_output_objects<R(Args...)> = number_types_not_void<R>();
-
-    // noexcept specializations
-    template <typename R, typename T, typename... Args>
-    constexpr std::size_t number_output_objects<R (T::*)(Args...) noexcept> =
-      number_types_not_void<R>();
-
-    template <typename R, typename T, typename... Args>
-    constexpr std::size_t number_output_objects<R (T::*)(Args...) const noexcept> =
-      number_types_not_void<R>();
-
-    template <typename R, typename... Args>
-    constexpr std::size_t number_output_objects<R (*)(Args...) noexcept> =
-      number_types_not_void<R>();
-
-    template <typename R, typename... Args>
-    constexpr std::size_t number_output_objects<R(Args...) noexcept> = number_types_not_void<R>();
-  }
+  using detail::number_types;
 
   template <typename T, typename... Args>
   struct check_parameters {
-    using input_parameters = detail::input_parameter_types<T>;
+    using input_parameters = parameter_types<T>;
     static_assert(std::tuple_size<input_parameters>{} >= sizeof...(Args));
 
     template <std::size_t... Is>
@@ -155,10 +49,6 @@ namespace meld {
   template <typename T>
   struct is_non_const_lvalue_reference<T const&> : std::false_type {
   };
-
-  // ===================================================================
-  template <typename T, std::size_t I>
-  using parameter_type_for = std::tuple_element_t<I, detail::input_parameter_types<T>>;
 }
 
 #endif /* meld_metaprogramming_type_deduction_hpp */

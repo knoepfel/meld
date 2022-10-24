@@ -14,7 +14,7 @@ namespace meld {
   concept not_void = !std::same_as<T, void>;
 
   template <typename T, std::size_t N>
-  concept at_least_n_input_parameters = detail::number_input_parameters<T> >= N;
+  concept at_least_n_input_parameters = number_parameters<T> >= N;
 
   template <typename T>
   concept at_least_one_input_parameter = at_least_n_input_parameters<T, 1>;
@@ -23,17 +23,15 @@ namespace meld {
   concept at_least_two_input_parameters = at_least_n_input_parameters<T, 2>;
 
   template <typename T>
-  concept at_least_one_output_object = detail::number_output_objects<T> >= 1ull;
+  concept at_least_one_output_object = number_output_objects<T> >= 1ull;
 
   template <typename T>
   concept first_input_parameter_is_non_const_lvalue_reference =
     at_least_one_input_parameter<T> &&
-    is_non_const_lvalue_reference<parameter_type_for<T, 0>>{};
+    is_non_const_lvalue_reference<parameter_type<0, T>>{};
 
   template <typename T, typename R>
-  concept returns = requires(T t) {
-    {detail::return_type(t)} -> std::same_as<R>;
-  };
+  concept returns = std::same_as<return_type<T>, R>;
 
   template <typename T, typename... Args>
   concept expects_input_parameters = at_least_n_input_parameters<T, sizeof...(Args)> &&
