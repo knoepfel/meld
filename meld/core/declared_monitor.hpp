@@ -2,13 +2,18 @@
 #define meld_core_declared_monitor_hpp
 
 #include "meld/concurrency.hpp"
+#include "meld/core/common_node_options.hpp"
 #include "meld/core/concepts.hpp"
 #include "meld/core/consumer.hpp"
+#include "meld/core/detail/form_input_arguments.hpp"
+#include "meld/core/detail/port_names.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/handle.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
+#include "meld/core/registrar.hpp"
 #include "meld/graph/transition.hpp"
+#include "meld/metaprogramming/type_deduction.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
@@ -45,82 +50,79 @@ namespace meld {
 
   // Registering concrete monitors
 
-  template <typename T, typename... Args>
-  class incomplete_monitor {
-    static constexpr auto N = sizeof...(Args);
-    using function_t = std::function<void(Args...)>;
+  template <is_monitor_like FT>
+  class incomplete_monitor : public common_node_options<incomplete_monitor<FT>> {
+    using common_node_options_t = common_node_options<incomplete_monitor<FT>>;
+    using function_t = FT;
+    using input_parameter_types = parameter_types<FT>;
+    template <std::size_t Nactual, typename InputArgs>
     class complete_monitor;
 
   public:
-    incomplete_monitor(component<T>& funcs, std::string name, tbb::flow::graph& g, function_t f) :
-      funcs_{funcs}, name_{move(name)}, graph_{g}, ft_{move(f)}
+    static constexpr auto N = number_parameters<FT>;
+
+    incomplete_monitor(registrar<declared_monitors> reg,
+                       std::string name,
+                       tbb::flow::graph& g,
+                       function_t f) :
+      common_node_options_t{this},
+      name_{move(name)},
+      graph_{g},
+      ft_{std::move(f)},
+      reg_{std::move(reg)}
     {
     }
 
-    // Icky?
-    incomplete_monitor& concurrency(std::size_t n)
+    template <typename... Args>
+    incomplete_monitor& input(std::tuple<Args...> input_args)
     {
-      concurrency_ = n;
+      static_assert(N == sizeof...(Args),
+                    "The number of function parameters is not the same as the number of specified "
+                    "input arguments.");
+      auto processed_input_args =
+        detail::form_input_arguments<input_parameter_types>(move(input_args));
+      reg_.set([this, inputs = move(processed_input_args)] {
+        auto product_names = detail::port_names(inputs);
+        return std::make_unique<complete_monitor<size(product_names), decltype(inputs)>>(
+          move(name_),
+          common_node_options_t::concurrency(),
+          common_node_options_t::release_preceding_filters(),
+          graph_,
+          move(ft_),
+          move(inputs),
+          move(product_names));
+      });
       return *this;
     }
 
-    // Icky?
-    incomplete_monitor& filtered_by(std::vector<std::string> preceding_filters)
-    {
-      preceding_filters_ = move(preceding_filters);
-      return *this;
-    }
-
-    auto& filtered_by(std::convertible_to<std::string> auto&&... names)
-    {
-      return filtered_by(std::vector<std::string>{std::forward<decltype(names)>(names)...});
-    }
-
-    template <std::size_t Nsize>
-    auto input(std::array<std::string, Nsize> input_keys)
-    {
-      static_assert(N == Nsize,
-                    "The number of function parameters is not the same as the number of specified "
-                    "input arguments.");
-      funcs_.add_monitor(
-        name_,
-        std::make_unique<complete_monitor>(
-          name_, concurrency_, move(preceding_filters_), graph_, move(ft_), move(input_keys)));
-    }
-
-    auto input(std::convertible_to<std::string> auto&&... ts)
-    {
-      static_assert(N == sizeof...(ts),
-                    "The number of function parameters is not the same as the number of specified "
-                    "input arguments.");
-      return input(std::array<std::string, N>{std::forward<decltype(ts)>(ts)...});
-    }
+    using common_node_options_t::input;
 
   private:
-    component<T>& funcs_;
     std::string name_;
-    std::size_t concurrency_{concurrency::serial};
-    std::vector<std::string> preceding_filters_{};
     tbb::flow::graph& graph_;
-    function_t ft_;
+    FT ft_;
+    registrar<declared_monitors> reg_;
   };
 
-  template <typename T, typename... Args>
-  class incomplete_monitor<T, Args...>::complete_monitor : public declared_monitor {
+  template <is_monitor_like FT>
+  template <std::size_t Nactual, typename InputArgs>
+  class incomplete_monitor<FT>::complete_monitor : public declared_monitor {
   public:
     complete_monitor(std::string name,
                      std::size_t concurrency,
                      std::vector<std::string> preceding_filters,
                      tbb::flow::graph& g,
                      function_t&& f,
-                     std::array<std::string, N> input) :
+                     InputArgs input,
+                     std::array<std::string, Nactual> product_names) :
       declared_monitor{move(name), move(preceding_filters)},
+      product_names_{move(product_names)},
       input_{move(input)},
-      join_{g, type_for_t<MessageHasher, Args>{}...},
+      join_{make_join_or_none(g, std::make_index_sequence<Nactual>{})},
       monitor_{g,
                concurrency,
                [this, ft = std::move(f)](
-                 messages_t<N> const& messages) -> oneapi::tbb::flow::continue_msg {
+                 messages_t<Nactual> const& messages) -> oneapi::tbb::flow::continue_msg {
                  auto const& msg = most_derived(messages);
                  auto const& [store, message_id] = std::tie(msg.store, msg.id);
                  if (store->is_flush()) {
@@ -141,7 +143,7 @@ namespace meld {
                    return {};
                  }
 
-                 call(ft, messages, std::index_sequence_for<Args...>{});
+                 call(ft, messages, std::make_index_sequence<N>{});
                  a->second = {};
                  return {};
                }}
@@ -152,20 +154,24 @@ namespace meld {
   private:
     tbb::flow::receiver<message>& port_for(std::string const& product_name) override
     {
-      return receiver_for<N>(join_, input_, product_name);
+      return receiver_for<Nactual>(join_, product_names_, product_name);
     }
 
-    std::span<std::string const, std::dynamic_extent> input() const override { return input_; }
+    std::span<std::string const, std::dynamic_extent> input() const override
+    {
+      return product_names_;
+    }
 
     template <std::size_t... Is>
-    void call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
+    void call(function_t const& ft, messages_t<Nactual> const& messages, std::index_sequence<Is...>)
     {
-      return std::invoke(ft, get_handle_for<Is, N, Args>(messages, input_)...);
+      return std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);
     }
 
-    std::array<std::string, N> input_;
-    join_or_none_t<N> join_;
-    tbb::flow::function_node<messages_t<N>> monitor_;
+    std::array<std::string, Nactual> product_names_;
+    InputArgs input_;
+    join_or_none_t<Nactual> join_;
+    tbb::flow::function_node<messages_t<Nactual>> monitor_;
     tbb::concurrent_hash_map<level_id, product_store_ptr> stores_;
   };
 }

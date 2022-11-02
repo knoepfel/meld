@@ -2,12 +2,17 @@
 #define meld_core_declared_splitter_hpp
 
 #include "meld/concurrency.hpp"
+#include "meld/core/common_node_options.hpp"
+#include "meld/core/concepts.hpp"
 #include "meld/core/consumer.hpp"
+#include "meld/core/detail/form_input_arguments.hpp"
+#include "meld/core/detail/port_names.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/handle.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/multiplexer.hpp"
 #include "meld/core/product_store.hpp"
+#include "meld/core/registrar.hpp"
 #include "meld/graph/transition.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 
@@ -67,95 +72,133 @@ namespace meld {
   using declared_splitter_ptr = std::unique_ptr<declared_splitter>;
   using declared_splitters = std::map<std::string, declared_splitter_ptr>;
 
-  // Registering concrete splitters
+  // =====================================================================================
 
-  template <typename T, typename... Args>
-  class incomplete_splitter {
-    static constexpr auto N = sizeof...(Args);
-    using function_t = std::function<void(generator&, Args...)>;
+  template <is_splitter_like FT>
+  class incomplete_splitter : public common_node_options<incomplete_splitter<FT>> {
+    using common_node_options_t = common_node_options<incomplete_splitter<FT>>;
+    using function_t = FT;
+    using input_parameter_types = skip_first_type<parameter_types<FT>>; // Skip generator object
+    template <std::size_t Nactual, typename InputArgs>
+    class splitter_requires_provides;
+    template <std::size_t Nactual, typename InputArgs>
     class complete_splitter;
 
   public:
-    incomplete_splitter(component<T>& funcs, std::string name, tbb::flow::graph& g, function_t f) :
-      funcs_{funcs}, name_{move(name)}, graph_{g}, ft_{move(f)}
+    static constexpr auto N = std::tuple_size_v<input_parameter_types>;
+
+    incomplete_splitter(registrar<declared_splitters> reg,
+                        std::string name,
+                        tbb::flow::graph& g,
+                        function_t f) :
+      common_node_options_t{this}, name_{move(name)}, graph_{g}, ft_{move(f)}, reg_{std::move(reg)}
     {
     }
 
-    // Icky?
-    incomplete_splitter& concurrency(std::size_t n)
+    template <typename... Args>
+    auto input(std::tuple<Args...> input_args)
     {
-      concurrency_ = n;
-      return *this;
-    }
-
-    // Icky?
-    incomplete_splitter& filtered_by(std::vector<std::string> preceding_filters)
-    {
-      preceding_filters_ = move(preceding_filters);
-      return *this;
-    }
-
-    auto& filtered_by(std::convertible_to<std::string> auto&&... names)
-    {
-      return filtered_by(std::vector<std::string>{std::forward<decltype(names)>(names)...});
-    }
-
-    // Icky?
-    incomplete_splitter& input(std::array<std::string, N> input_keys)
-    {
-      input_keys_ = move(input_keys);
-      return *this;
-    }
-
-    auto input(std::convertible_to<std::string> auto&&... ts)
-    {
-      static_assert(N == sizeof...(ts),
+      static_assert(N == sizeof...(Args),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      return input(std::array<std::string, N>{std::forward<decltype(ts)>(ts)...});
+      auto processed_input_args =
+        detail::form_input_arguments<input_parameter_types>(move(input_args));
+      auto product_names = detail::port_names(processed_input_args);
+      return splitter_requires_provides<size(product_names), decltype(processed_input_args)>{
+        std::move(reg_),
+        move(name_),
+        common_node_options_t::concurrency(),
+        common_node_options_t::release_preceding_filters(),
+        graph_,
+        move(ft_),
+        move(processed_input_args),
+        move(product_names)};
     }
 
-    auto provides(std::vector<std::string> product_names)
+    using common_node_options_t::input;
+
+  private:
+    std::string name_;
+    tbb::flow::graph& graph_;
+    function_t ft_;
+    registrar<declared_splitters> reg_;
+  };
+
+  // =====================================================================================
+
+  template <is_splitter_like FT>
+  template <std::size_t Nactual, typename InputArgs>
+  class incomplete_splitter<FT>::splitter_requires_provides {
+  public:
+    splitter_requires_provides(registrar<declared_splitters> reg,
+                               std::string name,
+                               std::size_t concurrency,
+                               std::vector<std::string> preceding_filters,
+                               tbb::flow::graph& g,
+                               function_t&& f,
+                               InputArgs input_args,
+                               std::array<std::string, Nactual> product_names) :
+      name_{move(name)},
+      concurrency_{concurrency},
+      preceding_filters_{move(preceding_filters)},
+      graph_{g},
+      ft_{move(f)},
+      input_args_{move(input_args)},
+      product_names_{move(product_names)},
+      reg_{std::move(reg)}
     {
-      funcs_.add_splitter(name_,
-                          std::make_unique<complete_splitter>(name_,
-                                                              concurrency_,
-                                                              move(preceding_filters_),
-                                                              graph_,
-                                                              move(ft_),
-                                                              move(input_keys_),
-                                                              move(product_names)));
+    }
+
+    auto& provides(std::vector<std::string> output_product_names)
+    {
+      reg_.set([this, outputs = move(output_product_names)] {
+        return std::make_unique<complete_splitter<Nactual, InputArgs>>(move(name_),
+                                                                       concurrency_,
+                                                                       move(preceding_filters_),
+                                                                       graph_,
+                                                                       move(ft_),
+                                                                       move(input_args_),
+                                                                       move(product_names_),
+                                                                       move(outputs));
+      });
+      return *this;
     }
 
   private:
-    component<T>& funcs_;
     std::string name_;
-    std::size_t concurrency_{concurrency::serial};
-    std::vector<std::string> preceding_filters_{};
-    std::array<std::string, N> input_keys_;
+    std::size_t concurrency_;
+    std::vector<std::string> preceding_filters_;
     tbb::flow::graph& graph_;
     function_t ft_;
+    InputArgs input_args_;
+    std::array<std::string, Nactual> product_names_;
+    registrar<declared_splitters> reg_;
   };
 
-  template <typename T, typename... Args>
-  class incomplete_splitter<T, Args...>::complete_splitter : public declared_splitter {
+  // =====================================================================================
+
+  template <is_splitter_like FT>
+  template <std::size_t Nactual, typename InputArgs>
+  class incomplete_splitter<FT>::complete_splitter : public declared_splitter {
   public:
     complete_splitter(std::string name,
                       std::size_t concurrency,
                       std::vector<std::string> preceding_filters,
                       tbb::flow::graph& g,
                       function_t&& f,
-                      std::array<std::string, N> input,
+                      InputArgs input,
+                      std::array<std::string, Nactual> product_names,
                       std::vector<std::string> provided_products) :
       declared_splitter{move(name), move(preceding_filters)},
       input_{move(input)},
+      product_names_{move(product_names)},
       provided_{move(provided_products)},
       multiplexer_{g},
-      join_{g, type_for_t<MessageHasher, Args>{}...},
+      join_{make_join_or_none(g, std::make_index_sequence<Nactual>{})},
       splitter_{
         g,
         concurrency,
-        [this, ft = std::move(f)](messages_t<N> const& messages) -> tbb::flow::continue_msg {
+        [this, ft = std::move(f)](messages_t<Nactual> const& messages) -> tbb::flow::continue_msg {
           auto const& msg = most_derived(messages);
           auto const& store = msg.store;
           if (store->is_flush()) {
@@ -173,7 +216,7 @@ namespace meld {
           }
 
           generator g{msg.store, this->name(), multiplexer_, to_output_, counter_};
-          call(ft, g, messages, std::index_sequence_for<Args...>{});
+          call(ft, g, messages, std::make_index_sequence<N>{});
           multiplexer_.try_put(g.flush_message());
           return {};
         }},
@@ -185,11 +228,14 @@ namespace meld {
   private:
     tbb::flow::receiver<message>& port_for(std::string const& product_name) override
     {
-      return receiver_for<N>(join_, input_, product_name);
+      return receiver_for<Nactual>(join_, product_names_, product_name);
     }
     tbb::flow::sender<message>& to_output() override { return to_output_; }
 
-    std::span<std::string const, std::dynamic_extent> input() const override { return input_; }
+    std::span<std::string const, std::dynamic_extent> input() const override
+    {
+      return product_names_;
+    }
     std::vector<std::string> const& provided_products() const override { return provided_; }
 
     void finalize(multiplexer::head_nodes_t head_nodes) override
@@ -200,17 +246,18 @@ namespace meld {
     template <std::size_t... Is>
     void call(function_t const& ft,
               generator& g,
-              messages_t<N> const& messages,
+              messages_t<Nactual> const& messages,
               std::index_sequence<Is...>)
     {
-      return std::invoke(ft, g, get_handle_for<Is, N, Args>(messages, input_)...);
+      return std::invoke(ft, g, std::get<Is>(input_).retrieve(messages)...);
     }
 
-    std::array<std::string, N> input_;
+    InputArgs input_;
+    std::array<std::string, Nactual> product_names_;
     std::vector<std::string> provided_;
     multiplexer multiplexer_;
-    join_or_none_t<N> join_;
-    tbb::flow::function_node<messages_t<N>> splitter_;
+    join_or_none_t<Nactual> join_;
+    tbb::flow::function_node<messages_t<Nactual>> splitter_;
     tbb::flow::broadcast_node<message> to_output_;
     tbb::concurrent_hash_map<level_id, product_store_ptr> stores_;
     std::atomic<std::size_t> counter_{}; // Is this sufficient?  Probably not.

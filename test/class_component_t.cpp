@@ -51,7 +51,7 @@ namespace {
 
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
-  std::array const product_names{"number"s, "temperature"s, "name"s};
+  std::tuple const product_names{"number"s, "temperature"s, "name"s};
   std::array const oproduct_names{"onumber"s, "otemperature"s, "oname"s};
 
   auto store = make_product_store();
@@ -98,7 +98,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   }
 
   // The following is invoked for *each* section above
-  g.declare_monitor("verify_results", verify_results).concurrency(unlimited).input(oproduct_names);
+  g.declare_monitor("verify_results", verify_results).concurrency(unlimited).input(product_names);
 
   g.execute("class_component_t.gv");
 }

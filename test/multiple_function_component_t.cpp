@@ -37,7 +37,7 @@ namespace {
     }
   };
 
-  void verify_result(double result) { CHECK(result == 6.); }
+  void verify_result(double result, double expected) { CHECK(result == expected); }
 }
 
 TEST_CASE("Call multiple functions", "[programming model]")
@@ -81,6 +81,6 @@ TEST_CASE("Call multiple functions", "[programming model]")
   }
 
   // The following is invoked for *each* section above
-  g.declare_monitor("verify_result", verify_result).input("result");
+  g.declare_monitor("verify_result", verify_result).input("result", use(6.));
   g.execute();
 }

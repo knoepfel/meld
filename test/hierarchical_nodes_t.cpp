@@ -128,7 +128,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   g.declare_monitor("print_result", print_result).concurrency(unlimited).input("result", "strtime");
 
   auto c = g.make<test::products_for_output>();
-  c.declare_output("save_to_file", &test::products_for_output::save).filtered_by().concurrency(1);
+  c.declare_output("save_to_file", &test::products_for_output::save).filtered_by();
 
   g.execute("hierarchical_nodes_t.gv");
 }

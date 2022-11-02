@@ -1,6 +1,6 @@
 #include "meld/core/framework_graph.hpp"
 #include "meld/core/product_store.hpp"
-#include "meld/utilities/debug.hpp"
+#include "meld/metaprogramming/to_array.hpp"
 
 #include "catch2/catch.hpp"
 
@@ -49,7 +49,8 @@ namespace {
 
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
-  std::array const product_names{"number"s, "temperature"s, "name"s};
+  std::tuple const product_names{"number"s, "temperature"s, "name"s};
+  std::array const oproduct_names = to_array<std::string>(product_names);
   std::array const result{"result"s};
 
   auto store = make_product_store();
@@ -60,31 +61,31 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   framework_graph g{framework_graph::run_once, store};
   SECTION("No framework")
   {
-    g.declare_transform("no_framework", no_framework).input(product_names).output(product_names);
+    g.declare_transform("no_framework", no_framework).input(product_names).output(oproduct_names);
   }
   SECTION("No framework, all references")
   {
     g.declare_transform("no_framework_all_refs", no_framework_all_refs)
       .input(product_names)
-      .output(product_names);
+      .output(oproduct_names);
   }
   SECTION("No framework, all pointers")
   {
     g.declare_transform("no_framework_all_ptrs", no_framework_all_ptrs)
       .input(product_names)
-      .output(product_names);
+      .output(oproduct_names);
   }
   SECTION("One framework argument")
   {
     g.declare_transform("one_framework_arg", one_framework_arg)
       .input(product_names)
-      .output(product_names);
+      .output(oproduct_names);
   }
   SECTION("All framework arguments")
   {
     g.declare_transform("all_framework_args", all_framework_args)
       .input(product_names)
-      .output(product_names);
+      .output(oproduct_names);
   }
 
   // The following is invoked for *each* section above

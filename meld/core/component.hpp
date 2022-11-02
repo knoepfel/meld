@@ -8,10 +8,10 @@
 #include "meld/core/declared_reduction.hpp"
 #include "meld/core/declared_splitter.hpp"
 #include "meld/core/declared_transform.hpp"
+#include "meld/core/registrar.hpp"
 #include "meld/metaprogramming/delegate.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
-#include "oneapi/tbb/global_control.h"
 
 #include <concepts>
 #include <memory>
@@ -37,7 +37,7 @@ namespace meld {
               declared_reductions& reductions,
               declared_splitters& splitters,
               declared_transforms& transforms)
-    requires(std::same_as<T, void_tag>)
+      requires(std::same_as<T, void_tag>)
       :
       graph_{g},
       filters_{filters},
@@ -62,70 +62,40 @@ namespace meld {
                           std::make_shared<U>(std::forward<Args>(args)...)};
     }
 
-    auto declare_filter(std::string name, is_filter_like auto f)
+    auto declare_filter(std::string name, auto f)
     {
-      return incomplete_filter{*this, name, graph_, delegate(bound_obj_, f)};
+      return incomplete_filter{registrar{filters_}, move(name), graph_, delegate(bound_obj_, f)};
     }
 
-    auto declare_monitor(std::string name, is_monitor_like auto f)
+    auto declare_monitor(std::string name, auto f)
     {
-      return incomplete_monitor{*this, name, graph_, delegate(bound_obj_, f)};
+      return incomplete_monitor{registrar{monitors_}, move(name), graph_, delegate(bound_obj_, f)};
     }
 
     auto declare_output(std::string name, is_output_like auto f)
     {
-      return incomplete_output{*this, name, graph_, delegate(bound_obj_, f)};
+      return output_creator{registrar{outputs_}, move(name), graph_, delegate(bound_obj_, f)};
     }
 
-    auto declare_reduction(std::string name, is_reduction_like auto f, auto&&... init_args)
-    requires std::same_as<T, void_tag>
+    auto declare_reduction(std::string name, auto f, auto&&... init_args)
     {
-      return incomplete_reduction{*this,
-                                  name,
+      return incomplete_reduction{registrar{reductions_},
+                                  move(name),
                                   graph_,
                                   delegate(bound_obj_, f),
                                   std::make_tuple(std::forward<decltype(init_args)>(init_args)...)};
     }
 
-    auto declare_splitter(std::string name, is_splitter_like auto f)
+    auto declare_splitter(std::string name, auto f)
     {
-      return incomplete_splitter{*this, name, graph_, delegate(bound_obj_, f)};
+      return incomplete_splitter{
+        registrar{splitters_}, move(name), graph_, delegate(bound_obj_, f)};
     }
 
-    auto declare_transform(std::string name, is_transform_like auto f)
+    auto declare_transform(std::string name, auto f)
     {
-      return incomplete_transform{*this, name, graph_, delegate(bound_obj_, f)};
-    }
-
-    // Expert-use only
-    void add_filter(std::string const& name, declared_filter_ptr ptr)
-    {
-      filters_.try_emplace(name, std::move(ptr));
-    }
-
-    void add_monitor(std::string const& name, declared_monitor_ptr ptr)
-    {
-      monitors_.try_emplace(name, std::move(ptr));
-    }
-
-    void add_output(std::string const& name, declared_output_ptr ptr)
-    {
-      outputs_.try_emplace(name, std::move(ptr));
-    }
-
-    void add_reduction(std::string const& name, declared_reduction_ptr ptr)
-    {
-      reductions_.try_emplace(name, std::move(ptr));
-    }
-
-    void add_splitter(std::string const& name, declared_splitter_ptr ptr)
-    {
-      splitters_.try_emplace(name, std::move(ptr));
-    }
-
-    void add_transform(std::string const& name, declared_transform_ptr ptr)
-    {
-      transforms_.try_emplace(name, std::move(ptr));
+      return incomplete_transform{
+        registrar{transforms_}, move(name), graph_, delegate(bound_obj_, f)};
     }
 
   private:
@@ -137,7 +107,7 @@ namespace meld {
               declared_splitters& splitters,
               declared_transforms& transforms,
               std::shared_ptr<T> bound_obj)
-    requires(not std::same_as<T, void_tag>)
+      requires(not std::same_as<T, void_tag>)
       :
       graph_{g},
       filters_{filters},

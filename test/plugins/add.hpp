@@ -5,7 +5,14 @@
 
 namespace test {
   constexpr int add(int i, int j) { return i + j; }
-  void verify_zero(int sum) noexcept { assert(sum == 0); }
+
+  struct verify {
+    int expected;
+    void check(int actual) const noexcept { assert(actual == expected); }
+  };
+
+  void verify_zero(int sum) noexcept { verify{0}.check(sum); }
+
 }
 
 #endif /* test_plugins_add_hpp */

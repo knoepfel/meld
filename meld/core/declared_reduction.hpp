@@ -2,12 +2,16 @@
 #define meld_core_declared_reduction_hpp
 
 #include "meld/concurrency.hpp"
+#include "meld/core/common_node_options.hpp"
 #include "meld/core/concepts.hpp"
 #include "meld/core/consumer.hpp"
+#include "meld/core/detail/form_input_arguments.hpp"
+#include "meld/core/detail/port_names.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/handle.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
+#include "meld/core/registrar.hpp"
 #include "meld/graph/transition.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
@@ -49,21 +53,26 @@ namespace meld {
 
   // Registering concrete reductions
 
-  template <typename T, not_void R, typename InitTuple, typename... Args>
-  class incomplete_reduction {
-    static constexpr auto N = sizeof...(Args);
-    using function_t = std::function<void(R&, Args...)>;
+  template <is_reduction_like FT, typename InitTuple>
+  class incomplete_reduction : public common_node_options<incomplete_reduction<FT, InitTuple>> {
+    using common_node_options_t = common_node_options<incomplete_reduction<FT, InitTuple>>;
+    using function_t = FT;
+    using input_parameter_types = skip_first_type<parameter_types<FT>>; // Skip reduction object
+    template <std::size_t Nactual, typename InputArgs>
     class reduction_requires_output;
-    template <std::size_t M>
+    template <std::size_t Nactual, std::size_t M, typename InputArgs>
     class complete_reduction;
 
   public:
-    incomplete_reduction(component<T>& funcs,
+    static constexpr auto N = std::tuple_size_v<input_parameter_types>;
+
+    incomplete_reduction(registrar<declared_reductions> reg,
                          std::string name,
                          tbb::flow::graph& g,
                          function_t f,
                          InitTuple initializer) :
-      funcs_{funcs},
+      common_node_options_t{this},
+      reg_{std::move(reg)},
       name_{move(name)},
       graph_{g},
       ft_{move(f)},
@@ -71,48 +80,114 @@ namespace meld {
     {
     }
 
-    // Icky?
-    incomplete_reduction& concurrency(std::size_t n)
+    template <typename... InputArgs>
+    auto input(std::tuple<InputArgs...> input_args)
     {
-      concurrency_ = n;
-      return *this;
-    }
-
-    incomplete_reduction& filtered_by(std::vector<std::string> preceding_filters)
-    {
-      preceding_filters_ = move(preceding_filters);
-      return *this;
-    }
-
-    auto& filtered_by(std::convertible_to<std::string> auto&&... names)
-    {
-      return filtered_by(std::vector<std::string>{std::forward<decltype(names)>(names)...});
-    }
-
-    auto input(std::array<std::string, N> input_keys);
-
-    auto input(std::convertible_to<std::string> auto&&... ts)
-    {
-      static_assert(N == sizeof...(ts),
+      static_assert(N == sizeof...(InputArgs),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      return input(std::array<std::string, N>{std::forward<decltype(ts)>(ts)...});
+      auto processed_input_args =
+        detail::form_input_arguments<input_parameter_types>(move(input_args));
+      auto product_names = detail::port_names(processed_input_args);
+      return reduction_requires_output<size(product_names), decltype(processed_input_args)>{
+        std::move(reg_),
+        move(name_),
+        common_node_options_t::concurrency(),
+        common_node_options_t::release_preceding_filters(),
+        graph_,
+        move(ft_),
+        std::move(initializer_),
+        move(processed_input_args),
+        move(product_names)};
     }
 
+    using common_node_options_t::input;
+
   private:
-    component<T>& funcs_;
+    registrar<declared_reductions> reg_;
     std::string name_;
-    std::size_t concurrency_{concurrency::serial};
-    std::vector<std::string> preceding_filters_{};
     tbb::flow::graph& graph_;
     function_t ft_;
     InitTuple initializer_;
   };
 
-  template <typename T, not_void R, typename InitTuple, typename... Args>
-  template <std::size_t M>
-  class incomplete_reduction<T, R, InitTuple, Args...>::complete_reduction :
-    public declared_reduction {
+  // =====================================================================================
+
+  template <is_reduction_like FT, typename InitTuple>
+  template <std::size_t Nactual, typename InputArgs>
+  class incomplete_reduction<FT, InitTuple>::reduction_requires_output {
+    static constexpr std::size_t M = 1ull; // TODO: Hard-wired, for now
+
+  public:
+    reduction_requires_output(registrar<declared_reductions> reg,
+                              std::string name,
+                              std::size_t concurrency,
+                              std::vector<std::string> preceding_filters,
+                              tbb::flow::graph& g,
+                              function_t&& f,
+                              InitTuple initializer,
+                              InputArgs input_args,
+                              std::array<std::string, Nactual> product_names) :
+      name_{move(name)},
+      preceding_filters_{move(preceding_filters)},
+      concurrency_{concurrency},
+      graph_{g},
+      ft_{move(f)},
+      initializer_{std::move(initializer)},
+      input_args_{move(input_args)},
+      product_names_{move(product_names)},
+      reg_{std::move(reg)}
+    {
+    }
+
+    template <std::size_t Msize>
+    void output(std::array<std::string, Msize> output_keys)
+    {
+      static_assert(
+        M == Msize,
+        "The number of function parameters is not the same as the number of returned output "
+        "objects.");
+      reg_.set([this, outputs = move(output_keys)] {
+        return std::make_unique<complete_reduction<Nactual, M, InputArgs>>(move(name_),
+                                                                           concurrency_,
+                                                                           move(preceding_filters_),
+                                                                           graph_,
+                                                                           move(ft_),
+                                                                           std::move(initializer_),
+                                                                           move(input_args_),
+                                                                           move(product_names_),
+                                                                           move(outputs));
+      });
+    }
+
+    void output(std::convertible_to<std::string> auto&&... ts)
+    {
+      static_assert(
+        M == sizeof...(ts),
+        "The number of function parameters is not the same as the number of returned output "
+        "objects.");
+      output(std::array<std::string, sizeof...(ts)>{std::forward<decltype(ts)>(ts)...});
+    }
+
+  private:
+    std::string name_;
+    std::vector<std::string> preceding_filters_;
+    std::size_t concurrency_;
+    tbb::flow::graph& graph_;
+    function_t ft_;
+    InitTuple initializer_;
+    InputArgs input_args_;
+    std::array<std::string, Nactual> product_names_;
+    registrar<declared_reductions> reg_;
+  };
+
+  // =================================================================================
+
+  template <is_reduction_like FT, typename InitTuple>
+  template <std::size_t Nactual, std::size_t M, typename InputArgs>
+  class incomplete_reduction<FT, InitTuple>::complete_reduction : public declared_reduction {
+    using R = std::decay_t<std::tuple_element_t<0, parameter_types<FT>>>;
+
   public:
     complete_reduction(std::string name,
                        std::size_t concurrency,
@@ -120,36 +195,40 @@ namespace meld {
                        tbb::flow::graph& g,
                        function_t&& f,
                        InitTuple initializer,
-                       std::array<std::string, N> input,
+                       InputArgs input,
+                       std::array<std::string, Nactual> product_names,
                        std::array<std::string, M> output) :
       declared_reduction{move(name), move(preceding_filters)},
       initializer_{std::move(initializer)},
+      product_names_{move(product_names)},
       input_{move(input)},
       output_{move(output)},
-      join_{g, type_for_t<MessageHasher, Args>{}...},
-      reduction_{
-        g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages, auto& outputs) {
-          // N.B. The assumption is that a reduction will *never* need to cache the
-          //      product store it creates.
-          auto const& msg = most_derived(messages);
-          auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
-          auto const parent_id = store->id().parent();
-          auto it = entries_.find(parent_id);
-          if (it == cend(entries_)) {
-            it = entries_.emplace(parent_id, std::make_unique<map_entry>()).first;
-          }
-          if (store->is_flush()) {
-            set_flush_value(store->id(), original_message_id);
-          }
-          else {
-            call(ft, messages, std::index_sequence_for<Args...>{});
-            ++it->second->count;
-          }
-          auto parent = make_product_store(parent_id, this->name());
-          if (auto const [complete, original_message_id] = reduction_complete(*parent); complete) {
-            get<0>(outputs).try_put({parent, original_message_id});
-          }
-        }}
+      join_{make_join_or_none(g, std::make_index_sequence<Nactual>{})},
+      reduction_{g,
+                 concurrency,
+                 [this, ft = std::move(f)](messages_t<Nactual> const& messages, auto& outputs) {
+                   // N.B. The assumption is that a reduction will *never* need to cache the
+                   //      product store it creates.
+                   auto const& msg = most_derived(messages);
+                   auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
+                   auto const parent_id = store->id().parent();
+                   auto it = entries_.find(parent_id);
+                   if (it == cend(entries_)) {
+                     it = entries_.emplace(parent_id, std::make_unique<map_entry>()).first;
+                   }
+                   if (store->is_flush()) {
+                     set_flush_value(store->id(), original_message_id);
+                   }
+                   else {
+                     call(ft, messages, std::make_index_sequence<N>{});
+                     ++it->second->count;
+                   }
+                   auto parent = make_product_store(parent_id, this->name());
+                   if (auto const [complete, original_message_id] = reduction_complete(*parent);
+                       complete) {
+                     get<0>(outputs).try_put({parent, original_message_id});
+                   }
+                 }}
     {
       make_edge(join_, reduction_);
     }
@@ -157,16 +236,19 @@ namespace meld {
   private:
     tbb::flow::receiver<message>& port_for(std::string const& product_name) override
     {
-      return receiver_for<N>(join_, input_, product_name);
+      return receiver_for<N>(join_, product_names_, product_name);
     }
 
     tbb::flow::sender<message>& sender() override { return output_port<0ull>(reduction_); }
     tbb::flow::sender<message>& to_output() override { return sender(); }
-    std::span<std::string const, std::dynamic_extent> input() const override { return input_; }
+    std::span<std::string const, std::dynamic_extent> input() const override
+    {
+      return product_names_;
+    }
     std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
 
     template <std::size_t... Is>
-    void call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
+    void call(function_t const& ft, messages_t<Nactual> const& messages, std::index_sequence<Is...>)
     {
       auto const parent_id = most_derived(messages).store->id().parent();
       // FIXME: Not the safest approach!
@@ -179,7 +261,7 @@ namespace meld {
                                         std::make_index_sequence<std::tuple_size_v<InitTuple>>{})})
             .first;
       }
-      return std::invoke(ft, *it->second, get_handle_for<Is, N, Args>(messages, input_)...);
+      return std::invoke(ft, *it->second, std::get<Is>(input_).retrieve(messages)...);
     }
 
     std::pair<bool, std::size_t> reduction_complete(product_store& parent_store)
@@ -198,7 +280,6 @@ namespace meld {
 
     void set_flush_value(level_id const& id, std::size_t const original_message_id)
     {
-
       auto it = entries_.find(id.parent());
       assert(it != cend(entries_));
       it->second->stop_after = id.back();
@@ -206,7 +287,7 @@ namespace meld {
     }
 
     template <size_t... Is>
-    std::unique_ptr<R> initialized_object(InitTuple&& tuple, std::index_sequence<Is...>) const
+    auto initialized_object(InitTuple&& tuple, std::index_sequence<Is...>) const
     {
       return std::unique_ptr<R>{
         new R{std::forward<std::tuple_element_t<Is, InitTuple>>(std::get<Is>(tuple))...}};
@@ -229,10 +310,11 @@ namespace meld {
     }
 
     InitTuple initializer_;
-    std::array<std::string, N> input_;
+    std::array<std::string, Nactual> product_names_;
+    InputArgs input_;
     std::array<std::string, M> output_;
-    join_or_none_t<N> join_;
-    tbb::flow::multifunction_node<messages_t<N>, messages_t<1>> reduction_;
+    join_or_none_t<Nactual> join_;
+    tbb::flow::multifunction_node<messages_t<Nactual>, messages_t<1>> reduction_;
     tbb::concurrent_unordered_map<level_id, std::unique_ptr<R>> results_;
     struct map_entry {
       std::atomic<unsigned int> count{};
@@ -240,75 +322,6 @@ namespace meld {
       unsigned int original_message_id{}; // Necessary for matching inputs to downstream join nodes.
     };
     tbb::concurrent_unordered_map<level_id, std::unique_ptr<map_entry>> entries_;
-  };
-
-  // =================================================================================
-  // Implementation
-
-  template <typename T, not_void R, typename InitTuple, typename... Args>
-  auto incomplete_reduction<T, R, InitTuple, Args...>::input(std::array<std::string, N> input_keys)
-  {
-    return reduction_requires_output{funcs_,
-                                     move(name_),
-                                     concurrency_,
-                                     move(preceding_filters_),
-                                     graph_,
-                                     move(ft_),
-                                     std::move(initializer_),
-                                     move(input_keys)};
-  }
-
-  template <typename T, not_void R, typename InitTuple, typename... Args>
-  class incomplete_reduction<T, R, InitTuple, Args...>::reduction_requires_output {
-  public:
-    reduction_requires_output(component<T>& funcs,
-                              std::string name,
-                              std::size_t concurrency,
-                              std::vector<std::string> preceding_filters,
-                              tbb::flow::graph& g,
-                              function_t&& f,
-                              InitTuple initializer,
-                              std::array<std::string, N> input_keys) :
-      funcs_{funcs},
-      name_{move(name)},
-      preceding_filters_{move(preceding_filters)},
-      concurrency_{concurrency},
-      graph_{g},
-      ft_{move(f)},
-      initializer_{std::move(initializer)},
-      input_keys_{move(input_keys)}
-    {
-    }
-
-    template <std::size_t M>
-    void output(std::array<std::string, M> output_keys)
-    {
-      funcs_.add_reduction(name_,
-                           std::make_unique<complete_reduction<M>>(name_,
-                                                                   concurrency_,
-                                                                   move(preceding_filters_),
-                                                                   graph_,
-                                                                   move(ft_),
-                                                                   std::move(initializer_),
-                                                                   move(input_keys_),
-                                                                   move(output_keys)));
-    }
-
-    // FIXME: Does it make sense for a reduction to have more than one output?
-    void output(std::convertible_to<std::string> auto&&... ts)
-    {
-      output(std::array<std::string, sizeof...(ts)>{std::forward<decltype(ts)>(ts)...});
-    }
-
-  private:
-    component<T>& funcs_;
-    std::string name_;
-    std::vector<std::string> preceding_filters_;
-    std::size_t concurrency_;
-    tbb::flow::graph& graph_;
-    function_t ft_;
-    InitTuple initializer_;
-    std::array<std::string, N> input_keys_;
   };
 }
 

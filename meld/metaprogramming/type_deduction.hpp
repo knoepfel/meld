@@ -26,6 +26,14 @@ namespace meld {
 
   using detail::number_types;
 
+  namespace detail {
+    template <typename Head, typename... Tail>
+    std::tuple<Tail...> skip_first_type_impl(std::tuple<Head, Tail...> const&);
+  }
+
+  template <typename Tuple>
+  using skip_first_type = decltype(detail::skip_first_type_impl(std::declval<Tuple>()));
+
   template <typename T, typename... Args>
   struct check_parameters {
     using input_parameters = parameter_types<T>;

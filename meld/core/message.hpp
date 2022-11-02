@@ -46,6 +46,12 @@ namespace meld {
   template <std::size_t N>
   using join_or_none_t = std::conditional_t<N == 1ull, detail::no_join, detail::join_messages_t<N>>;
 
+  template <std::size_t... Is>
+  auto make_join_or_none(tbb::flow::graph& g, std::index_sequence<Is...>)
+  {
+    return join_or_none_t<sizeof...(Is)>{g, type_t<MessageHasher, Is>{}...};
+  }
+
   std::size_t port_index_for(std::span<std::string const> product_names,
                              std::string const& product_name);
 
@@ -76,11 +82,26 @@ namespace meld {
     }
   }
 
-  template <std::size_t I, std::size_t N, typename U>
-  auto get_handle_for(messages_t<N> const& messages, std::span<std::string const> product_names)
+  // template <typename T, std::size_t I, typename Messages>
+  // decltype(auto) value(T const& t, Messages const& messages)
+  // {
+  //   // return t; // <= Will be this eventually
+  //   using handle_arg_t = typename handle_for<T>::value_type; // <== Oops, this should be the type of the product
+  //   return std::get<I>(messages).store->template get_handle<handle_arg_t>(t);
+  // }
+
+  // template <typename T, std::size_t I, typename Messages>
+  // auto value(expects_message<I> const& expected_msg, Messages const& messages)
+  // {
+  //   using handle_arg_t = typename handle_for<T>::value_type;
+  //   return std::get<I>(messages).store->template get_handle<handle_arg_t>(expected_msg.name);
+  // }
+
+  template <typename T>
+  auto get_handle_for(message const& msg, std::string const& product_label)
   {
-    using handle_arg_t = typename handle_for<U>::value_type;
-    return std::get<I>(messages).store->template get_handle<handle_arg_t>(product_names[I]);
+    using handle_arg_t = typename handle_for<T>::value_type;
+    return msg.store->get_handle<handle_arg_t>(product_label);
   }
 
 }
