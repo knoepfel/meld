@@ -4,7 +4,10 @@ namespace {
   std::string const default_fontsize{"12"};
 
 #define DOT_ATTRIBUTE(name)                                                                        \
-  inline std::string name(std::string const& str) { return #name "=" + str; }
+  inline std::string name(std::string const& str)                                                  \
+  {                                                                                                \
+    return #name "=" + str;                                                                        \
+  }
 
   DOT_ATTRIBUTE(arrowtail)
   DOT_ATTRIBUTE(color)

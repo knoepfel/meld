@@ -43,12 +43,10 @@ namespace meld {
 
   // ===================================================================
   template <typename T>
-  struct is_non_const_lvalue_reference : std::is_lvalue_reference<T> {
-  };
+  struct is_non_const_lvalue_reference : std::is_lvalue_reference<T> {};
 
   template <typename T>
-  struct is_non_const_lvalue_reference<T const&> : std::false_type {
-  };
+  struct is_non_const_lvalue_reference<T const&> : std::false_type {};
 }
 
 #endif /* meld_metaprogramming_type_deduction_hpp */

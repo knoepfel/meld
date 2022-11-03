@@ -9,7 +9,7 @@
 
 namespace meld {
   // clang-format off
-  //  => Apple clang-format 14 does not understand concepts yet
+  //  => clang-format 15 does support concept declarations well
   template <typename T>
   concept not_void = !std::same_as<T, void>;
 

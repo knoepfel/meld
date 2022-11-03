@@ -84,10 +84,9 @@ namespace meld {
     handle() = default;
 
     template <typename U>
-    explicit handle(product<U> const& prod,
-                    level_id const& id = level_id::base()) requires detail::same_handle_type<T, U> :
-      rep_{&prod.obj},
-      id_{&id}
+    explicit handle(product<U> const& prod, level_id const& id = level_id::base())
+    requires detail::same_handle_type<T, U>
+      : rep_{&prod.obj}, id_{&id}
     {
     }
 
@@ -121,7 +120,8 @@ namespace meld {
     friend class handle;
 
     template <typename U>
-    bool operator==(handle<U> rhs) const noexcept requires detail::same_handle_type<T, U>
+    bool operator==(handle<U> rhs) const noexcept
+    requires detail::same_handle_type<T, U>
     {
       return rep_ == rhs.rep_;
     }

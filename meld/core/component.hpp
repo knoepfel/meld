@@ -36,7 +36,9 @@ namespace meld {
               declared_outputs& outputs,
               declared_reductions& reductions,
               declared_splitters& splitters,
-              declared_transforms& transforms) requires(std::same_as<T, void_tag>) :
+              declared_transforms& transforms)
+    requires(std::same_as<T, void_tag>)
+      :
       graph_{g},
       filters_{filters},
       monitors_{monitors},
@@ -75,9 +77,8 @@ namespace meld {
       return incomplete_output{*this, name, graph_, delegate(bound_obj_, f)};
     }
 
-    auto declare_reduction(std::string name,
-                           is_reduction_like auto f,
-                           auto&&... init_args) requires std::same_as<T, void_tag>
+    auto declare_reduction(std::string name, is_reduction_like auto f, auto&&... init_args)
+    requires std::same_as<T, void_tag>
     {
       return incomplete_reduction{*this,
                                   name,
@@ -135,7 +136,9 @@ namespace meld {
               declared_reductions& reductions,
               declared_splitters& splitters,
               declared_transforms& transforms,
-              std::shared_ptr<T> bound_obj) requires(not std::same_as<T, void_tag>) :
+              std::shared_ptr<T> bound_obj)
+    requires(not std::same_as<T, void_tag>)
+      :
       graph_{g},
       filters_{filters},
       monitors_{monitors},
