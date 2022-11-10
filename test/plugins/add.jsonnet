@@ -7,5 +7,8 @@
     add: {
       plugin: 'module_t',
     },
+    output: {
+      plugin: 'output_t',
+    },
   },
 }
