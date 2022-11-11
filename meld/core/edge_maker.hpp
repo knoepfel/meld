@@ -186,7 +186,7 @@ namespace meld {
 
     for (auto const& [name, output_node] : outputs_) {
       make_edge(source, output_node->port());
-      if (*fout_) {
+      if (fout_) {
         dot_node_declaration(*fout_, name, "cylinder");
         dot_output_edge(*fout_, "Source", name, {});
       }
