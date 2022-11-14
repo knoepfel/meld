@@ -18,7 +18,7 @@ namespace meld {
       explicit join_and_reduce(tbb::flow::graph& g, TagMatcher& ft) :
         join_and_reduce_base<Input>{g},
         join_{g, ft, ft},
-        reduce_{g, tbb::flow::unlimited, [](auto& pr) { return get<0>(pr); }}
+        reduce_{g, tbb::flow::unlimited, [](auto const& pr) { return get<0>(pr); }}
 
       {
         make_edge(join_, reduce_);

@@ -8,9 +8,8 @@ namespace meld {
   void debug(Args&&... args)
   {
     auto braces_for = [](auto&) -> std::string { return "{}"; };
-    std::string format_string;
-    (format_string.append(braces_for(args)), ...);
-    spdlog::debug(format_string, args...);
+    std::string const fmt_str{("" + ... + braces_for(args))};
+    spdlog::debug(fmt::runtime(fmt_str), args...);
   }
 }
 

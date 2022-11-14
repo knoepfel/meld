@@ -105,7 +105,7 @@ namespace meld {
     transitions result;
     // 'process' stages to call
 
-    for (auto i = size(from); i > common_stages; --i) {
+    for (auto i = size(from); i > static_cast<std::size_t>(common_stages); --i) {
       counter.record_parent(from_id);
       result.emplace_back(counter.value_as_id(from_id), stage::flush);
       result.emplace_back(from_id, stage::process);
@@ -160,6 +160,7 @@ namespace meld {
     case stage::flush:
       return "flush";
     }
+    return {};
   }
 
   std::ostream& operator<<(std::ostream& os, level_id const& id)

@@ -3,11 +3,11 @@
 using namespace meld;
 
 namespace {
-  int transform [[maybe_unused]] (double&);
-  void monitor [[maybe_unused]] (int);
-  void only_void_param [[maybe_unused]] (void);
-  std::tuple<> still_no_output [[maybe_unused]] ();
-  std::tuple<int, double> two_output_objects [[maybe_unused]] (int, double);
+  int transform [[maybe_unused]] (double&) { return 1; };
+  void monitor [[maybe_unused]] (int) {}
+  void only_void_param [[maybe_unused]] (void) {}
+  std::tuple<> still_no_output [[maybe_unused]] () { return {}; }
+  std::tuple<int, double> two_output_objects [[maybe_unused]] (int, double) { return {}; }
   auto closure [[maybe_unused]] = [](int) -> double { return 2.; };
 }
 

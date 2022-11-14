@@ -3,6 +3,7 @@
 #include "meld/app/run_meld.hpp"
 #include "meld/app/version.hpp"
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>

@@ -3,6 +3,8 @@
 
 #include "boost/json.hpp"
 
+#include <optional>
+
 namespace meld {
   void run_it(boost::json::value const& configurations, std::optional<std::string> dot_file);
 }

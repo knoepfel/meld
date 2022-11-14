@@ -40,7 +40,7 @@ TEST_CASE("Dynamic join - one connection", "[graph]")
   auto src = input_source(g);
   auto f1 = processor(g, "f1");
 
-  dynamic_join_node dynamic_join{g, [](int i) { return i; }};
+  dynamic_join_node dynamic_join{g, [](int i) -> std::size_t { return i; }};
   auto print_number = receiver(g);
 
   nodes(src)->nodes(f1)->nodes(dynamic_join)->nodes(print_number);
@@ -57,7 +57,7 @@ TEST_CASE("Dynamic join - two connections", "[graph]")
   auto f1 = processor(g, "f1");
   auto f2 = processor(g, "f2");
 
-  dynamic_join_node djoin{g, [](int i) { return i; }};
+  dynamic_join_node djoin{g, [](int i) -> std::size_t { return i; }};
   auto print_number = receiver(g);
 
   nodes(src)->nodes(f1, f2)->nodes(djoin)->nodes(print_number);
@@ -76,7 +76,7 @@ TEST_CASE("Dynamic join - four connections", "[graph]")
   auto f3 = processor(g, "f3");
   auto f4 = processor(g, "f4");
 
-  dynamic_join_node dynamic_join{g, [](int i) { return i; }};
+  dynamic_join_node dynamic_join{g, [](int i) -> std::size_t { return i; }};
   auto print_number = receiver(g);
 
   nodes(src)->nodes(f1, f2, f3, f4)->nodes(dynamic_join)->nodes(print_number);

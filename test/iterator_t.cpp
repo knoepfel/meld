@@ -104,7 +104,7 @@ int main()
       sum += apa;
     }
   }
-  assert(sum == (n - 1) * n / 2);
+  assert(sum == static_cast<std::size_t>((n - 1) * n / 2));
   auto const end_time = std::chrono::steady_clock::now();
   std::cout << "Took " << (end_time - begin_time).count() << " ns\n";
 }

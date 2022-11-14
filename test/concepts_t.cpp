@@ -4,7 +4,7 @@
 using namespace meld;
 
 namespace {
-  int transform [[maybe_unused]] (double&);
+  int transform [[maybe_unused]] (double&) { return 1; };
   void not_a_transform [[maybe_unused]] (int) {}
 
   struct A {

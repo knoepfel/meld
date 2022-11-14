@@ -28,14 +28,14 @@ namespace meld {
   template <typename T>
   concept first_input_parameter_is_non_const_lvalue_reference =
     at_least_one_input_parameter<T> &&
-    is_non_const_lvalue_reference<parameter_type<0, T>>{};
+    is_non_const_lvalue_reference<parameter_type<0, T>>::value;
 
   template <typename T, typename R>
   concept returns = std::same_as<return_type<T>, R>;
 
   template <typename T, typename... Args>
   concept expects_input_parameters = at_least_n_input_parameters<T, sizeof...(Args)> &&
-                                     check_parameters<T, Args...>{};
+                                     check_parameters<T, Args...>::value;
 
   template <typename T>
   concept is_filter_like = at_least_one_input_parameter<T> && returns<T, bool>;
