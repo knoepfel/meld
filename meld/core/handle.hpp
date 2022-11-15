@@ -11,6 +11,7 @@
 #include <memory>
 #include <string>
 #include <type_traits>
+#include <typeindex>
 #include <utility>
 #include <variant>
 
@@ -18,11 +19,15 @@ namespace meld {
 
   struct product_base {
     virtual ~product_base() = default;
+    virtual void const* address() const = 0;
+    virtual std::type_index type() const = 0;
   };
 
   template <typename T>
   struct product : product_base {
     explicit product(T const& prod) : obj{prod} {}
+    void const* address() const final { return &obj; }
+    virtual std::type_index type() const { return std::type_index{typeid(T)}; }
     std::remove_cvref_t<T> obj;
   };
 
