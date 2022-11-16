@@ -105,6 +105,10 @@ namespace meld {
   template <typename FT>
   template <std::size_t Nactual, typename InputArgs>
   class incomplete_filter<FT>::complete_filter : public declared_filter {
+    using results_t = tbb::concurrent_hash_map<level_id::hash_type, filter_result>;
+    using accessor = results_t::accessor;
+    using const_accessor = results_t::const_accessor;
+
   public:
     complete_filter(std::string name,
                     std::size_t concurrency,
@@ -117,30 +121,37 @@ namespace meld {
       product_names_{move(product_names)},
       input_{move(input)},
       join_{make_join_or_none(g, std::make_index_sequence<Nactual>{})},
-      filter_{g,
-              concurrency,
-              [this, ft = std::move(f)](messages_t<Nactual> const& messages) -> filter_result {
-                auto const& msg = most_derived(messages);
-                auto const& [store, message_id] = std::tie(msg.store, msg.id);
-                if (store->is_flush()) {
-                  // FIXME: Depending on timing, the following may introduce weird effects
-                  //        (e.g. deleting cached stores before the user function has been
-                  //        invoked).
-                  results_.erase(store->id().parent());
-                  return {};
-                }
+      filter_{
+        g,
+        concurrency,
+        [this, ft = std::move(f)](messages_t<Nactual> const& messages) -> filter_result {
+          auto const& msg = most_derived(messages);
+          auto const& [store, message_id] = std::tie(msg.store, msg.id);
+          filter_result result{};
+          if (store->is_flush()) {
+            counter_accessor ca;
+            counter_for(store->id().parent().hash(), ca).set_flush_value(store->id(), message_id);
+          }
+          else if (const_accessor a; results_.find(a, store->id().hash())) {
+            result = {message_id, a->second.result};
+          }
+          else if (accessor a; results_.insert(a, store->id().hash())) {
+            bool const rc = call(ft, messages, std::make_index_sequence<N>{});
+            result = a->second = {message_id, rc};
+            counter_accessor ca;
+            if (store->id().has_parent()) {
+              counter_for(store->id().parent().hash(), ca).increment();
+            }
+            counter_for(store->id().hash(), ca).mark_as_processed();
+          }
 
-                if (typename decltype(results_)::const_accessor a; results_.find(a, store->id())) {
-                  return {message_id, a->second.result};
-                }
-
-                typename decltype(results_)::accessor a;
-                if (results_.insert(a, store->id())) {
-                  bool const rc = call(ft, messages, std::make_index_sequence<N>{});
-                  a->second = {message_id, rc};
-                }
-                return a->second;
-              }}
+          auto const id_hash = store->is_flush() ? store->id().parent().hash() : store->id().hash();
+          if (const_counter_accessor ca; counter_for(id_hash, ca) && ca->second->is_flush()) {
+            results_.erase(id_hash);
+            erase_counter(ca);
+          }
+          return result;
+        }}
     {
       make_edge(join_, filter_);
     }
@@ -167,7 +178,7 @@ namespace meld {
     InputArgs input_;
     join_or_none_t<Nactual> join_;
     tbb::flow::function_node<messages_t<Nactual>, filter_result> filter_;
-    tbb::concurrent_hash_map<level_id, filter_result> results_;
+    results_t results_;
   };
 
 }

@@ -17,7 +17,7 @@ namespace meld {
     using accessor = decltype(flushes_required_)::accessor;
     if (store->is_flush()) {
       accessor a;
-      bool const found = flushes_required_.find(a, store->id().parent());
+      bool const found = flushes_required_.find(a, store->id().parent().hash());
       if (!found) {
         a.release();
         // FIXME: This is the case where (a) no nodes exist, or (b) the flush message has
@@ -46,7 +46,7 @@ namespace meld {
         it->second.port->try_put({store_to_send, message_id});
         if (auto& parent = store_to_send->parent()) {
           accessor a;
-          flushes_required_.insert(a, parent->id());
+          flushes_required_.insert(a, parent->id().hash());
           a->second.insert(it->second.port);
         }
       }

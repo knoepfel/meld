@@ -12,6 +12,8 @@ find_package(TBB REQUIRED)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+
 add_subdirectory(meld)
 
 include(CTest)

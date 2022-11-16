@@ -188,7 +188,7 @@ namespace meld {
       return;
     }
     accessor a;
-    if (counter_.insert(a, id.parent())) {
+    if (counter_.insert(a, id.parent().hash())) {
       a->second = 1;
     }
     else {
@@ -198,7 +198,7 @@ namespace meld {
 
   std::size_t level_counter::value(level_id const& id) const
   {
-    if (accessor a; counter_.find(a, id)) {
+    if (accessor a; counter_.find(a, id.hash())) {
       return a->second;
     }
     return 0;

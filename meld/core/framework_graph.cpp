@@ -7,9 +7,13 @@
 
 namespace meld {
   framework_graph::framework_graph(run_once_t, product_store_ptr store) :
-    framework_graph{[store, executed = false]() mutable -> product_store_ptr {
-      if (executed) {
+    framework_graph{[store, flush = false, executed = false]() mutable -> product_store_ptr {
+      if (flush) {
         return nullptr;
+      }
+      if (executed) {
+        flush = true;
+        return make_product_store(store->id().make_child(0), {}, stage::flush);
       }
       executed = true;
       return store;

@@ -175,6 +175,10 @@ namespace meld {
   template <is_transform_like FT>
   template <std::size_t Nactual, std::size_t M, typename InputArgs>
   class incomplete_transform<FT>::complete_transform : public declared_transform {
+    using stores_t = tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr>;
+    using accessor = stores_t::accessor;
+    using const_accessor = stores_t::const_accessor;
+
   public:
     complete_transform(std::string name,
                        std::size_t concurrency,
@@ -189,44 +193,49 @@ namespace meld {
       input_{move(input)},
       output_{move(output)},
       join_{make_join_or_none(g, std::make_index_sequence<Nactual>{})},
-      transform_{g,
-                 concurrency,
-                 [this, ft = std::move(f)](messages_t<Nactual> const& messages, auto& output) {
-                   auto const& msg = most_derived(messages);
-                   auto const& [store, message_id] = std::tie(msg.store, msg.id);
-                   auto& [stay_in_graph, to_output] = output;
-                   if (store->is_flush()) {
-                     // FIXME: Depending on timing, the following may introduce weird effects
-                     //        (e.g. deleting cached stores before the user function has been
-                     //        invoked).
-                     stores_.erase(store->id().parent());
-                     stay_in_graph.try_put(msg);
-                     return;
-                   }
+      transform_{
+        g,
+        concurrency,
+        [this, ft = std::move(f)](messages_t<Nactual> const& messages, auto& output) {
+          auto const& msg = most_derived(messages);
+          auto const& [store, message_id] = std::tie(msg.store, msg.id);
+          auto& [stay_in_graph, to_output] = output;
+          if (store->is_flush()) {
+            counter_accessor ca;
+            counter_for(store->id().parent().hash(), ca).set_flush_value(store->id(), message_id);
+            stay_in_graph.try_put(msg);
+          }
+          else if (accessor a; needs_new(store, message_id, stay_in_graph, a)) {
+            auto result = call(ft, messages, std::make_index_sequence<N>{});
+            auto new_store = make_product_store(store->id(), this->name());
+            add_to(*new_store, result, output_);
+            a->second = new_store;
 
-                   if (typename decltype(stores_)::const_accessor a; stores_.find(a, store->id())) {
-                     stay_in_graph.try_put({a->second, message_id});
-                     return;
-                   }
-
-                   typename decltype(stores_)::accessor a;
-                   bool const new_insert = stores_.insert(a, store->id());
-                   if (!new_insert) {
-                     stay_in_graph.try_put({a->second, message_id});
-                     return;
-                   }
-
-                   auto result = call(ft, messages, std::make_index_sequence<N>{});
-                   auto new_store = make_product_store(store->id(), this->name());
-                   add_to(*new_store, result, output_);
-                   a->second = new_store;
-
-                   message const new_msg{a->second, message_id};
-                   stay_in_graph.try_put(new_msg);
-                   to_output.try_put(new_msg);
-                 }}
+            message const new_msg{a->second, message_id};
+            stay_in_graph.try_put(new_msg);
+            to_output.try_put(new_msg);
+            counter_accessor ca;
+            if (store->id().has_parent()) {
+              counter_for(store->id().parent().hash(), ca).increment();
+            }
+            counter_for(store->id().hash(), ca).mark_as_processed();
+          }
+          auto const id_hash = store->is_flush() ? store->id().parent().hash() : store->id().hash();
+          if (const_counter_accessor ca; counter_for(id_hash, ca) && ca->second->is_flush()) {
+            stores_.erase(id_hash);
+            erase_counter(ca);
+          }
+        }}
     {
       make_edge(join_, transform_);
+    }
+
+    ~complete_transform()
+    {
+      debug("Transform ", name(), " has ", stores_.size(), " cached stores.");
+      // for (auto const& [id, _] : stores_) {
+      //   debug(" => ID: ", id);
+      // }
     }
 
   private:
@@ -243,6 +252,29 @@ namespace meld {
     }
     std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
 
+    bool needs_new(product_store_ptr const& store,
+                   std::size_t message_id,
+                   auto& stay_in_graph,
+                   accessor& a)
+    {
+      if (store->is_flush()) {
+        stay_in_graph.try_put({store, message_id});
+        return false;
+      }
+
+      if (const_accessor cached; stores_.find(cached, store->id().hash())) {
+        stay_in_graph.try_put({cached->second, message_id});
+        return false;
+      }
+
+      bool const new_insert = stores_.insert(a, store->id().hash());
+      if (!new_insert) {
+        stay_in_graph.try_put({a->second, message_id});
+        return false;
+      }
+      return true;
+    }
+
     template <std::size_t... Is>
     auto call(function_t const& ft, messages_t<Nactual> const& messages, std::index_sequence<Is...>)
     {
@@ -254,7 +286,7 @@ namespace meld {
     std::array<std::string, M> output_;
     join_or_none_t<Nactual> join_;
     tbb::flow::multifunction_node<messages_t<Nactual>, messages_t<2u>> transform_;
-    tbb::concurrent_hash_map<level_id, product_store_ptr> stores_;
+    stores_t stores_;
   };
 
 }

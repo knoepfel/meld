@@ -61,5 +61,6 @@ add_catch_test(splitter_t LIBRARIES meld::core TBB::tbb TEST_DOT_GRAPH)
 add_catch_test(thread_counter_t LIBRARIES meld::core TBB::tbb)
 add_catch_test(transition_t LIBRARIES meld::core meld::utilities)
 
+add_subdirectory(benchmarks)
 add_subdirectory(memory-checks)
 add_subdirectory(plugins)

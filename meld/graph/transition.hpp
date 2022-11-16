@@ -24,6 +24,8 @@ namespace meld {
   public:
     level_id();
     static level_id const& base();
+
+    using hash_type = std::size_t;
     explicit level_id(std::initializer_list<std::size_t> numbers);
     explicit level_id(std::vector<std::size_t> numbers);
     level_id make_child(std::size_t new_level_number) const;
@@ -41,7 +43,7 @@ namespace meld {
 
   private:
     std::vector<std::size_t> id_{};
-    std::size_t hash_;
+    hash_type hash_;
   };
 
   level_id id_for(char const* str);
@@ -77,7 +79,7 @@ namespace meld {
     void print() const;
 
   private:
-    tbb::concurrent_hash_map<level_id, unsigned> counter_;
+    tbb::concurrent_hash_map<level_id::hash_type, unsigned> counter_;
     using accessor = decltype(counter_)::accessor;
   };
 

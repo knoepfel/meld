@@ -207,26 +207,29 @@ namespace meld {
       reduction_{g,
                  concurrency,
                  [this, ft = std::move(f)](messages_t<Nactual> const& messages, auto& outputs) {
-                   // N.B. The assumption is that a reduction will *never* need to cache the
-                   //      product store it creates.
+                   // N.B. The assumption is that a reduction will *never* need to cache
+                   //      the product store it creates.  Any flush messages *do not* need
+                   //      to be propagated to downstream nodes.
                    auto const& msg = most_derived(messages);
                    auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
                    auto const parent_id = store->id().parent();
-                   auto it = entries_.find(parent_id);
-                   if (it == cend(entries_)) {
-                     it = entries_.emplace(parent_id, std::make_unique<map_entry>()).first;
-                   }
+
+                   counter_accessor ca;
+                   auto& counter = counter_for(parent_id.hash(), ca);
                    if (store->is_flush()) {
-                     set_flush_value(store->id(), original_message_id);
+                     counter.set_flush_value(store->id(), original_message_id);
                    }
                    else {
                      call(ft, messages, std::make_index_sequence<N>{});
-                     ++it->second->count;
+                     counter.increment();
                    }
-                   auto parent = make_product_store(parent_id, this->name());
-                   if (auto const [complete, original_message_id] = reduction_complete(*parent);
-                       complete) {
-                     get<0>(outputs).try_put({parent, original_message_id});
+                   ca.release();
+                   if (const_counter_accessor ca;
+                       counter_for(parent_id.hash(), ca) && ca->second->is_flush()) {
+                     auto parent = make_product_store(parent_id, this->name());
+                     commit_(*parent);
+                     get<0>(outputs).try_put({parent, counter.original_message_id()});
+                     erase_counter(ca);
                    }
                  }}
     {
@@ -264,28 +267,6 @@ namespace meld {
       return std::invoke(ft, *it->second, std::get<Is>(input_).retrieve(messages)...);
     }
 
-    std::pair<bool, std::size_t> reduction_complete(product_store& parent_store)
-    {
-      auto it = entries_.find(parent_store.id());
-      assert(it != cend(entries_));
-      auto& entry = it->second;
-      auto stop_number = entry->stop_after.load();
-      if (entry->count.compare_exchange_strong(stop_number, -2u)) {
-        commit_(parent_store);
-        // FIXME: Would be good to free up memory here.
-        return {true, entry->original_message_id};
-      }
-      return {};
-    }
-
-    void set_flush_value(level_id const& id, std::size_t const original_message_id)
-    {
-      auto it = entries_.find(id.parent());
-      assert(it != cend(entries_));
-      it->second->stop_after = id.back();
-      it->second->original_message_id = original_message_id;
-    }
-
     template <size_t... Is>
     auto initialized_object(InitTuple&& tuple, std::index_sequence<Is...>) const
     {
@@ -316,12 +297,6 @@ namespace meld {
     join_or_none_t<Nactual> join_;
     tbb::flow::multifunction_node<messages_t<Nactual>, messages_t<1>> reduction_;
     tbb::concurrent_unordered_map<level_id, std::unique_ptr<R>> results_;
-    struct map_entry {
-      std::atomic<unsigned int> count{};
-      std::atomic<unsigned int> stop_after{-1u};
-      unsigned int original_message_id{}; // Necessary for matching inputs to downstream join nodes.
-    };
-    tbb::concurrent_unordered_map<level_id, std::unique_ptr<map_entry>> entries_;
   };
 }
 
