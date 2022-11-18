@@ -20,7 +20,6 @@ namespace {
 
 TEST_CASE("Diamond dependency", "[benchmarks]")
 {
-  max_allowed_parallelism limit{2};
   framework_graph g{detail::create_next<test::diamond_source>()};
 
   g.declare_transform("a_creator", last_index).concurrency(unlimited).input("id").output("a");

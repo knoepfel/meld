@@ -1,5 +1,6 @@
 #include "meld/core/framework_graph.hpp"
 
+#include "meld/concurrency.hpp"
 #include "meld/core/edge_maker.hpp"
 #include "meld/core/product_store.hpp"
 
@@ -50,6 +51,8 @@ namespace meld {
 
   void framework_graph::execute(std::string const& dot_file_name)
   {
+    spdlog::info("Number of worker threads: {}",
+                 concurrency::max_allowed_parallelism::active_value());
     finalize(dot_file_name);
     run();
   }

@@ -15,6 +15,12 @@ namespace meld::concurrency {
     {
     }
 
+    static auto active_value()
+    {
+      using control = tbb::global_control;
+      return control::active_value(control::max_allowed_parallelism);
+    }
+
   private:
     tbb::global_control control_;
   };

@@ -10,6 +10,7 @@
 #include "meld/core/message.hpp"
 #include "meld/core/multiplexer.hpp"
 #include "meld/core/product_store.hpp"
+#include "meld/utilities/usage.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -79,6 +80,7 @@ namespace meld {
     void run();
     void finalize(std::string const& dot_file_name);
 
+    usage graph_usage{};
     tbb::flow::graph graph_{};
     declared_filters filters_{};
     declared_monitors monitors_{};
