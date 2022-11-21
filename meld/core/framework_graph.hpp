@@ -80,6 +80,8 @@ namespace meld {
     void run();
     void finalize(std::string const& dot_file_name);
 
+    product_store_ptr next_pending_store();
+
     usage graph_usage{};
     tbb::flow::graph graph_{};
     declared_filters filters_{};
@@ -94,7 +96,12 @@ namespace meld {
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
     std::map<level_id, std::size_t> original_message_ids_;
+    product_store_ptr store_;
+    std::queue<transition> pending_transitions_;
+    level_id last_id_{};
+    std::map<level_id, std::size_t> flush_values_;
     std::size_t calls_{};
+    bool shutdown_{false};
   };
 }
 

@@ -13,9 +13,10 @@ add_library(meld_core SHARED
   message.cpp
   multiplexer.cpp
   product_store.cpp
+  store_counters.cpp
   )
 target_include_directories(meld_core PRIVATE ${PROJECT_SOURCE_DIR})
-target_link_libraries(meld_core PRIVATE Boost::boost TBB::tbb meld::graph meld::utilities)
+target_link_libraries(meld_core PRIVATE Boost::boost TBB::tbb meld::graph spdlog::spdlog meld::utilities)
 
 # Interface library
 add_library(meld_core_int INTERFACE)

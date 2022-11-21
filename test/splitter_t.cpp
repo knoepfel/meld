@@ -69,15 +69,12 @@ TEST_CASE("Splitting the processing", "[graph]")
 {
   constexpr auto index_limit = 2u;
   std::vector<transition> transitions;
-  transitions.reserve(index_limit + 2u);
-  level_id const root_id{};
-  transitions.emplace_back(root_id, stage::process);
+  transitions.reserve(index_limit + 1u);
+  transitions.emplace_back(level_id::base(), stage::process);
   for (unsigned i = 0u; i != index_limit; ++i) {
-    auto const id = root_id.make_child(i);
-    transitions.emplace_back(id, stage::process);
-    transitions.emplace_back(id.make_child(1u), stage::flush);
+    transitions.emplace_back(level_id::base().make_child(i), stage::process);
   }
-  transitions.emplace_back(root_id.make_child(2u), stage::flush);
+
   auto it = cbegin(transitions);
   auto const e = cend(transitions);
   cached_product_stores cached_stores;
@@ -90,9 +87,6 @@ TEST_CASE("Splitting the processing", "[graph]")
     auto store = cached_stores.get_empty_store(id, stage);
     debug("Starting ", id, " with stage ", to_string(stage));
 
-    if (store->is_flush()) {
-      return store;
-    }
     if (store->id().depth() == 0ull) {
       return store;
     }

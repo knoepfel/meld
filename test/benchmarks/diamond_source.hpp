@@ -7,7 +7,10 @@
 
 #include "meld/core/product_store.hpp"
 #include "meld/graph/transition.hpp"
-#include "meld/utilities/debug.hpp"
+
+#include "spdlog/spdlog.h"
+
+using meld::level_id;
 
 namespace test {
   inline constexpr std::size_t n_events{1'000'000};
@@ -16,21 +19,20 @@ namespace test {
   public:
     meld::product_store_ptr next()
     {
-      if (counter_ > 2 * n_events) {
+      if (counter_ == 0) {
+        ++counter_;
+        return make_product_store(level_id::base());
+      }
+      if (counter_ == n_events + 1) {
         return nullptr;
       }
       ++counter_;
 
-      if (counter_ % (2 * n_events / 10) == 0) {
-        meld::debug("Reached ", counter_ / 2, " events");
+      if ((counter_ - 1) % (n_events / 10) == 0) {
+        spdlog::debug("Reached {} events", counter_ - 1);
       }
 
-      if (counter_ % 2 == 0) {
-        meld::level_id const id{counter_ / 2 - 1, 0};
-        return meld::make_product_store(id, {}, meld::stage::flush);
-      }
-      meld::level_id const id{counter_ / 2};
-      auto store = meld::make_product_store(id);
+      auto store = make_product_store(level_id::base().make_child(counter_ - 1));
       store->add_product("id", store->id());
       return store;
     }

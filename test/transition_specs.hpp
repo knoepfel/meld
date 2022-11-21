@@ -4,7 +4,6 @@
 #include "meld/graph/transition.hpp"
 
 namespace meld::test {
-  inline transition setup(char const* spec) { return {id_for(spec), stage::setup}; }
   inline transition flush(char const* spec) { return {id_for(spec), stage::flush}; }
   inline transition process(char const* spec) { return {id_for(spec), stage::process}; }
 }

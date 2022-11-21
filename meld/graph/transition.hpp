@@ -15,7 +15,7 @@
 namespace meld {
   class level_id;
   class level_counter;
-  enum class stage { setup, flush, process };
+  enum class stage { process, flush };
 
   using transition = std::pair<level_id, stage>;
   using transitions = std::vector<transition>;

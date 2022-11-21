@@ -41,8 +41,6 @@ namespace meld {
 
   private:
     head_nodes_t head_nodes_;
-    tbb::concurrent_hash_map<level_id::hash_type, std::set<tbb::flow::receiver<message>*>>
-      flushes_required_;
     bool debug_;
   };
 

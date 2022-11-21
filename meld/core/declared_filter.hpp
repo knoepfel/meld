@@ -12,12 +12,14 @@
 #include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
 #include "meld/core/registrar.hpp"
+#include "meld/core/store_counters.hpp"
 #include "meld/graph/transition.hpp"
 #include "meld/metaprogramming/type_deduction.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
+#include "spdlog/spdlog.h"
 
 #include <array>
 #include <concepts>
@@ -104,7 +106,7 @@ namespace meld {
 
   template <typename FT>
   template <std::size_t Nactual, typename InputArgs>
-  class incomplete_filter<FT>::complete_filter : public declared_filter {
+  class incomplete_filter<FT>::complete_filter : public declared_filter, public detect_flush_flag {
     using results_t = tbb::concurrent_hash_map<level_id::hash_type, filter_result>;
     using accessor = results_t::accessor;
     using const_accessor = results_t::const_accessor;
@@ -121,39 +123,43 @@ namespace meld {
       product_names_{move(product_names)},
       input_{move(input)},
       join_{make_join_or_none(g, std::make_index_sequence<Nactual>{})},
-      filter_{
-        g,
-        concurrency,
-        [this, ft = std::move(f)](messages_t<Nactual> const& messages) -> filter_result {
-          auto const& msg = most_derived(messages);
-          auto const& [store, message_id] = std::tie(msg.store, msg.id);
-          filter_result result{};
-          if (store->is_flush()) {
-            counter_accessor ca;
-            counter_for(store->id().parent().hash(), ca).set_flush_value(store->id(), message_id);
-          }
-          else if (const_accessor a; results_.find(a, store->id().hash())) {
-            result = {message_id, a->second.result};
-          }
-          else if (accessor a; results_.insert(a, store->id().hash())) {
-            bool const rc = call(ft, messages, std::make_index_sequence<N>{});
-            result = a->second = {message_id, rc};
-            counter_accessor ca;
-            if (store->id().has_parent()) {
-              counter_for(store->id().parent().hash(), ca).increment();
-            }
-            counter_for(store->id().hash(), ca).mark_as_processed();
-          }
+      filter_{g,
+              concurrency,
+              [this, ft = std::move(f)](messages_t<Nactual> const& messages) -> filter_result {
+                auto const& msg = most_derived(messages);
+                auto const& [store, message_id] = std::tie(msg.store, msg.id);
+                filter_result result{};
+                if (store->is_flush()) {
+                  flag_accessor ca;
+                  flag_for(store->id().parent().hash(), ca).flush_received(message_id);
+                }
+                else if (const_accessor a; results_.find(a, store->id().hash())) {
+                  result = {message_id, a->second.result};
+                }
+                else if (accessor a; results_.insert(a, store->id().hash())) {
+                  bool const rc = call(ft, messages, std::make_index_sequence<N>{});
+                  result = a->second = {message_id, rc};
+                  flag_accessor ca;
+                  flag_for(store->id().hash(), ca).mark_as_processed();
+                }
 
-          auto const id_hash = store->is_flush() ? store->id().parent().hash() : store->id().hash();
-          if (const_counter_accessor ca; counter_for(id_hash, ca) && ca->second->is_flush()) {
-            results_.erase(id_hash);
-            erase_counter(ca);
-          }
-          return result;
-        }}
+                auto const id_hash =
+                  store->is_flush() ? store->id().parent().hash() : store->id().hash();
+                if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_flush()) {
+                  results_.erase(id_hash);
+                  erase_flag(ca);
+                }
+                return result;
+              }}
     {
       make_edge(join_, filter_);
+    }
+
+    ~complete_filter()
+    {
+      if (results_.size() > 0ull) {
+        spdlog::warn("Filter {} has {} cached results.", name(), results_.size());
+      }
     }
 
   private:

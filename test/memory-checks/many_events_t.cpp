@@ -12,22 +12,19 @@ namespace {
 int main()
 {
   constexpr auto max_events{100'000u};
+  spdlog::flush_on(spdlog::level::trace);
 
-  level_id const root_id{};
-  framework_graph g{[&root_id, i = 0u]() mutable -> product_store_ptr {
-    if (i == max_events * 2) {
+  framework_graph g{[i = 0u]() mutable -> product_store_ptr {
+    if (i == max_events + 1) { // + 1 is for initial product store
       return nullptr;
     }
-    auto [event_number, is_flush] = std::make_tuple(i / 2u, i % 2u != 0u);
-    auto proto_id = root_id.make_child(event_number);
-    if (is_flush) {
-      proto_id = proto_id.make_child(0);
+    if (i == 0u) {
+      ++i;
+      return make_product_store(level_id::base(), "Source");
     }
-    auto const stage = is_flush ? stage::flush : stage::process;
-    auto store = make_product_store(proto_id, "Source", stage);
-    if (not is_flush) {
-      store->add_product("number", i);
-    }
+
+    auto store = make_product_store(level_id::base().make_child(i), "Source");
+    store->add_product("number", i);
     ++i;
     return store;
   }};

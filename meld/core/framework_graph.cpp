@@ -6,15 +6,15 @@
 
 #include "spdlog/cfg/env.h"
 
+namespace {
+  meld::level_counter counter;
+}
+
 namespace meld {
   framework_graph::framework_graph(run_once_t, product_store_ptr store) :
-    framework_graph{[store, flush = false, executed = false]() mutable -> product_store_ptr {
-      if (flush) {
-        return nullptr;
-      }
+    framework_graph{[store, executed = false]() mutable -> product_store_ptr {
       if (executed) {
-        flush = true;
-        return make_product_store(store->id().make_child(0), {}, stage::flush);
+        return nullptr;
       }
       executed = true;
       return store;
@@ -22,27 +22,77 @@ namespace meld {
   {
   }
 
+  // FIXME 1: The implementation below automatically calculates when flush stores need to
+  //          be sent through the graph.  Consequently, it is **slow**.  At the very
+  //          least, we should have an overload that allows users to supply all of the
+  //          flush values by hand.  This can be very prone to error, however.
+  //
+  // FIXME 2: The scheduling algorithm below needs to be tested.
   framework_graph::framework_graph(std::function<product_store_ptr()> f) :
     src_{graph_,
          [this, user_function = move(f)](tbb::flow_control& fc) mutable -> message {
-           auto store = user_function();
-           if (not store) {
+           if (shutdown_) {
+             if (auto pending_store = next_pending_store()) {
+               ++calls_;
+               auto h = original_message_ids_.extract(pending_store->id().parent());
+               assert(h);
+               std::size_t const original_message_id = h.mapped();
+               // spdlog::debug("Mark 1: {}", ::to_string(pending_store));
+               return {pending_store, calls_, original_message_id};
+             }
+
              fc.stop();
              return {};
            }
 
-           ++calls_;
-           if (store->is_flush()) {
-             // Original message ID no longer needed after this message.
-             auto h = original_message_ids_.extract(store->id().parent());
-             assert(h);
-             std::size_t const original_message_id = h.mapped();
-             return {store, calls_, original_message_id};
+           if (not store_) {
+             auto store = user_function();
+             // spdlog::trace("New store: {}", ::to_string(store));
+             shutdown_ = store == nullptr;
+             auto next_level = shutdown_ ? level_id::base() : store->id();
+             if (next_level != level_id::base()) {
+               next_level = next_level.parent();
+             }
+
+             store_ = move(store);
+             for (auto&& tr : transitions_between(last_id_, next_level, counter)) {
+               // spdlog::trace("New transition: {} {}", tr.first, to_string(tr.second));
+               pending_transitions_.push(move(tr));
+             }
+             if (shutdown_ and next_level == level_id::base()) {
+               pending_transitions_.push({counter.value_as_id(level_id::base()), stage::flush});
+             }
            }
 
-           // debug("Inserting message ID for ", store->id(), ": ", calls_);
-           original_message_ids_.try_emplace(store->id(), calls_);
-           return {store, calls_};
+           ++calls_;
+           if (auto pending_store = next_pending_store()) {
+             if (pending_store->is_flush()) {
+               // Original message ID no longer needed after this message.
+               auto h = original_message_ids_.extract(pending_store->id().parent());
+               assert(h);
+               std::size_t const original_message_id = h.mapped();
+               // spdlog::debug("Mark 2: {}", ::to_string(pending_store));
+               return {move(pending_store), calls_, original_message_id};
+             }
+             original_message_ids_.try_emplace(pending_store->id(), calls_);
+             // spdlog::debug("Mark 3: {}", ::to_string(pending_store));
+             return {pending_store, calls_};
+           }
+
+           assert(store_);
+           last_id_ = store_->id();
+           if (store_->is_flush()) {
+             // Original message ID no longer needed after this message.
+             auto h = original_message_ids_.extract(store_->id().parent());
+             assert(h);
+             std::size_t const original_message_id = h.mapped();
+             // spdlog::debug("Mark 4: {}", ::to_string(store_));
+             return {move(store_), calls_, original_message_id};
+           }
+
+           // spdlog::debug("Mark 5: {}", ::to_string(store_));
+           original_message_ids_.try_emplace(store_->id(), calls_);
+           return {move(store_), calls_};
          }},
     multiplexer_{graph_}
   {
@@ -109,5 +159,16 @@ namespace meld {
                consumers{reductions_, {.arrowtail = "dot", .shape = "ellipse"}},
                consumers{splitters_, {.shape = "trapezium"}},
                consumers{transforms_, {.shape = "ellipse"}});
+  }
+
+  product_store_ptr framework_graph::next_pending_store()
+  {
+    if (empty(pending_transitions_)) {
+      return nullptr;
+    }
+
+    auto [id, stage] = pending_transitions_.front();
+    pending_transitions_.pop();
+    return make_product_store(std::move(id), "Source", stage);
   }
 }

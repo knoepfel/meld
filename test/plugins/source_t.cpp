@@ -11,7 +11,11 @@ namespace {
 
     meld::product_store_ptr next()
     {
-      if (current_++ == n_) {
+      if (current_ == 0) {
+        ++current_;
+        return stores_.get_empty_store(meld::level_id::base());
+      }
+      if (current_++ == n_ + 1) {
         return nullptr;
       }
 

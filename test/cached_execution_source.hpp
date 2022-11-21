@@ -36,13 +36,11 @@ namespace test {
           auto const subrun_id = run_id.make_child(j);
           transitions_.emplace_back(subrun_id, stage::process);
           for (std::size_t k = 0; k != n_events; ++k) {
-            transitions_.emplace_back(subrun_id.make_child(k), stage::process);
+            auto event_id = subrun_id.make_child(k);
+            transitions_.emplace_back(event_id, stage::process);
           }
-          transitions_.emplace_back(subrun_id.make_child(n_events), stage::flush);
         }
-        transitions_.emplace_back(run_id.make_child(n_subruns), stage::flush);
       }
-      transitions_.emplace_back(job_id.make_child(n_runs), stage::flush);
       current_ = begin(transitions_);
     }
 

@@ -50,55 +50,40 @@ TEST_CASE("Transitions between the same levels", "[transitions]")
 TEST_CASE("One-level transitions", "[transitions]")
 {
   level_counter c;
-  CHECK(transitions_between(""_id, "2"_id, c) == transitions{setup("2")});
-  CHECK(transitions_between("2"_id, ""_id, c) == transitions{flush("2:0"), process("2")});
+  CHECK(transitions_between(""_id, "2"_id, c) == transitions{process("2")});
+  CHECK(transitions_between("2"_id, ""_id, c) == transitions{flush("2:0")});
 
-  CHECK(transitions_between("1"_id, "1:2"_id, c) == transitions{setup("1:2")});
-  CHECK(transitions_between("1:2"_id, "1"_id, c) == transitions{flush("1:2:0"), process("1:2")});
+  CHECK(transitions_between("1"_id, "1:2"_id, c) == transitions{process("1:2")});
+  CHECK(transitions_between("1:2"_id, "1"_id, c) == transitions{flush("1:2:0")});
 
-  CHECK(transitions_between("2"_id, "3"_id, c) ==
-        transitions{flush("2:0"), process("2"), setup("3")});
+  CHECK(transitions_between("2"_id, "3"_id, c) == transitions{flush("2:0"), process("3")});
 
-  CHECK(transitions_between("1:2"_id, "1:3"_id, c) ==
-        transitions{flush("1:2:0"), process("1:2"), setup("1:3")});
+  CHECK(transitions_between("1:2"_id, "1:3"_id, c) == transitions{flush("1:2:0"), process("1:3")});
 }
 
 TEST_CASE("Multi-level transitions", "[transitions]")
 {
   level_counter c;
   CHECK(transitions_between(""_id, "1:2:3"_id, c) ==
-        transitions{setup("1"), setup("1:2"), setup("1:2:3")});
-  CHECK(transitions_between("1:2:3"_id, ""_id, c) == transitions{flush("1:2:3:0"),
-                                                                 process("1:2:3"),
-                                                                 flush("1:2:1"),
-                                                                 process("1:2"),
-                                                                 flush("1:1"),
-                                                                 process("1")});
+        transitions{process("1"), process("1:2"), process("1:2:3")});
+  CHECK(transitions_between("1:2:3"_id, ""_id, c) ==
+        transitions{flush("1:2:3:0"), flush("1:2:1"), flush("1:1")});
   level_counter c1;
-  CHECK(transitions_between("1:2:3:4"_id, "1:4"_id, c1) == transitions{flush("1:2:3:4:0"),
-                                                                       process("1:2:3:4"),
-                                                                       flush("1:2:3:1"),
-                                                                       process("1:2:3"),
-                                                                       flush("1:2:1"),
-                                                                       process("1:2"),
-                                                                       setup("1:4")});
+  CHECK(transitions_between("1:2:3:4"_id, "1:4"_id, c1) ==
+        transitions{flush("1:2:3:4:0"), flush("1:2:3:1"), flush("1:2:1"), process("1:4")});
 }
 
 TEST_CASE("Multiple transitions", "[transitions]")
 {
-  CHECK(transitions_for({}) == transitions{setup(""), flush("0"), process("")});
+  CHECK(transitions_for({}) == transitions{process(""), flush("0")});
   CHECK(transitions_for({"1"_id}) ==
-        transitions{setup(""), setup("1"), flush("1:0"), process("1"), flush("1"), process("")});
-  CHECK(transitions_for({"1"_id, "1:2"_id, "4"_id}) == transitions{setup(""),
-                                                                   setup("1"),
-                                                                   setup("1:2"),
-                                                                   flush("1:2:0"),
-                                                                   process("1:2"),
-                                                                   flush("1:1"),
+        transitions{process(""), process("1"), flush("1:0"), flush("1")});
+  CHECK(transitions_for({"1"_id, "1:2"_id, "4"_id}) == transitions{process(""),
                                                                    process("1"),
-                                                                   setup("4"),
-                                                                   flush("4:0"),
+                                                                   process("1:2"),
+                                                                   flush("1:2:0"),
+                                                                   flush("1:1"),
                                                                    process("4"),
-                                                                   flush("2"),
-                                                                   process("")});
+                                                                   flush("4:0"),
+                                                                   flush("2")});
 }

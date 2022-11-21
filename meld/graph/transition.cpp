@@ -103,19 +103,18 @@ namespace meld {
     auto const common_stages = distance(from_begin, from_it);
 
     transitions result;
-    // 'process' stages to call
+    // 'flush' stages to call
 
     for (auto i = size(from); i > static_cast<std::size_t>(common_stages); --i) {
       counter.record_parent(from_id);
       result.emplace_back(counter.value_as_id(from_id), stage::flush);
-      result.emplace_back(from_id, stage::process);
       from_id = from_id.parent();
     }
 
-    // 'setup' stages to call
+    // 'process' stages to call
     for (; to_it != to_end; ++to_it) {
       from_id = from_id.make_child(*to_it);
-      result.emplace_back(from_id, stage::setup);
+      result.emplace_back(from_id, stage::process);
     }
 
     return result;
@@ -128,12 +127,12 @@ namespace meld {
     // Equivalent of begin job/end job
     if (empty(ids)) {
       auto const id = ""_id;
-      return {{id, stage::setup}, {counter.value_as_id(id), stage::flush}, {id, stage::process}};
+      return {{id, stage::process}, {counter.value_as_id(id), stage::flush}};
     }
 
     auto from = begin(ids);
     // Account for initial transition to 'from' (including begin 'job' equivalent) ...
-    transitions result{{""_id, stage::setup}};
+    transitions result{{""_id, stage::process}};
     auto first_trs = transitions_between({}, *from, counter);
     result.insert(end(result), begin(first_trs), end(first_trs));
 
@@ -146,15 +145,12 @@ namespace meld {
     auto last_trs = transitions_between(*from, {}, counter);
     result.insert(end(result), begin(last_trs), end(last_trs));
     result.emplace_back(counter.value_as_id(""_id), stage::flush);
-    result.emplace_back(""_id, stage::process);
     return result;
   }
 
   std::string to_string(stage const s)
   {
     switch (s) {
-    case stage::setup:
-      return "setup";
     case stage::process:
       return "process";
     case stage::flush:

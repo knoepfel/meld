@@ -12,6 +12,7 @@
 #include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
 #include "meld/core/registrar.hpp"
+#include "meld/core/store_counters.hpp"
 #include "meld/graph/transition.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
@@ -185,7 +186,9 @@ namespace meld {
 
   template <is_reduction_like FT, typename InitTuple>
   template <std::size_t Nactual, std::size_t M, typename InputArgs>
-  class incomplete_reduction<FT, InitTuple>::complete_reduction : public declared_reduction {
+  class incomplete_reduction<FT, InitTuple>::complete_reduction :
+    public declared_reduction,
+    public count_stores {
     using R = std::decay_t<std::tuple_element_t<0, parameter_types<FT>>>;
 
   public:
@@ -214,22 +217,42 @@ namespace meld {
                    auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
                    auto const parent_id = store->id().parent();
 
+                   // meld::stage const st{store->is_flush() ? meld::stage::flush : meld::stage::process};
+                   // spdlog::debug("Reduction {} received {} from {} ({}, original message {})",
+                   //               this->name(),
+                   //               store->id(),
+                   //               store->source(),
+                   //               to_string(st),
+                   //               original_message_id);
                    counter_accessor ca;
                    auto& counter = counter_for(parent_id.hash(), ca);
+                   if (depth_ != -1ull and parent_id.depth() != depth_ - 1) {
+                     return;
+                   }
                    if (store->is_flush()) {
                      counter.set_flush_value(store->id(), original_message_id);
                    }
                    else {
+                     // FIXME: Check re. depth?
+                     depth_ = store->id().depth();
                      call(ft, messages, std::make_index_sequence<N>{});
                      counter.increment();
                    }
                    ca.release();
-                   if (const_counter_accessor ca;
-                       counter_for(parent_id.hash(), ca) && ca->second->is_flush()) {
+
+                   if (parent_id.depth() != depth_ - 1)
+                     return;
+
+                   const_counter_accessor cca;
+                   // spdlog::trace(" => Counter for {} ", parent_id);
+                   bool const has_counter = counter_for(parent_id.hash(), cca);
+                   if (has_counter && cca->second->is_flush(/*&parent_id*/)) {
+                     // spdlog::trace(" -> Flushing for {}", parent_id);
                      auto parent = make_product_store(parent_id, this->name());
                      commit_(*parent);
+                     // spdlog::trace(" -> Sending message ID {}", counter.original_message_id());
                      get<0>(outputs).try_put({parent, counter.original_message_id()});
-                     erase_counter(ca);
+                     erase_counter(cca);
                    }
                  }}
     {
@@ -297,6 +320,7 @@ namespace meld {
     join_or_none_t<Nactual> join_;
     tbb::flow::multifunction_node<messages_t<Nactual>, messages_t<1>> reduction_;
     tbb::concurrent_unordered_map<level_id, std::unique_ptr<R>> results_;
+    std::atomic<std::size_t> depth_{-1ull};
   };
 }
 

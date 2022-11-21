@@ -68,7 +68,8 @@ namespace {
 
   void print_result(handle<double> result, std::string const& stringized_time)
   {
-    debug(result.id(), ": ", *result, " @ ", stringized_time);
+    spdlog::debug(
+      "{}: {} @ {}", result.id(), *result, stringized_time.substr(0, stringized_time.find('\n')));
   }
 }
 
@@ -77,14 +78,14 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
   std::vector<transition> transitions;
-  transitions.reserve(index_limit * (number_limit + 1u));
+  transitions.reserve(1 + index_limit * (number_limit + 1u));
+  transitions.emplace_back(level_id::base(), stage::process);
   for (unsigned i = 0u; i != index_limit; ++i) {
-    level_id const id{i};
+    auto id = level_id::base().make_child(i);
     transitions.emplace_back(id, stage::process);
     for (unsigned j = 0u; j != number_limit; ++j) {
       transitions.emplace_back(id.make_child(j), stage::process);
     }
-    transitions.emplace_back(id.make_child(number_limit), stage::flush);
   }
   auto it = cbegin(transitions);
   auto const e = cend(transitions);
@@ -96,11 +97,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     auto const& [id, stage] = *it++;
 
     auto store = cached_stores.get_empty_store(id, stage);
-    debug("Starting ", id, " with stage ", to_string(stage));
 
-    if (store->is_flush()) {
-      return store;
-    }
     if (id.depth() == 1ull) {
       store->add_product<std::time_t>("time", std::time(nullptr));
     }

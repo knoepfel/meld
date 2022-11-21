@@ -34,10 +34,14 @@ namespace {
     explicit source(unsigned const max_n) : max_{max_n} {}
     product_store_ptr next()
     {
-      if (i_ < max_) {
-        auto store = make_product_store(level_id{i_});
-        store->add_product<unsigned int>("num", i_);
-        store->add_product<unsigned int>("other_num", 100 + i_);
+      if (i_ == 0) {
+        ++i_;
+        return make_product_store(level_id::base());
+      }
+      if (i_ < max_ + 1) {
+        auto store = make_product_store(level_id::base().make_child(i_));
+        store->add_product<unsigned int>("num", i_ - 1);
+        store->add_product<unsigned int>("other_num", 100 + i_ - 1);
         ++i_;
         return store;
       }

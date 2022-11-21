@@ -13,6 +13,7 @@
 #include "meld/core/multiplexer.hpp"
 #include "meld/core/product_store.hpp"
 #include "meld/core/registrar.hpp"
+#include "meld/core/store_counters.hpp"
 #include "meld/graph/transition.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 
@@ -179,7 +180,9 @@ namespace meld {
 
   template <is_splitter_like FT>
   template <std::size_t Nactual, typename InputArgs>
-  class incomplete_splitter<FT>::complete_splitter : public declared_splitter {
+  class incomplete_splitter<FT>::complete_splitter :
+    public declared_splitter,
+    public detect_flush_flag {
     using stores_t = tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr>;
     using accessor = stores_t::accessor;
     using const_accessor = stores_t::const_accessor;
@@ -206,31 +209,38 @@ namespace meld {
           auto const& msg = most_derived(messages);
           auto const& store = msg.store;
           if (store->is_flush()) {
-            counter_accessor ca;
-            counter_for(store->id().parent().hash(), ca).set_flush_value(store->id(), msg.id);
+            flag_accessor ca;
+            flag_for(store->id().parent().hash(), ca).flush_received(msg.id);
           }
           else if (accessor a; stores_.insert(a, store->id().hash())) {
             generator g{msg.store, this->name(), multiplexer_, to_output_, counter_};
             call(ft, g, messages, std::make_index_sequence<N>{});
             multiplexer_.try_put(g.flush_message());
 
-            counter_accessor ca;
-            if (store->id().has_parent()) {
-              counter_for(store->id().parent().hash(), ca).increment();
-            }
-            counter_for(store->id().hash(), ca).mark_as_processed();
+            flag_accessor ca;
+            flag_for(store->id().hash(), ca).mark_as_processed();
           }
 
           auto const id_hash = store->is_flush() ? store->id().parent().hash() : store->id().hash();
-          if (const_counter_accessor ca; counter_for(id_hash, ca) && ca->second->is_flush()) {
+          if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_flush()) {
             stores_.erase(id_hash);
-            erase_counter(ca);
+            erase_flag(ca);
           }
           return {};
         }},
       to_output_{g}
     {
       make_edge(join_, splitter_);
+    }
+
+    ~complete_splitter()
+    {
+      if (stores_.size() > 0ull) {
+        spdlog::warn("Splitter {} has {} cached stores.", name(), stores_.size());
+      }
+      for (auto const& [_, store] : stores_) {
+        spdlog::debug(" => ID: ", store->id());
+      }
     }
 
   private:

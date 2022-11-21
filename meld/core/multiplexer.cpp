@@ -1,10 +1,8 @@
 #include "meld/core/multiplexer.hpp"
 #include "meld/core/product_store.hpp"
-#include "meld/utilities/debug.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
-
-#include <iterator>
+#include "spdlog/spdlog.h"
 
 namespace meld {
 
@@ -12,29 +10,12 @@ namespace meld {
   {
     auto const& [store, message_id] = std::tie(msg.store, msg.id);
     if (debug_) {
-      debug("Multiplexing ", store->id(), " with ID ", message_id);
+      spdlog::debug("Multiplexing {} with ID {}", store->id(), message_id);
     }
-    using accessor = decltype(flushes_required_)::accessor;
     if (store->is_flush()) {
-      accessor a;
-      bool const found = flushes_required_.find(a, store->id().parent().hash());
-      if (!found) {
-        a.release();
-        // FIXME: This is the case where (a) no nodes exist, or (b) the flush message has
-        //        been received before any other messages.  In case (b), we send the flush
-        //        message to all nodes as we do not yet know which nodes will process a
-        //        given processing level.  For case (a), ideally we would find a better
-        //        solution.
-        for (auto const& [_, node] : head_nodes_) {
-          node.port->try_put(msg);
-        }
-        return {};
+      for (auto const& [_, node] : head_nodes_) {
+        node.port->try_put(msg);
       }
-
-      for (auto port : a->second) {
-        port->try_put(msg);
-      }
-      flushes_required_.erase(a);
       return {};
     }
 
@@ -44,11 +25,6 @@ namespace meld {
       auto store_to_send = store_ptr.lock();
       for (auto [it, e] = head_nodes_.equal_range(key); it != e; ++it) {
         it->second.port->try_put({store_to_send, message_id});
-        if (auto& parent = store_to_send->parent()) {
-          accessor a;
-          flushes_required_.insert(a, parent->id().hash());
-          a->second.insert(it->second.port);
-        }
       }
     }
     return {};
