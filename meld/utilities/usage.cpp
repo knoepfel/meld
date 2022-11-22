@@ -6,6 +6,12 @@
 
 using namespace std::chrono;
 
+#if __linux__
+constexpr double mem_denominator{1e3};
+#else // AppleClang
+constexpr double mem_denominator{1e6};
+#endif
+
 namespace {
   struct metrics {
     double elapsed_time;
@@ -16,7 +22,7 @@ namespace {
     rusage used;
     getrusage(RUSAGE_SELF, &used);
     auto const [secs, microsecs] = used.ru_utime;
-    return {.elapsed_time = secs + microsecs / 1e6, .max_rss = used.ru_maxrss / 1e6};
+    return {.elapsed_time = secs + microsecs / 1e6, .max_rss = used.ru_maxrss / mem_denominator};
   }
 }
 
