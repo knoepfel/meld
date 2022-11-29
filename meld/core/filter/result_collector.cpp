@@ -56,6 +56,13 @@ namespace meld {
       auto const& msg = t.cast_to<message>();
       data_.update(msg.id, msg.store);
       msg_id = msg.id;
+      if (msg.store->is_flush()) {
+        // All flush messages are automatically forwarded to downstream ports.
+        for (std::size_t i = 0ull; i != nargs_; ++i) {
+          downstream_ports_[i]->try_put(msg);
+        }
+        return {};
+      }
     }
     else {
       auto const& result = t.cast_to<filter_result>();

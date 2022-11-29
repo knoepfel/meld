@@ -82,7 +82,7 @@ namespace {
   // Hacky!
   struct check_multiple_numbers {
     check_multiple_numbers(int const n) : total{n} {}
-    ~check_multiple_numbers() { CHECK(sum == total); }
+    ~check_multiple_numbers() { CHECK(std::abs(sum) >= std::abs(total)); }
     void add_difference(unsigned int const a, unsigned int const b)
     {
       // The difference is calculated to test that add(a, b) yields a different result
