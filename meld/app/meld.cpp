@@ -23,13 +23,14 @@ int main(int argc, char* argv[])
           << "Basic options";
   bpo::options_description desc{descstr.str()};
 
+  auto max_concurrency = oneapi::tbb::info::default_concurrency();
   std::string config_file;
   // clang-format off
   desc.add_options()
     ("help,h", "Produce help message")
     ("config,c", bpo::value<std::string>(&config_file), "Configuration file")
     ("parallel,j",
-       bpo::value<int>()->default_value(oneapi::tbb::info::default_concurrency()),
+       bpo::value<int>()->default_value(max_concurrency),
        "Maximum parallelism requested for the program")
     ("version", ("Print meld version ("s + meld::version() + ")").c_str())
     ("dot-file,g",
@@ -93,5 +94,16 @@ int main(int argc, char* argv[])
     return 2;
   }
 
-  meld::run(json::parse(config_str), std::move(dot_file), vm["parallel"].as<int>());
+  // Check configuration...
+  auto configurations = json::parse(config_str).as_object();
+  if (auto const* specified_concurrency = configurations.if_contains("max_concurrency")) {
+    max_concurrency = specified_concurrency->to_number<int>();
+    configurations.erase("max_concurrency"); // Remove consumed parameters
+  }
+
+  // ...but command-line always wins.
+  if (not vm["parallel"].defaulted()) {
+    max_concurrency = vm["parallel"].as<int>();
+  }
+  meld::run(configurations, std::move(dot_file), max_concurrency);
 }

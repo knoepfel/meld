@@ -6,7 +6,7 @@
 using namespace std::string_literals;
 
 namespace meld {
-  void run(boost::json::value const& configurations,
+  void run(boost::json::object const& configurations,
            std::optional<std::string> dot_file,
            int const max_parallelism)
   {

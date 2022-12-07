@@ -100,6 +100,7 @@ namespace meld {
          }},
     multiplexer_{graph_}
   {
+    // FIXME: Should the loading of env levels happen in the meld app only?
     spdlog::cfg::load_env_levels();
     spdlog::info("Number of worker threads: {}",
                  concurrency::max_allowed_parallelism::active_value());
