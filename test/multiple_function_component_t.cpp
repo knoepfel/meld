@@ -45,7 +45,7 @@ TEST_CASE("Call multiple functions", "[programming model]")
   auto store = make_product_store();
   store->add_product("numbers", std::vector<unsigned>{0, 1, 2, 3, 4});
   store->add_product("offset", 6u);
-  framework_graph g{framework_graph::run_once, store};
+  framework_graph g{store};
 
   SECTION("All free functions")
   {

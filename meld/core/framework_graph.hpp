@@ -13,6 +13,7 @@
 #include "meld/utilities/usage.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
+#include "oneapi/tbb/info.h"
 
 #include <cassert>
 #include <functional>
@@ -26,11 +27,10 @@ namespace meld {
 
   class framework_graph {
   public:
-    struct run_once_t {};
-    static constexpr run_once_t run_once{};
-
-    explicit framework_graph(run_once_t, product_store_ptr store);
-    explicit framework_graph(std::function<product_store_ptr()> f);
+    explicit framework_graph(product_store_ptr store,
+                             int max_parallelism = oneapi::tbb::info::default_concurrency());
+    explicit framework_graph(std::function<product_store_ptr()> f,
+                             int max_parallelism = oneapi::tbb::info::default_concurrency());
 
     void execute(std::string const& dot_file_name = {});
 
@@ -83,6 +83,7 @@ namespace meld {
     product_store_ptr next_pending_store();
 
     usage graph_usage{};
+    concurrency::max_allowed_parallelism parallelism_limit_;
     tbb::flow::graph graph_{};
     declared_filters filters_{};
     declared_monitors monitors_{};

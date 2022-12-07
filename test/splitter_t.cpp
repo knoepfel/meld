@@ -103,7 +103,7 @@ TEST_CASE("Splitting the processing", "[graph]")
   g.declare_monitor("check_sum", check_sum).concurrency(unlimited).input("sum");
   g.make<test::products_for_output>()
     .declare_output("save", &test::products_for_output::save)
-    .concurrency(1);
+    .concurrency(serial);
 
   g.execute("splitter_t.gv");
 }

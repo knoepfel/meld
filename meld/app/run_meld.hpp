@@ -6,7 +6,9 @@
 #include <optional>
 
 namespace meld {
-  void run_it(boost::json::value const& configurations, std::optional<std::string> dot_file);
+  void run(boost::json::value const& configurations,
+           std::optional<std::string> dot_file,
+           int max_parallelism);
 }
 
 #endif /* meld_app_run_meld_hpp */

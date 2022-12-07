@@ -58,7 +58,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   store->add_product("temperature", 98.5);
   store->add_product("name", std::string{"John"});
 
-  framework_graph g{framework_graph::run_once, store};
+  framework_graph g{store};
   SECTION("No framework")
   {
     g.declare_transform("no_framework", no_framework).input(product_names).output(oproduct_names);

@@ -1,7 +1,10 @@
-#include "boost/program_options.hpp"
-#include "libjsonnet++.h"
 #include "meld/app/run_meld.hpp"
 #include "meld/app/version.hpp"
+#include "meld/concurrency.hpp"
+
+#include "boost/program_options.hpp"
+#include "libjsonnet++.h"
+#include "oneapi/tbb/info.h"
 
 #include <filesystem>
 #include <fstream>
@@ -25,9 +28,12 @@ int main(int argc, char* argv[])
   desc.add_options()
     ("help,h", "Produce help message")
     ("config,c", bpo::value<std::string>(&config_file), "Configuration file")
+    ("parallel,j",
+       bpo::value<int>()->default_value(oneapi::tbb::info::default_concurrency()),
+       "Maximum parallelism requested for the program")
     ("version", ("Print meld version ("s + meld::version() + ")").c_str())
     ("dot-file,g",
-       bpo::value<std::string>(), "Produce DOT file representing graph of framework nodes.");
+       bpo::value<std::string>(), "Produce DOT file representing graph of framework nodes");
   // clang-format on
 
   // Parse the command line.
@@ -87,5 +93,5 @@ int main(int argc, char* argv[])
     return 2;
   }
 
-  meld::run_it(json::parse(config_str), std::move(dot_file));
+  meld::run(json::parse(config_str), std::move(dot_file), vm["parallel"].as<int>());
 }

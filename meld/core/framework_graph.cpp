@@ -8,17 +8,19 @@
 
 namespace {
   meld::level_counter counter;
+
 }
 
 namespace meld {
-  framework_graph::framework_graph(run_once_t, product_store_ptr store) :
+  framework_graph::framework_graph(product_store_ptr store, int const max_parallelism) :
     framework_graph{[store, executed = false]() mutable -> product_store_ptr {
-      if (executed) {
-        return nullptr;
-      }
-      executed = true;
-      return store;
-    }}
+                      if (executed) {
+                        return nullptr;
+                      }
+                      executed = true;
+                      return store;
+                    },
+                    max_parallelism}
   {
   }
 
@@ -28,9 +30,11 @@ namespace meld {
   //          flush values by hand.  This can be very prone to error, however.
   //
   // FIXME 2: The scheduling algorithm below needs to be tested.
-  framework_graph::framework_graph(std::function<product_store_ptr()> f) :
+  framework_graph::framework_graph(std::function<product_store_ptr()> next_store,
+                                   int const max_parallelism) :
+    parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
     src_{graph_,
-         [this, user_function = move(f)](tbb::flow_control& fc) mutable -> message {
+         [this, read_next_store = move(next_store)](tbb::flow_control& fc) mutable -> message {
            if (shutdown_) {
              if (auto pending_store = next_pending_store()) {
                ++calls_;
@@ -46,7 +50,7 @@ namespace meld {
            }
 
            if (not store_) {
-             auto store = user_function();
+             auto store = read_next_store();
              // spdlog::trace("New store: {}", ::to_string(store));
              shutdown_ = store == nullptr;
              auto next_level = shutdown_ ? level_id::base() : store->id();
@@ -97,12 +101,12 @@ namespace meld {
     multiplexer_{graph_}
   {
     spdlog::cfg::load_env_levels();
+    spdlog::info("Number of worker threads: {}",
+                 concurrency::max_allowed_parallelism::active_value());
   }
 
   void framework_graph::execute(std::string const& dot_file_name)
   {
-    spdlog::info("Number of worker threads: {}",
-                 concurrency::max_allowed_parallelism::active_value());
     finalize(dot_file_name);
     run();
   }
