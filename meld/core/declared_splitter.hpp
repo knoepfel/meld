@@ -85,10 +85,15 @@ namespace meld {
     static constexpr auto N = std::tuple_size_v<input_parameter_types>;
 
     incomplete_splitter(registrar<declared_splitters> reg,
+                        boost::json::object const* config,
                         std::string name,
                         tbb::flow::graph& g,
                         function_t f) :
-      common_node_options_t{this}, name_{move(name)}, graph_{g}, ft_{move(f)}, reg_{std::move(reg)}
+      common_node_options_t{this, config},
+      name_{move(name)},
+      graph_{g},
+      ft_{move(f)},
+      reg_{std::move(reg)}
     {
     }
 
@@ -244,6 +249,11 @@ namespace meld {
     {
       return receiver_for<Nactual>(join_, product_names_, product_name);
     }
+    std::vector<tbb::flow::receiver<message>*> ports() override
+    {
+      return input_ports<Nactual>(join_);
+    }
+
     tbb::flow::sender<message>& to_output() override { return to_output_; }
 
     std::span<std::string const, std::dynamic_extent> input() const override

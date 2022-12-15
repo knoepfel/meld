@@ -64,11 +64,12 @@ namespace meld {
     static constexpr auto N = std::tuple_size_v<input_parameter_types>;
 
     incomplete_reduction(registrar<declared_reductions> reg,
+                         boost::json::object const* config,
                          std::string name,
                          tbb::flow::graph& g,
                          function_t f,
                          InitTuple initializer) :
-      common_node_options_t{this},
+      common_node_options_t{this, config},
       reg_{std::move(reg)},
       name_{move(name)},
       graph_{g},
@@ -259,6 +260,11 @@ namespace meld {
     tbb::flow::receiver<message>& port_for(std::string const& product_name) override
     {
       return receiver_for<N>(join_, product_names_, product_name);
+    }
+
+    std::vector<tbb::flow::receiver<message>*> ports() override
+    {
+      return input_ports<Nactual>(join_);
     }
 
     tbb::flow::sender<message>& sender() override { return output_port<0ull>(reduction_); }

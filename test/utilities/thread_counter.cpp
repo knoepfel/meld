@@ -1,5 +1,5 @@
-#include "meld/utilities/sleep_for.hpp"
 #include "meld/utilities/thread_counter.hpp"
+#include "meld/utilities/sleep_for.hpp"
 
 #include "catch2/catch.hpp"
 #include "oneapi/tbb/flow_graph.h"

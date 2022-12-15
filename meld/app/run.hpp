@@ -1,5 +1,5 @@
-#ifndef meld_app_run_meld_hpp
-#define meld_app_run_meld_hpp
+#ifndef meld_app_run_hpp
+#define meld_app_run_hpp
 
 #include "boost/json.hpp"
 
@@ -11,4 +11,4 @@ namespace meld {
            int max_parallelism);
 }
 
-#endif /* meld_app_run_meld_hpp */
+#endif /* meld_app_run_hpp */

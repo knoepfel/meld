@@ -2,7 +2,7 @@ configure_file(version.cpp.in version.cpp @ONLY)
 
 add_library(run_meld SHARED
   load_module.cpp
-  run_meld.cpp
+  run.cpp
   version.cpp)
 target_link_libraries(run_meld PRIVATE Boost::boost Boost::json meld::core)
 

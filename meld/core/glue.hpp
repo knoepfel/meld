@@ -13,7 +13,6 @@
 
 #include "oneapi/tbb/flow_graph.h"
 
-#include <concepts>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -27,59 +26,49 @@ namespace meld {
   template <typename T>
   class glue {
   public:
-    template <typename>
-    friend class glue;
-
     glue(tbb::flow::graph& g,
          declared_filters& filters,
          declared_monitors& monitors,
          declared_outputs& outputs,
          declared_reductions& reductions,
          declared_splitters& splitters,
-         declared_transforms& transforms)
-      requires(std::same_as<T, void_tag>)
-      :
+         declared_transforms& transforms,
+         std::shared_ptr<T> bound_obj,
+         std::vector<std::string>& errors) :
       graph_{g},
       filters_{filters},
       monitors_{monitors},
       outputs_{outputs},
       reductions_{reductions},
       splitters_{splitters},
-      transforms_{transforms}
+      transforms_{transforms},
+      bound_obj_{move(bound_obj)},
+      errors_{errors}
     {
-    }
-
-    template <typename U, typename... Args>
-    glue<U> bind_to(Args&&... args)
-    {
-      return glue<U>{graph_,
-                     filters_,
-                     monitors_,
-                     outputs_,
-                     reductions_,
-                     splitters_,
-                     transforms_,
-                     std::make_shared<U>(std::forward<Args>(args)...)};
     }
 
     auto declare_filter(std::string name, auto f)
     {
-      return incomplete_filter{registrar{filters_}, move(name), graph_, delegate(bound_obj_, f)};
+      return incomplete_filter{
+        registrar{filters_, errors_}, nullptr, move(name), graph_, delegate(bound_obj_, f)};
     }
 
     auto declare_monitor(std::string name, auto f)
     {
-      return incomplete_monitor{registrar{monitors_}, move(name), graph_, delegate(bound_obj_, f)};
+      return incomplete_monitor{
+        registrar{monitors_, errors_}, nullptr, move(name), graph_, delegate(bound_obj_, f)};
     }
 
     auto declare_output(std::string name, is_output_like auto f)
     {
-      return output_creator{registrar{outputs_}, move(name), graph_, delegate(bound_obj_, f)};
+      return output_creator{
+        registrar{outputs_, errors_}, nullptr, move(name), graph_, delegate(bound_obj_, f)};
     }
 
     auto declare_reduction(std::string name, auto f, auto&&... init_args)
     {
-      return incomplete_reduction{registrar{reductions_},
+      return incomplete_reduction{registrar{reductions_, errors_},
+                                  nullptr,
                                   move(name),
                                   graph_,
                                   delegate(bound_obj_, f),
@@ -89,37 +78,16 @@ namespace meld {
     auto declare_splitter(std::string name, auto f)
     {
       return incomplete_splitter{
-        registrar{splitters_}, move(name), graph_, delegate(bound_obj_, f)};
+        registrar{splitters_, errors_}, nullptr, move(name), graph_, delegate(bound_obj_, f)};
     }
 
     auto declare_transform(std::string name, auto f)
     {
       return incomplete_transform{
-        registrar{transforms_}, move(name), graph_, delegate(bound_obj_, f)};
+        registrar{transforms_, errors_}, nullptr, move(name), graph_, delegate(bound_obj_, f)};
     }
 
   private:
-    glue(tbb::flow::graph& g,
-         declared_filters& filters,
-         declared_monitors& monitors,
-         declared_outputs& outputs,
-         declared_reductions& reductions,
-         declared_splitters& splitters,
-         declared_transforms& transforms,
-         std::shared_ptr<T> bound_obj)
-      requires(not std::same_as<T, void_tag>)
-      :
-      graph_{g},
-      filters_{filters},
-      monitors_{monitors},
-      outputs_{outputs},
-      reductions_{reductions},
-      splitters_{splitters},
-      transforms_{transforms},
-      bound_obj_{bound_obj}
-    {
-    }
-
     tbb::flow::graph& graph_;
     declared_filters& filters_;
     declared_monitors& monitors_;
@@ -128,6 +96,7 @@ namespace meld {
     declared_splitters& splitters_;
     declared_transforms& transforms_;
     std::shared_ptr<T> bound_obj_;
+    std::vector<std::string>& errors_;
   };
 }
 

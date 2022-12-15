@@ -1,1 +1,37 @@
-add_catch_test(diamond_t LIBRARIES meld::core Boost::json TEST_DOT_GRAPH)
+add_library(benchmarks_source MODULE benchmarks_source.cpp)
+target_link_libraries(benchmarks_source PRIVATE meld::module)
+
+add_library(last_index MODULE last_index.cpp)
+target_link_libraries(last_index PRIVATE meld::module)
+
+add_library(read_id MODULE read_id.cpp)
+target_link_libraries(read_id PRIVATE meld::module)
+
+add_library(read_index MODULE read_index.cpp)
+target_link_libraries(read_index PRIVATE meld::module)
+
+add_library(plus_one MODULE plus_one.cpp)
+target_link_libraries(plus_one PRIVATE meld::module)
+
+add_library(plus_101 MODULE plus_101.cpp)
+target_link_libraries(plus_101 PRIVATE meld::module)
+
+add_library(accept_even_ids MODULE accept_even_ids.cpp)
+target_link_libraries(accept_even_ids PRIVATE meld::module)
+
+add_library(accept_even_numbers MODULE accept_even_numbers.cpp)
+target_link_libraries(accept_even_numbers PRIVATE meld::module)
+
+add_library(accept_fibonacci_numbers MODULE accept_fibonacci_numbers.cpp)
+target_link_libraries(accept_fibonacci_numbers PRIVATE meld::module)
+
+add_library(verify_difference MODULE verify_difference.cpp)
+target_link_libraries(verify_difference PRIVATE meld::module)
+
+foreach(I IN ITEMS 01 02 03 04 05 06 07 08 09)
+  set(test_name benchmark:${I})
+  add_test(NAME ${test_name}
+           COMMAND meld -c ${CMAKE_CURRENT_SOURCE_DIR}/benchmark-${I}.jsonnet
+                   -g benchmark-${I}.gv)
+  set_tests_properties(${test_name} PROPERTIES ENVIRONMENT MELD_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR})
+endforeach()

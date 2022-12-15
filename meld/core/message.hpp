@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <tuple>
 #include <type_traits>
+#include <vector>
 
 namespace meld {
 
@@ -52,6 +53,22 @@ namespace meld {
     return join_or_none_t<sizeof...(Is)>{g, type_t<MessageHasher, Is>{}...};
   }
 
+  template <std::size_t N>
+  std::vector<tbb::flow::receiver<message>*> input_ports(join_or_none_t<N>& join)
+  {
+    if constexpr (N == 1ull) {
+      return {&join};
+    }
+    else {
+      return [&join]<std::size_t... Is>(std::index_sequence<Is...>)
+        ->std::vector<tbb::flow::receiver<message>*>
+      {
+        return {&input_port<Is>(join)...};
+      }
+      (std::make_index_sequence<N>{});
+    }
+  }
+
   std::size_t port_index_for(std::span<std::string const> product_names,
                              std::string const& product_name);
 
@@ -81,21 +98,6 @@ namespace meld {
       return join;
     }
   }
-
-  // template <typename T, std::size_t I, typename Messages>
-  // decltype(auto) value(T const& t, Messages const& messages)
-  // {
-  //   // return t; // <= Will be this eventually
-  //   using handle_arg_t = typename handle_for<T>::value_type; // <== Oops, this should be the type of the product
-  //   return std::get<I>(messages).store->template get_handle<handle_arg_t>(t);
-  // }
-
-  // template <typename T, std::size_t I, typename Messages>
-  // auto value(expects_message<I> const& expected_msg, Messages const& messages)
-  // {
-  //   using handle_arg_t = typename handle_for<T>::value_type;
-  //   return std::get<I>(messages).store->template get_handle<handle_arg_t>(expected_msg.name);
-  // }
 
   template <typename T>
   auto get_handle_for(message const& msg, std::string const& product_label)

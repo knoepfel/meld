@@ -1,4 +1,4 @@
-#include "meld/app/run_meld.hpp"
+#include "meld/app/run.hpp"
 #include "meld/app/load_module.hpp"
 #include "meld/concurrency.hpp"
 #include "meld/core/framework_graph.hpp"
@@ -13,7 +13,7 @@ namespace meld {
     framework_graph g{load_source(configurations.at("source").as_object()), max_parallelism};
     auto const module_configs = configurations.at("modules").as_object();
     for (auto const& [key, value] : module_configs) {
-      load_module(g, value.as_object());
+      load_module(g, key, value.as_object());
     }
     g.execute(dot_file.value_or(""s));
   }

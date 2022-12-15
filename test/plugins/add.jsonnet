@@ -1,14 +1,14 @@
 {
   source: {
-    plugin: 'source_t',
+    plugin: 'source',
     max_numbers: 10,
   },
   modules: {
     add: {
-      plugin: 'module_t',
+      plugin: 'module',
     },
     output: {
-      plugin: 'output_t',
+      plugin: 'output',
     },
   },
 }

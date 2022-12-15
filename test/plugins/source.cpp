@@ -1,6 +1,6 @@
+#include "meld/source.hpp"
 #include "meld/core/cached_product_stores.hpp"
 #include "meld/core/product_store.hpp"
-#include "meld/source.hpp"
 
 namespace {
   class number_generator {

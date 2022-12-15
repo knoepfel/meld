@@ -8,6 +8,7 @@
 #include "meld/core/filter/result_collector.hpp"
 #include "meld/core/glue.hpp"
 #include "meld/core/message.hpp"
+#include "meld/core/module_proxy.hpp"
 #include "meld/core/multiplexer.hpp"
 #include "meld/core/product_store.hpp"
 #include "meld/utilities/usage.hpp"
@@ -34,6 +35,19 @@ namespace meld {
 
     void execute(std::string const& dot_file_name = {});
 
+    module_proxy<void_tag> proxy(boost::json::object const& config)
+    {
+      return {config,
+              graph_,
+              filters_,
+              monitors_,
+              outputs_,
+              reductions_,
+              splitters_,
+              transforms_,
+              registration_errors_};
+    }
+
     // Framework function registrations
 
     // N.B. declare_output() is not directly accessible through framework_graph.  Is this
@@ -42,38 +56,45 @@ namespace meld {
     template <typename... Args>
     auto declare_filter(std::string name, bool (*f)(Args...))
     {
-      return unbound_functions_.declare_filter(move(name), f);
+      return proxy().declare_filter(move(name), f);
     }
 
     template <typename... Args>
     auto declare_monitor(std::string name, void (*f)(Args...))
     {
-      return unbound_functions_.declare_monitor(move(name), f);
+      return proxy().declare_monitor(move(name), f);
     }
 
     template <typename R, typename... Args, typename... InitArgs>
     auto declare_reduction(std::string name, void (*f)(R&, Args...), InitArgs&&... init_args)
     {
-      return unbound_functions_.declare_reduction(
-        move(name), f, std::forward<InitArgs>(init_args)...);
+      return proxy().declare_reduction(move(name), f, std::forward<InitArgs>(init_args)...);
     }
 
     template <typename... Args>
     auto declare_splitter(std::string name, void (*f)(Args...))
     {
-      return unbound_functions_.declare_splitter(move(name), f);
+      return proxy().declare_splitter(move(name), f);
     }
 
     template <typename R, typename... Args>
     auto declare_transform(std::string name, R (*f)(Args...))
     {
-      return unbound_functions_.declare_transform(move(name), f);
+      return proxy().declare_transform(move(name), f);
     }
 
     template <typename T, typename... Args>
-    auto make(Args&&... args)
+    glue<T> make(Args&&... args)
     {
-      return unbound_functions_.bind_to<T>(std::forward<Args>(args)...);
+      return {graph_,
+              filters_,
+              monitors_,
+              outputs_,
+              reductions_,
+              splitters_,
+              transforms_,
+              std::make_shared<T>(std::forward<Args>(args)...),
+              registration_errors_};
     }
 
   private:
@@ -81,6 +102,19 @@ namespace meld {
     void finalize(std::string const& dot_file_name);
 
     product_store_ptr next_pending_store();
+
+    glue<void_tag> proxy()
+    {
+      return {graph_,
+              filters_,
+              monitors_,
+              outputs_,
+              reductions_,
+              splitters_,
+              transforms_,
+              nullptr,
+              registration_errors_};
+    }
 
     usage graph_usage{};
     concurrency::max_allowed_parallelism parallelism_limit_;
@@ -91,9 +125,8 @@ namespace meld {
     declared_reductions reductions_{};
     declared_splitters splitters_{};
     declared_transforms transforms_{};
+    std::vector<std::string> registration_errors_{};
     std::map<std::string, result_collector> filter_collectors_{};
-    glue<void_tag> unbound_functions_{
-      graph_, filters_, monitors_, outputs_, reductions_, splitters_, transforms_};
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
     std::map<level_id, std::size_t> original_message_ids_;

@@ -148,6 +148,14 @@ namespace meld {
 
   void framework_graph::finalize(std::string const& dot_file_name)
   {
+    if (not empty(registration_errors_)) {
+      std::string error_msg{"\nConfiguration errors:\n"};
+      for (auto const& error : registration_errors_) {
+        error_msg += "  - " + error + '\n';
+      }
+      throw std::runtime_error(error_msg);
+    }
+
     filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, filters_));
     filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, monitors_));
     filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, outputs_));

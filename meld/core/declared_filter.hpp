@@ -62,10 +62,15 @@ namespace meld {
     static constexpr auto N = number_parameters<FT>;
 
     incomplete_filter(registrar<declared_filters> reg,
+                      boost::json::object const* config,
                       std::string name,
                       tbb::flow::graph& g,
                       function_t f) :
-      common_node_options_t{this}, name_{move(name)}, graph_{g}, ft_{move(f)}, reg_{std::move(reg)}
+      common_node_options_t{this, config},
+      name_{move(name)},
+      graph_{g},
+      ft_{move(f)},
+      reg_{std::move(reg)}
     {
     }
 
@@ -162,6 +167,11 @@ namespace meld {
     tbb::flow::receiver<message>& port_for(std::string const& product_name) override
     {
       return receiver_for<N>(join_, product_names_, product_name);
+    }
+
+    std::vector<tbb::flow::receiver<message>*> ports() override
+    {
+      return input_ports<Nactual>(join_);
     }
 
     tbb::flow::sender<filter_result>& sender() override { return filter_; }

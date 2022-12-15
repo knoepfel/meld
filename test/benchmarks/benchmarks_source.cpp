@@ -1,34 +1,35 @@
-#ifndef test_benchmarks_diamond_source_hpp
-#define test_benchmarks_diamond_source_hpp
-
 // ===================================================================
 // This source creates 1M events.
 // ===================================================================
 
 #include "meld/core/product_store.hpp"
 #include "meld/graph/transition.hpp"
+#include "meld/source.hpp"
 
 #include "spdlog/spdlog.h"
 
-using meld::level_id;
-
 namespace test {
-  inline constexpr std::size_t n_events{1'000'000};
-
-  class diamond_source {
+  class benchmarks_source {
   public:
+    benchmarks_source(boost::json::object const& config) :
+      max_{value_to<std::size_t>(config.at("n_events"))}
+    {
+      spdlog::info("Processing {} events", max_);
+    }
+
     meld::product_store_ptr next()
     {
+      using meld::level_id;
       if (counter_ == 0) {
         ++counter_;
         return make_product_store(level_id::base());
       }
-      if (counter_ == n_events + 1) {
+      if (counter_ == max_ + 1) {
         return nullptr;
       }
       ++counter_;
 
-      if ((counter_ - 1) % (n_events / 10) == 0) {
+      if ((counter_ - 1) % (max_ / 10) == 0) {
         spdlog::debug("Reached {} events", counter_ - 1);
       }
 
@@ -38,8 +39,9 @@ namespace test {
     }
 
   private:
+    std::size_t max_;
     std::size_t counter_{};
   };
 }
 
-#endif /* test_benchmarks_diamond_source_hpp */
+DEFINE_SOURCE(test::benchmarks_source)

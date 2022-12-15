@@ -58,10 +58,11 @@ namespace meld {
     static constexpr auto N = number_parameters<FT>;
 
     incomplete_monitor(registrar<declared_monitors> reg,
+                       boost::json::object const* config,
                        std::string name,
                        tbb::flow::graph& g,
                        function_t f) :
-      common_node_options_t{this},
+      common_node_options_t{this, config},
       name_{move(name)},
       graph_{g},
       ft_{std::move(f)},
@@ -135,7 +136,7 @@ namespace meld {
                    flag_accessor ca;
                    flag_for(store->id().parent().hash(), ca).flush_received(message_id);
                  }
-                 else if (accessor a; needs_new(store, message_id, a)) {
+                 else if (accessor a; needs_new(store, a)) {
                    call(ft, messages, std::make_index_sequence<N>{});
                    a->second = true;
                    flag_accessor ca;
@@ -169,12 +170,17 @@ namespace meld {
       return receiver_for<Nactual>(join_, product_names_, product_name);
     }
 
+    std::vector<tbb::flow::receiver<message>*> ports() override
+    {
+      return input_ports<Nactual>(join_);
+    }
+
     std::span<std::string const, std::dynamic_extent> input() const override
     {
       return product_names_;
     }
 
-    bool needs_new(product_store_ptr const& store, std::size_t message_id, accessor& a)
+    bool needs_new(product_store_ptr const& store, accessor& a)
     {
       if (stores_.count(store->id().hash()) > 0ull) {
         return false;

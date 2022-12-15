@@ -1,8 +1,8 @@
 #ifndef meld_core_products_consumer_hpp
 #define meld_core_products_consumer_hpp
 
-#include "meld/core/fwd.hpp"
 #include "meld/core/consumer.hpp"
+#include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
 #include "meld/graph/transition.hpp"
 
@@ -22,6 +22,7 @@ namespace meld {
     std::size_t num_inputs() const;
 
     tbb::flow::receiver<message>& port(std::string const& product_name);
+    virtual std::vector<tbb::flow::receiver<message>*> ports() = 0;
     virtual std::span<std::string const, std::dynamic_extent> input() const = 0;
 
   private:

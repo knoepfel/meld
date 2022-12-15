@@ -11,7 +11,7 @@ namespace meld::detail {
 
   // See note below.
   template <typename T>
-  auto make(boost::json::value const& obj)
+  auto make(boost::json::object const& obj)
   {
     if constexpr (requires { T{obj}; }) {
       return std::make_shared<T>(obj);
@@ -22,7 +22,7 @@ namespace meld::detail {
   }
 
   template <typename T>
-  std::function<product_store_ptr()> create_next(boost::json::value const& obj = {})
+  std::function<product_store_ptr()> create_next(boost::json::object const& obj = {})
   {
     // N.B. Because we are initializing an std::function object with a lambda, the lambda
     //      (and therefore its captured values) must be copy-constructible.  This means
@@ -35,7 +35,7 @@ namespace meld::detail {
     return [t = make<T>(obj)] { return t->next(); };
   }
 
-  using source_creator_t = std::function<product_store_ptr()>(boost::json::value const&);
+  using source_creator_t = std::function<product_store_ptr()>(boost::json::object const&);
 }
 
 #define DEFINE_SOURCE(source) BOOST_DLL_ALIAS(meld::detail::create_next<source>, create_source)

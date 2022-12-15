@@ -1,4 +1,4 @@
-#include "meld/app/run_meld.hpp"
+#include "meld/app/run.hpp"
 #include "meld/app/version.hpp"
 #include "meld/concurrency.hpp"
 

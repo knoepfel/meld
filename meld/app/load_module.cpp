@@ -39,21 +39,22 @@ namespace meld {
           return dll::import_alias<creator_t>(shared_library_path, symbol_name);
         }
       }
-
       throw std::runtime_error("Could not locate library with specification '"s + spec +
                                "' in any directories on MELD_PLUGIN_PATH."s);
     }
   }
 
-  void load_module(framework_graph& g, boost::json::value const& config)
+  void load_module(framework_graph& g, std::string const& label, boost::json::object config)
   {
     auto const& spec = value_to<std::string>(config.at("plugin"));
     auto& creator =
       create_module.emplace_back(plugin_loader<detail::module_creator_t>(spec, "create_module"));
-    creator(g, config);
+    config["module_label"] = label;
+    auto module_proxy = g.proxy(config);
+    creator(module_proxy, config);
   }
 
-  std::function<product_store_ptr()> load_source(boost::json::value const& config)
+  std::function<product_store_ptr()> load_source(boost::json::object const& config)
   {
     auto const& spec = value_to<std::string>(config.at("plugin"));
     create_source = plugin_loader<detail::source_creator_t>(spec, "create_source");

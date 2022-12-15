@@ -2,19 +2,23 @@
 #define meld_core_common_node_options_hpp
 
 // =======================================================================================
-// The facilities here provided here will become simpler whenever "deducing this" is
-// available in C++23 (which will largely replace CRTP).
+// The facilities provided here will become simpler whenever "deducing this" is available
+// in C++23 (which will largely replace CRTP).
 // =======================================================================================
 
 #include "meld/concurrency.hpp"
 #include "meld/core/concepts.hpp"
 #include "meld/core/input_arguments.hpp"
 
+#include "boost/json.hpp"
+
 #include <concepts>
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace meld {
+  // FIXME: Need to support Boost JSON strings
   template <typename T>
   concept input_argument = std::convertible_to<T, std::string> || does_specify_value<T>;
 
@@ -29,17 +33,32 @@ namespace meld {
   template <typename T>
   class common_node_options {
   public:
-    explicit common_node_options(T* t) : t_{t} {}
+    explicit common_node_options(T* t, boost::json::object const* config) : t_{t}
+    {
+      if (!config) {
+        return;
+      }
+      if (auto concurrency = config->if_contains("concurrency")) {
+        concurrency_ = concurrency->get_uint64();
+      }
+      if (auto preceding_filters = config->if_contains("filtered_by")) {
+        preceding_filters_ = value_to<std::vector<std::string>>(*preceding_filters);
+      }
+    }
 
     T& concurrency(std::size_t n)
     {
-      concurrency_ = n;
+      if (!concurrency_) {
+        concurrency_ = n;
+      }
       return *t_;
     }
 
     T& filtered_by(std::vector<std::string> preceding_filters)
     {
-      preceding_filters_ = move(preceding_filters);
+      if (!preceding_filters_) {
+        preceding_filters_ = move(preceding_filters);
+      }
       return *t_;
     }
 
@@ -56,13 +75,19 @@ namespace meld {
       return t_->input(std::make_tuple(std::forward<decltype(ts)>(ts)...));
     }
 
-    std::vector<std::string>&& release_preceding_filters() { return std::move(preceding_filters_); }
-    std::size_t concurrency() const noexcept { return concurrency_; }
+    std::vector<std::string> release_preceding_filters()
+    {
+      if (preceding_filters_) {
+        return std::move(*preceding_filters_);
+      }
+      return {};
+    }
+    std::size_t concurrency() const noexcept { return concurrency_.value_or(concurrency::serial); }
 
   private:
     T* t_;
-    std::vector<std::string> preceding_filters_{};
-    std::size_t concurrency_{concurrency::serial};
+    std::optional<std::vector<std::string>> preceding_filters_{};
+    std::optional<size_t> concurrency_{};
   };
 }
 

@@ -3,7 +3,7 @@
 
 #include "meld/concurrency.hpp"
 #include "meld/core/common_node_options.hpp"
-#include "meld/core/consumerf.hpp"
+#include "meld/core/consumer.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
@@ -46,10 +46,15 @@ namespace meld {
 
   public:
     output_creator(registrar<declared_outputs> reg,
+                   boost::json::object const* config,
                    std::string name,
                    tbb::flow::graph& g,
                    detail::output_function_t&& f) :
-      common_node_options_t{this}, name_{move(name)}, graph_{g}, ft_{move(f)}, reg_{std::move(reg)}
+      common_node_options_t{this, config},
+      name_{move(name)},
+      graph_{g},
+      ft_{move(f)},
+      reg_{std::move(reg)}
     {
       reg_.set([this] { return create(); });
     }

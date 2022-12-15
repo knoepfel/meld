@@ -7,17 +7,6 @@
 using namespace meld;
 using namespace oneapi::tbb;
 
-namespace {
-  auto downstream_ports(products_consumer& consumer)
-  {
-    std::vector<flow::receiver<message>*> result;
-    for (auto const& product_name : consumer.input()) {
-      result.push_back(&consumer.port(product_name));
-    }
-    return result;
-  }
-}
-
 namespace meld {
   result_collector::result_collector(flow::graph& g, products_consumer& consumer) :
     filter_collector_base{g},
@@ -25,7 +14,7 @@ namespace meld {
     data_{consumer.input()},
     indexer_{g},
     filter_{g, flow::unlimited, [this](tag_t const& t) { return execute(t); }},
-    downstream_ports_{downstream_ports(consumer)},
+    downstream_ports_{consumer.ports()},
     nargs_{size(downstream_ports_)}
   {
     make_edge(indexer_, filter_);
