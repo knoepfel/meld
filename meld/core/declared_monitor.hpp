@@ -4,13 +4,13 @@
 #include "meld/concurrency.hpp"
 #include "meld/core/common_node_options.hpp"
 #include "meld/core/concepts.hpp"
-#include "meld/core/consumer.hpp"
 #include "meld/core/detail/form_input_arguments.hpp"
 #include "meld/core/detail/port_names.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/handle.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
+#include "meld/core/products_consumer.hpp"
 #include "meld/core/registrar.hpp"
 #include "meld/core/store_counters.hpp"
 #include "meld/graph/transition.hpp"
@@ -35,15 +35,10 @@
 
 namespace meld {
 
-  class declared_monitor : public consumer {
+  class declared_monitor : public products_consumer {
   public:
     declared_monitor(std::string name, std::vector<std::string> preceding_filters);
     virtual ~declared_monitor();
-
-    std::string const& name() const noexcept;
-
-  private:
-    std::string name_;
   };
 
   using declared_monitor_ptr = std::unique_ptr<declared_monitor>;

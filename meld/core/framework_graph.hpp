@@ -1,12 +1,12 @@
 #ifndef meld_core_framework_graph_hpp
 #define meld_core_framework_graph_hpp
 
-#include "meld/core/component.hpp"
 #include "meld/core/declared_filter.hpp"
 #include "meld/core/declared_reduction.hpp"
 #include "meld/core/declared_splitter.hpp"
 #include "meld/core/declared_transform.hpp"
 #include "meld/core/filter/result_collector.hpp"
+#include "meld/core/glue.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/multiplexer.hpp"
 #include "meld/core/product_store.hpp"
@@ -92,7 +92,7 @@ namespace meld {
     declared_splitters splitters_{};
     declared_transforms transforms_{};
     std::map<std::string, result_collector> filter_collectors_{};
-    component<void_tag> unbound_functions_{
+    glue<void_tag> unbound_functions_{
       graph_, filters_, monitors_, outputs_, reductions_, splitters_, transforms_};
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;

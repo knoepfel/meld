@@ -2,10 +2,9 @@
 
 namespace meld {
   declared_filter::declared_filter(std::string name, std::vector<std::string> preceding_filters) :
-    consumer{move(preceding_filters)}, name_{move(name)}
+    products_consumer{move(name), move(preceding_filters)}
   {
   }
 
   declared_filter::~declared_filter() = default;
-  std::string const& declared_filter::name() const noexcept { return name_; }
 }

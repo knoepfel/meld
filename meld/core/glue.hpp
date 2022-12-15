@@ -1,5 +1,5 @@
-#ifndef meld_core_component_hpp
-#define meld_core_component_hpp
+#ifndef meld_core_glue_hpp
+#define meld_core_glue_hpp
 
 #include "meld/core/concepts.hpp"
 #include "meld/core/declared_filter.hpp"
@@ -25,18 +25,18 @@ namespace meld {
   // Registering user functions
 
   template <typename T>
-  class component {
+  class glue {
   public:
     template <typename>
-    friend class component;
+    friend class glue;
 
-    component(tbb::flow::graph& g,
-              declared_filters& filters,
-              declared_monitors& monitors,
-              declared_outputs& outputs,
-              declared_reductions& reductions,
-              declared_splitters& splitters,
-              declared_transforms& transforms)
+    glue(tbb::flow::graph& g,
+         declared_filters& filters,
+         declared_monitors& monitors,
+         declared_outputs& outputs,
+         declared_reductions& reductions,
+         declared_splitters& splitters,
+         declared_transforms& transforms)
       requires(std::same_as<T, void_tag>)
       :
       graph_{g},
@@ -50,16 +50,16 @@ namespace meld {
     }
 
     template <typename U, typename... Args>
-    component<U> bind_to(Args&&... args)
+    glue<U> bind_to(Args&&... args)
     {
-      return component<U>{graph_,
-                          filters_,
-                          monitors_,
-                          outputs_,
-                          reductions_,
-                          splitters_,
-                          transforms_,
-                          std::make_shared<U>(std::forward<Args>(args)...)};
+      return glue<U>{graph_,
+                     filters_,
+                     monitors_,
+                     outputs_,
+                     reductions_,
+                     splitters_,
+                     transforms_,
+                     std::make_shared<U>(std::forward<Args>(args)...)};
     }
 
     auto declare_filter(std::string name, auto f)
@@ -99,14 +99,14 @@ namespace meld {
     }
 
   private:
-    component(tbb::flow::graph& g,
-              declared_filters& filters,
-              declared_monitors& monitors,
-              declared_outputs& outputs,
-              declared_reductions& reductions,
-              declared_splitters& splitters,
-              declared_transforms& transforms,
-              std::shared_ptr<T> bound_obj)
+    glue(tbb::flow::graph& g,
+         declared_filters& filters,
+         declared_monitors& monitors,
+         declared_outputs& outputs,
+         declared_reductions& reductions,
+         declared_splitters& splitters,
+         declared_transforms& transforms,
+         std::shared_ptr<T> bound_obj)
       requires(not std::same_as<T, void_tag>)
       :
       graph_{g},
@@ -131,4 +131,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_component_hpp */
+#endif /* meld_core_glue_hpp */

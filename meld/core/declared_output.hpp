@@ -3,6 +3,7 @@
 
 #include "meld/concurrency.hpp"
 #include "meld/core/common_node_options.hpp"
+#include "meld/core/consumerf.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
@@ -23,7 +24,7 @@ namespace meld {
   namespace detail {
     using output_function_t = std::function<void(product_store const&)>;
   }
-  class declared_output {
+  class declared_output : public consumer {
   public:
     declared_output(std::string name,
                     std::size_t concurrency,
@@ -31,13 +32,9 @@ namespace meld {
                     tbb::flow::graph& g,
                     detail::output_function_t&& ft);
 
-    std::string const& name() const noexcept;
-    std::vector<std::string> const& filtered_by() const noexcept;
     tbb::flow::receiver<message>& port() noexcept;
 
   private:
-    std::string name_;
-    std::vector<std::string> preceding_filters_;
     tbb::flow::function_node<message> node_;
   };
 
@@ -57,6 +54,7 @@ namespace meld {
       reg_.set([this] { return create(); });
     }
 
+  private:
     declared_output_ptr create()
     {
       return std::make_unique<declared_output>(move(name_),
@@ -66,7 +64,6 @@ namespace meld {
                                                move(ft_));
     }
 
-  private:
     std::string name_;
     tbb::flow::graph& graph_;
     detail::output_function_t ft_;

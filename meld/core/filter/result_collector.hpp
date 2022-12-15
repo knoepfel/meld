@@ -20,7 +20,7 @@ namespace meld {
     using filter_collector_base::input_ports_type;
     using filter_collector_base::output_ports_type;
 
-    explicit result_collector(oneapi::tbb::flow::graph& g, consumer& product_consumer);
+    explicit result_collector(oneapi::tbb::flow::graph& g, products_consumer& consumer);
     explicit result_collector(oneapi::tbb::flow::graph& g, declared_output& output);
 
     auto& filter_port() { return input_port<0>(*this); }

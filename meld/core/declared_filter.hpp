@@ -3,7 +3,6 @@
 
 #include "meld/concurrency.hpp"
 #include "meld/core/common_node_options.hpp"
-#include "meld/core/consumer.hpp"
 #include "meld/core/detail/form_input_arguments.hpp"
 #include "meld/core/detail/port_names.hpp"
 #include "meld/core/filter/filter_impl.hpp"
@@ -11,6 +10,7 @@
 #include "meld/core/handle.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/product_store.hpp"
+#include "meld/core/products_consumer.hpp"
 #include "meld/core/registrar.hpp"
 #include "meld/core/store_counters.hpp"
 #include "meld/graph/transition.hpp"
@@ -37,16 +37,12 @@
 
 namespace meld {
 
-  class declared_filter : public consumer {
+  class declared_filter : public products_consumer {
   public:
     declared_filter(std::string name, std::vector<std::string> preceding_filters);
     virtual ~declared_filter();
 
-    std::string const& name() const noexcept;
     virtual tbb::flow::sender<filter_result>& sender() = 0;
-
-  private:
-    std::string name_;
   };
 
   using declared_filter_ptr = std::unique_ptr<declared_filter>;

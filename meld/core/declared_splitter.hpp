@@ -4,7 +4,6 @@
 #include "meld/concurrency.hpp"
 #include "meld/core/common_node_options.hpp"
 #include "meld/core/concepts.hpp"
-#include "meld/core/consumer.hpp"
 #include "meld/core/detail/form_input_arguments.hpp"
 #include "meld/core/detail/port_names.hpp"
 #include "meld/core/fwd.hpp"
@@ -12,6 +11,7 @@
 #include "meld/core/message.hpp"
 #include "meld/core/multiplexer.hpp"
 #include "meld/core/product_store.hpp"
+#include "meld/core/products_consumer.hpp"
 #include "meld/core/registrar.hpp"
 #include "meld/core/store_counters.hpp"
 #include "meld/graph/transition.hpp"
@@ -56,18 +56,14 @@ namespace meld {
     std::size_t const original_message_id_{counter_};
   };
 
-  class declared_splitter : public consumer {
+  class declared_splitter : public products_consumer {
   public:
     declared_splitter(std::string name, std::vector<std::string> preceding_filters);
     virtual ~declared_splitter();
 
-    std::string const& name() const noexcept;
     virtual tbb::flow::sender<message>& to_output() = 0;
     virtual std::vector<std::string> const& provided_products() const = 0;
     virtual void finalize(multiplexer::head_nodes_t head_nodes) = 0;
-
-  private:
-    std::string name_;
   };
 
   using declared_splitter_ptr = std::unique_ptr<declared_splitter>;

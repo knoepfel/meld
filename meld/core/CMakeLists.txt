@@ -13,6 +13,7 @@ add_library(meld_core SHARED
   message.cpp
   multiplexer.cpp
   product_store.cpp
+  products_consumer.cpp
   store_counters.cpp
   )
 target_include_directories(meld_core PRIVATE ${PROJECT_SOURCE_DIR})

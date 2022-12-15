@@ -1,6 +1,6 @@
 #include "meld/core/filter/result_collector.hpp"
-#include "meld/core/consumer.hpp"
 #include "meld/core/declared_output.hpp"
+#include "meld/core/products_consumer.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -8,24 +8,24 @@ using namespace meld;
 using namespace oneapi::tbb;
 
 namespace {
-  auto downstream_ports(consumer& product_consumer)
+  auto downstream_ports(products_consumer& consumer)
   {
     std::vector<flow::receiver<message>*> result;
-    for (auto const& product_name : product_consumer.input()) {
-      result.push_back(&product_consumer.port(product_name));
+    for (auto const& product_name : consumer.input()) {
+      result.push_back(&consumer.port(product_name));
     }
     return result;
   }
 }
 
 namespace meld {
-  result_collector::result_collector(flow::graph& g, consumer& cons) :
+  result_collector::result_collector(flow::graph& g, products_consumer& consumer) :
     filter_collector_base{g},
-    decisions_{static_cast<unsigned int>(cons.filtered_by().size())},
-    data_{cons.input()},
+    decisions_{static_cast<unsigned int>(consumer.filtered_by().size())},
+    data_{consumer.input()},
     indexer_{g},
     filter_{g, flow::unlimited, [this](tag_t const& t) { return execute(t); }},
-    downstream_ports_{downstream_ports(cons)},
+    downstream_ports_{downstream_ports(consumer)},
     nargs_{size(downstream_ports_)}
   {
     make_edge(indexer_, filter_);
