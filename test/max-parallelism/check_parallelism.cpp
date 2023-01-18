@@ -42,5 +42,5 @@ DEFINE_SOURCE(send_parallelism)
 DEFINE_MODULE(m, pset)
 {
   auto const expected_parallelism = value_to<std::size_t>(pset.at("expected_parallelism"));
-  m.declare_monitor("verify", verify_expected).input("max_parallelism", use(expected_parallelism));
+  m.declare_monitor(verify_expected).input("max_parallelism", use(expected_parallelism));
 }

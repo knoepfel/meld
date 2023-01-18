@@ -17,13 +17,14 @@ add_library(meld_core SHARED
   store_counters.cpp
   )
 target_include_directories(meld_core PRIVATE ${PROJECT_SOURCE_DIR})
-target_link_libraries(meld_core PRIVATE Boost::boost TBB::tbb meld::graph spdlog::spdlog meld::utilities)
+target_link_libraries(meld_core
+                      PRIVATE TBB::tbb meld::metaprogramming meld::graph spdlog::spdlog meld::utilities)
 
 # Interface library
 add_library(meld_core_int INTERFACE)
 target_include_directories(meld_core_int INTERFACE
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"
   "$<INSTALL_INTERFACE:include>")
-target_link_libraries(meld_core_int INTERFACE meld_core meld::graph meld::utilities TBB::tbb)
+target_link_libraries(meld_core_int INTERFACE meld_core meld::metaprogramming meld::graph meld::utilities TBB::tbb)
 
 add_library(meld::core ALIAS meld_core_int)

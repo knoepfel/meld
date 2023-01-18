@@ -12,7 +12,7 @@ namespace {
 int main()
 {
   constexpr auto max_events{100'000u};
-  spdlog::flush_on(spdlog::level::trace);
+  //  spdlog::flush_on(spdlog::level::trace);
 
   framework_graph g{[i = 0u]() mutable -> product_store_ptr {
     if (i == max_events + 1) { // + 1 is for initial product store
@@ -28,9 +28,6 @@ int main()
     ++i;
     return store;
   }};
-  g.declare_transform("pass_on", pass_on)
-    .concurrency(unlimited)
-    .input("number")
-    .output("different");
+  g.declare_transform(pass_on).concurrency(unlimited).input("number").output("different");
   g.execute();
 }

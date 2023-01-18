@@ -15,8 +15,5 @@ DEFINE_MODULE(m, config)
     product_name = pname->as_string();
   }
 
-  m.declare_transform("last_index", last_index)
-    .concurrency(unlimited)
-    .input("id")
-    .output(product_name);
+  m.declare_transform(last_index).concurrency(unlimited).input("id").output(product_name);
 }

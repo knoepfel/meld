@@ -22,5 +22,5 @@ DEFINE_MODULE(m, config)
     j = value_to<std::string>(*j_config);
   }
 
-  m.declare_monitor("d", verify_difference).concurrency(unlimited).input(i, j, use(expected));
+  m.declare_monitor(verify_difference).concurrency(unlimited).input(i, j, use(expected));
 }

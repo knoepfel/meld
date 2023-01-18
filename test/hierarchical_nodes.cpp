@@ -107,25 +107,23 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     return store;
   }};
 
-  g.declare_transform("get_the_time", strtime)
+  g.declare_transform(strtime, "get_the_time")
     .filtered_by()
     .concurrency(unlimited)
     .input("time")
     .output("strtime");
-  g.declare_transform("square", square)
-    .concurrency(unlimited)
-    .input("number")
-    .output("squared_number");
+  g.declare_transform(square).concurrency(unlimited).input("number").output("squared_number");
   g.declare_reduction("add", add, 15u)
     .filtered_by()
     .concurrency(unlimited)
     .input("squared_number")
     .output("added_data");
-  g.declare_transform("scale", scale).concurrency(unlimited).input("added_data").output("result");
-  g.declare_monitor("print_result", print_result).concurrency(unlimited).input("result", "strtime");
+
+  g.declare_transform(scale).concurrency(unlimited).input("added_data").output("result");
+  g.declare_monitor(print_result).concurrency(unlimited).input("result", "strtime");
 
   auto c = g.make<test::products_for_output>();
-  c.declare_output("save_to_file", &test::products_for_output::save).filtered_by();
+  c.declare_output(&test::products_for_output::save).filtered_by();
 
   g.execute("hierarchical_nodes_t.gv");
 }

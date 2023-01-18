@@ -11,7 +11,7 @@ namespace {
 
 DEFINE_MODULE(m, config)
 {
-  m.declare_filter("accept_even_ids", accept_even_ids)
+  m.declare_filter(accept_even_ids)
     .concurrency(unlimited)
     .input(value_to<std::string>(config.at("product_name")));
 }

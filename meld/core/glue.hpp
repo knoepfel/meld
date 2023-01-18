@@ -10,6 +10,7 @@
 #include "meld/core/declared_transform.hpp"
 #include "meld/core/registrar.hpp"
 #include "meld/metaprogramming/delegate.hpp"
+#include "meld/metaprogramming/function_name.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 
@@ -47,26 +48,38 @@ namespace meld {
     {
     }
 
-    auto declare_filter(std::string name, auto f)
+    auto declare_filter(auto f, std::string name = {})
     {
+      if (empty(name)) {
+        name = function_name(f);
+      }
       return incomplete_filter{
         registrar{filters_, errors_}, nullptr, move(name), graph_, delegate(bound_obj_, f)};
     }
 
-    auto declare_monitor(std::string name, auto f)
+    auto declare_monitor(auto f, std::string name = {})
     {
+      if (empty(name)) {
+        name = function_name(f);
+      }
       return incomplete_monitor{
         registrar{monitors_, errors_}, nullptr, move(name), graph_, delegate(bound_obj_, f)};
     }
 
-    auto declare_output(std::string name, is_output_like auto f)
+    auto declare_output(is_output_like auto f, std::string name = {})
     {
+      if (empty(name)) {
+        name = function_name(f);
+      }
       return output_creator{
         registrar{outputs_, errors_}, nullptr, move(name), graph_, delegate(bound_obj_, f)};
     }
 
     auto declare_reduction(std::string name, auto f, auto&&... init_args)
     {
+      if (empty(name)) {
+        name = function_name(f);
+      }
       return incomplete_reduction{registrar{reductions_, errors_},
                                   nullptr,
                                   move(name),
@@ -75,14 +88,21 @@ namespace meld {
                                   std::make_tuple(std::forward<decltype(init_args)>(init_args)...)};
     }
 
-    auto declare_splitter(std::string name, auto f)
+    auto declare_splitter(auto f, std::string name = {})
     {
+      if (empty(name)) {
+        name = function_name(f);
+      }
       return incomplete_splitter{
         registrar{splitters_, errors_}, nullptr, move(name), graph_, delegate(bound_obj_, f)};
     }
 
-    auto declare_transform(std::string name, auto f)
+    auto declare_transform(auto f, std::string name = {})
     {
+      if (empty(name)) {
+        name = function_name(f);
+      }
+      spdlog::info("Transform name: {}", name);
       return incomplete_transform{
         registrar{transforms_, errors_}, nullptr, move(name), graph_, delegate(bound_obj_, f)};
     }

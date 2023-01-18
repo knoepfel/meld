@@ -54,15 +54,15 @@ namespace meld {
     //      right?
 
     template <typename... Args>
-    auto declare_filter(std::string name, bool (*f)(Args...))
+    auto declare_filter(bool (*f)(Args...), std::string name = {})
     {
-      return proxy().declare_filter(move(name), f);
+      return proxy().declare_filter(f, move(name));
     }
 
     template <typename... Args>
-    auto declare_monitor(std::string name, void (*f)(Args...))
+    auto declare_monitor(void (*f)(Args...), std::string name = {})
     {
-      return proxy().declare_monitor(move(name), f);
+      return proxy().declare_monitor(f, move(name));
     }
 
     template <typename R, typename... Args, typename... InitArgs>
@@ -72,15 +72,15 @@ namespace meld {
     }
 
     template <typename... Args>
-    auto declare_splitter(std::string name, void (*f)(Args...))
+    auto declare_splitter(void (*f)(Args...), std::string name = {})
     {
-      return proxy().declare_splitter(move(name), f);
+      return proxy().declare_splitter(f, move(name));
     }
 
     template <typename R, typename... Args>
-    auto declare_transform(std::string name, R (*f)(Args...))
+    auto declare_transform(R (*f)(Args...), std::string name = {})
     {
-      return proxy().declare_transform(move(name), f);
+      return proxy().declare_transform(f, move(name));
     }
 
     template <typename T, typename... Args>

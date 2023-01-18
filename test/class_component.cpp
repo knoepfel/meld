@@ -63,42 +63,42 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   auto a_component = g.make<A>();
   SECTION("No framework")
   {
-    a_component.declare_transform("no_framework", &A::no_framework)
+    a_component.declare_transform(&A::no_framework)
       .concurrency(unlimited)
       .input(product_names)
       .output(oproduct_names);
   }
   SECTION("No framework, all references")
   {
-    a_component.declare_transform("no_framework_all_refs", &A::no_framework_all_refs)
+    a_component.declare_transform(&A::no_framework_all_refs)
       .concurrency(unlimited)
       .input(product_names)
       .output(oproduct_names);
   }
   SECTION("No framework, all pointers")
   {
-    a_component.declare_transform("no_framework_all_ptrs", &A::no_framework_all_ptrs)
+    a_component.declare_transform(&A::no_framework_all_ptrs)
       .concurrency(unlimited)
       .input(product_names)
       .output(oproduct_names);
   }
   SECTION("One framework argument")
   {
-    a_component.declare_transform("one_framework_arg", &A::one_framework_arg)
+    a_component.declare_transform(&A::one_framework_arg)
       .concurrency(unlimited)
       .input(product_names)
       .output(oproduct_names);
   }
   SECTION("All framework arguments")
   {
-    a_component.declare_transform("all_framework_args", &A::all_framework_args)
+    a_component.declare_transform(&A::all_framework_args)
       .concurrency(unlimited)
       .input(product_names)
       .output(oproduct_names);
   }
 
   // The following is invoked for *each* section above
-  g.declare_monitor("verify_results", verify_results).concurrency(unlimited).input(product_names);
+  g.declare_monitor(verify_results).concurrency(unlimited).input(product_names);
 
   g.execute("class_component_t.gv");
 }

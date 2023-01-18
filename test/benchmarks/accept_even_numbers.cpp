@@ -10,7 +10,7 @@ namespace {
 
 DEFINE_MODULE(m, config)
 {
-  m.declare_filter("accept_even_numbers", accept_even_numbers)
+  m.declare_filter(accept_even_numbers)
     .concurrency(unlimited)
     .input(value_to<std::string>(config.at("product_name")));
 }

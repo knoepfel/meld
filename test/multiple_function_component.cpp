@@ -49,15 +49,15 @@ TEST_CASE("Call multiple functions", "[programming model]")
 
   SECTION("All free functions")
   {
-    g.declare_transform("square_numbers", square_numbers)
+    g.declare_transform(square_numbers)
       .concurrency(unlimited)
       .input("numbers")
       .output("squared_numbers");
-    g.declare_transform("sum_numbers", sum_numbers)
+    g.declare_transform(sum_numbers)
       .concurrency(unlimited)
       .input("squared_numbers")
       .output("summed_numbers");
-    g.declare_transform("sqrt_sum_numbers", sqrt_sum_numbers)
+    g.declare_transform(sqrt_sum_numbers)
       .concurrency(unlimited)
       .input("summed_numbers", "offset")
       .output("result");
@@ -65,22 +65,22 @@ TEST_CASE("Call multiple functions", "[programming model]")
 
   SECTION("Transforms, one from a component")
   {
-    g.declare_transform("square_numbers", square_numbers)
+    g.declare_transform(square_numbers)
       .concurrency(unlimited)
       .input("numbers")
       .output("squared_numbers");
-    g.declare_transform("sum_numbers", sum_numbers)
+    g.declare_transform(sum_numbers)
       .concurrency(unlimited)
       .input("squared_numbers")
       .output("summed_numbers");
     g.make<A>()
-      .declare_transform("sqrt_sum_numbers", &A::sqrt_sum)
+      .declare_transform(&A::sqrt_sum)
       .concurrency(unlimited)
       .input("summed_numbers", "offset")
       .output("result");
   }
 
   // The following is invoked for *each* section above
-  g.declare_monitor("verify_result", verify_result).input("result", use(6.));
+  g.declare_monitor(verify_result).input("result", use(6.));
   g.execute();
 }

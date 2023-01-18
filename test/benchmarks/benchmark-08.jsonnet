@@ -21,7 +21,7 @@ local max_number = 100000;
     },
     d: {
       plugin: 'verify_difference',
-      filtered_by: ['even_filter:accept_even_numbers', 'fibonacci_filter:accept_fibonacci_numbers'],
+      filtered_by: ['even_filter:accept_even_numbers', 'fibonacci_filter:accept'],
       i: 'a',
       j: 'a',
       expected: 0,
