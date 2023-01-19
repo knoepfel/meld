@@ -26,9 +26,9 @@ namespace meld {
     }
 
     template <typename T>
-    T get(std::string const& key, T default_value) const
+    T get(std::string const& key, T&& default_value) const
     {
-      return get_if_present<T>(key).value_or(default_value);
+      return get_if_present<T>(key).value_or(std::forward<T>(default_value));
     }
 
   private:
