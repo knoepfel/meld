@@ -77,7 +77,6 @@ namespace meld {
     void set(Creator creator) { creator_ = move(creator); }
     ~registrar() noexcept(false)
     {
-      // FIXME: Exception handling in d'tor
       if (creator_) {
         auto ptr = creator_();
         auto name = ptr->name();
