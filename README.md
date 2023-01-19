@@ -13,6 +13,10 @@ Exploratory work to meet DUNE's processing needs.
   - [x] Implement basic facility
   - [ ] Figure out how to handle reductions
   - [ ] Implement tests that mandate an explicit name if the same function is registered twice
+- [ ] Replicated modules
+  - [x] Implement basic facility
+  - [ ] Incorporate as part of `framework_graph`
+- [ ] Convert `serial_node` to work with `framework_graph`
 - [ ] Product-lookup policies
 - [ ] Error-detection for nodes with unassigned input ports (it this possible?)
 - [ ] Creating paths (subgraphs)
