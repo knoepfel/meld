@@ -11,5 +11,5 @@ DEFINE_MODULE(m, config)
 {
   m.declare_monitor(read_index)
     .concurrency(unlimited)
-    .input(value_to<std::string>(config.at("product_name")));
+    .input(config.get<std::string>("product_name"));
 }

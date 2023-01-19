@@ -9,18 +9,9 @@ namespace {
 
 DEFINE_MODULE(m, config)
 {
-  int expected{100};
-  std::string i{"b"};
-  std::string j{"c"};
-  if (auto exp = config.if_contains("expected")) {
-    expected = exp->as_int64();
-  }
-  if (auto i_config = config.if_contains("i")) {
-    i = value_to<std::string>(*i_config);
-  }
-  if (auto j_config = config.if_contains("j")) {
-    j = value_to<std::string>(*j_config);
-  }
-
-  m.declare_monitor(verify_difference).concurrency(unlimited).input(i, j, use(expected));
+  m.declare_monitor(verify_difference)
+    .concurrency(unlimited)
+    .input(config.get<std::string>("i", "b"),
+           config.get<std::string>("j", "c"),
+           use(config.get<int>("expected", 100)));
 }

@@ -10,10 +10,8 @@ namespace {
 
 DEFINE_MODULE(m, config)
 {
-  std::string product_name = "a";
-  if (auto pname = config.if_contains("product_name")) {
-    product_name = pname->as_string();
-  }
-
-  m.declare_transform(last_index).concurrency(unlimited).input("id").output(product_name);
+  m.declare_transform(last_index)
+    .concurrency(unlimited)
+    .input("id")
+    .output(config.get<std::string>("product_name", "a"));
 }

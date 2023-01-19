@@ -7,6 +7,7 @@
 // =======================================================================================
 
 #include "meld/concurrency.hpp"
+#include "meld/configuration.hpp"
 #include "meld/core/concepts.hpp"
 #include "meld/core/input_arguments.hpp"
 
@@ -33,17 +34,13 @@ namespace meld {
   template <typename T>
   class common_node_options {
   public:
-    explicit common_node_options(T* t, boost::json::object const* config) : t_{t}
+    explicit common_node_options(T* t, configuration const* config) : t_{t}
     {
       if (!config) {
         return;
       }
-      if (auto concurrency = config->if_contains("concurrency")) {
-        concurrency_ = concurrency->get_uint64();
-      }
-      if (auto preceding_filters = config->if_contains("filtered_by")) {
-        preceding_filters_ = value_to<std::vector<std::string>>(*preceding_filters);
-      }
+      concurrency_ = config->get_if_present<int>("concurrency");
+      preceding_filters_ = config->get_if_present<std::vector<std::string>>("filtered_by");
     }
 
     T& concurrency(std::size_t n)

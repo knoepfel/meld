@@ -63,7 +63,7 @@ namespace meld {
     static constexpr auto N = number_parameters<FT>;
 
     incomplete_transform(registrar<declared_transforms> reg,
-                         boost::json::object const* config,
+                         configuration const* config,
                          std::string name,
                          tbb::flow::graph& g,
                          function_t f) :

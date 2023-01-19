@@ -1,4 +1,5 @@
 #include "meld/app/load_module.hpp"
+#include "meld/configuration.hpp"
 #include "meld/core/framework_graph.hpp"
 #include "meld/module.hpp"
 #include "meld/source.hpp"
@@ -44,12 +45,14 @@ namespace meld {
     }
   }
 
-  void load_module(framework_graph& g, std::string const& label, boost::json::object config)
+  void load_module(framework_graph& g, std::string const& label, boost::json::object raw_config)
   {
-    auto const& spec = value_to<std::string>(config.at("plugin"));
+    auto const& spec = value_to<std::string>(raw_config.at("plugin"));
     auto& creator =
       create_module.emplace_back(plugin_loader<detail::module_creator_t>(spec, "create_module"));
-    config["module_label"] = label;
+    raw_config["module_label"] = label;
+
+    configuration const config{raw_config};
     auto module_proxy = g.proxy(config);
     creator(module_proxy, config);
   }

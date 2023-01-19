@@ -64,7 +64,7 @@ namespace meld {
     static constexpr auto N = std::tuple_size_v<input_parameter_types>;
 
     incomplete_reduction(registrar<declared_reductions> reg,
-                         boost::json::object const* config,
+                         configuration const* config,
                          std::string name,
                          tbb::flow::graph& g,
                          function_t f,

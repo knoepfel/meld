@@ -1,6 +1,7 @@
 #ifndef meld_core_framework_graph_hpp
 #define meld_core_framework_graph_hpp
 
+#include "meld/configuration.hpp"
 #include "meld/core/declared_filter.hpp"
 #include "meld/core/declared_reduction.hpp"
 #include "meld/core/declared_splitter.hpp"
@@ -35,7 +36,7 @@ namespace meld {
 
     void execute(std::string const& dot_file_name = {});
 
-    module_proxy<void_tag> proxy(boost::json::object const& config)
+    module_proxy<void_tag> proxy(configuration const& config)
     {
       return {config,
               graph_,

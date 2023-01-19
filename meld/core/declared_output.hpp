@@ -46,7 +46,7 @@ namespace meld {
 
   public:
     output_creator(registrar<declared_outputs> reg,
-                   boost::json::object const* config,
+                   configuration const* config,
                    std::string name,
                    tbb::flow::graph& g,
                    detail::output_function_t&& f) :

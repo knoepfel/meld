@@ -1,6 +1,7 @@
 #ifndef meld_core_module_proxy_hpp
 #define meld_core_module_proxy_hpp
 
+#include "meld/configuration.hpp"
 #include "meld/core/concepts.hpp"
 #include "meld/core/declared_filter.hpp"
 #include "meld/core/declared_monitor.hpp"
@@ -12,7 +13,6 @@
 #include "meld/metaprogramming/delegate.hpp"
 #include "meld/metaprogramming/function_name.hpp"
 
-#include "boost/json.hpp"
 #include "oneapi/tbb/flow_graph.h"
 
 #include <concepts>
@@ -31,14 +31,14 @@ namespace meld {
   class module_proxy {
     auto qualified(std::string const& name)
     {
-      return value_to<std::string>(config_->at("module_label")) + ":" + name;
+      return config_->get<std::string>("module_label") + ":" + name;
     }
 
   public:
     template <typename>
     friend class module_proxy;
 
-    module_proxy(boost::json::object const& config,
+    module_proxy(configuration const& config,
                  tbb::flow::graph& g,
                  declared_filters& filters,
                  declared_monitors& monitors,
@@ -135,7 +135,7 @@ namespace meld {
     }
 
   private:
-    module_proxy(boost::json::object const* config,
+    module_proxy(configuration const* config,
                  tbb::flow::graph& g,
                  declared_filters& filters,
                  declared_monitors& monitors,
@@ -160,7 +160,7 @@ namespace meld {
     {
     }
 
-    boost::json::object const* config_;
+    configuration const* config_;
     tbb::flow::graph& graph_;
     declared_filters& filters_;
     declared_monitors& monitors_;
