@@ -1,8 +1,12 @@
 #include "meld/core/consumer.hpp"
 
 namespace meld {
-  consumer::consumer(std::string name, std::vector<std::string> preceding_filters) :
-    name_{move(name)}, preceding_filters_{move(preceding_filters)}
+  consumer::consumer(std::string name,
+                     std::vector<std::string> preceding_filters,
+                     std::vector<std::string> receive_stores) :
+    name_{move(name)},
+    preceding_filters_{move(preceding_filters)},
+    receive_stores_{move(receive_stores)}
   {
   }
 
@@ -11,5 +15,10 @@ namespace meld {
   std::vector<std::string> const& consumer::filtered_by() const noexcept
   {
     return preceding_filters_;
+  }
+
+  std::vector<std::string> const& consumer::receive_stores() const noexcept
+  {
+    return receive_stores_;
   }
 }

@@ -2,8 +2,9 @@
 
 namespace meld {
   declared_transform::declared_transform(std::string name,
-                                         std::vector<std::string> preceding_filters) :
-    products_consumer{move(name), move(preceding_filters)}
+                                         std::vector<std::string> preceding_filters,
+                                         std::vector<std::string> release_stores) :
+    products_consumer{move(name), move(preceding_filters), move(release_stores)}
   {
   }
 

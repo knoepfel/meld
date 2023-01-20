@@ -36,13 +36,17 @@ namespace meld {
   template <typename T>
   class common_node_options {
   public:
-    explicit common_node_options(T* t, configuration const* config) : t_{t}
+    T& when_in(std::vector<std::string> store_names)
     {
-      if (!config) {
-        return;
+      if (!store_names_) {
+        store_names_ = move(store_names);
       }
-      concurrency_ = config->get_if_present<int>("concurrency");
-      preceding_filters_ = config->get_if_present<std::vector<std::string>>("filtered_by");
+      return *t_;
+    }
+
+    T& when_in(std::convertible_to<std::string> auto&&... store_names)
+    {
+      return when_in({std::forward<decltype(store_names)>(store_names)...});
     }
 
     T& concurrency(std::size_t n)
@@ -79,17 +83,34 @@ namespace meld {
       return t_->input(std::make_tuple(std::forward<decltype(ts)>(ts)...));
     }
 
+  protected:
+    explicit common_node_options(T* t, configuration const* config) : t_{t}
+    {
+      if (!config) {
+        return;
+      }
+      concurrency_ = config->get_if_present<int>("concurrency");
+      preceding_filters_ = config->get_if_present<std::vector<std::string>>("filtered_by");
+    }
+
+    // N.B. For the below functions, std::move is used to take advantage of the
+    //      &&-qualified value_or optimization, described at
+    //      https://en.cppreference.com/w/cpp/utility/optional/value_or
+
+    std::vector<std::string> release_store_names()
+    {
+      return move(store_names_).value_or(std::vector<std::string>{});
+    }
+
     std::vector<std::string> release_preceding_filters()
     {
-      if (preceding_filters_) {
-        return std::move(*preceding_filters_);
-      }
-      return {};
+      return move(preceding_filters_).value_or(std::vector<std::string>{});
     }
     std::size_t concurrency() const noexcept { return concurrency_.value_or(concurrency::serial); }
 
   private:
     T* t_;
+    std::optional<std::vector<std::string>> store_names_{};
     std::optional<std::vector<std::string>> preceding_filters_{};
     std::optional<size_t> concurrency_{};
   };

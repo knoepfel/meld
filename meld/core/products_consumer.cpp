@@ -3,8 +3,9 @@
 namespace meld {
 
   products_consumer::products_consumer(std::string name,
-                                       std::vector<std::string> preceding_filters) :
-    consumer{move(name), move(preceding_filters)}
+                                       std::vector<std::string> preceding_filters,
+                                       std::vector<std::string> receive_stores) :
+    consumer{move(name), move(preceding_filters), move(receive_stores)}
   {
   }
 

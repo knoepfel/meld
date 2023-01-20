@@ -36,7 +36,9 @@ namespace meld {
 
   class declared_transform : public products_consumer {
   public:
-    declared_transform(std::string name, std::vector<std::string> preceding_filters);
+    declared_transform(std::string name,
+                       std::vector<std::string> preceding_filters,
+                       std::vector<std::string> receive_stores);
     virtual ~declared_transform();
 
     virtual tbb::flow::sender<message>& sender() = 0;
@@ -89,6 +91,7 @@ namespace meld {
         move(name_),
         common_node_options_t::concurrency(),
         common_node_options_t::release_preceding_filters(),
+        common_node_options_t::release_store_names(),
         graph_,
         move(ft_),
         move(processed_input_args),
@@ -116,6 +119,7 @@ namespace meld {
                               std::string name,
                               std::size_t concurrency,
                               std::vector<std::string> preceding_filters,
+                              std::vector<std::string> receive_stores,
                               tbb::flow::graph& g,
                               function_t&& f,
                               InputArgs input_args,
@@ -123,6 +127,7 @@ namespace meld {
       name_{move(name)},
       concurrency_{concurrency},
       preceding_filters_{move(preceding_filters)},
+      receive_stores_{move(receive_stores)},
       graph_{g},
       ft_{move(f)},
       input_args_{move(input_args)},
@@ -142,6 +147,7 @@ namespace meld {
         return std::make_unique<complete_transform<Nactual, M, InputArgs>>(move(name_),
                                                                            concurrency_,
                                                                            move(preceding_filters_),
+                                                                           move(receive_stores_),
                                                                            graph_,
                                                                            move(ft_),
                                                                            move(input_args_),
@@ -164,6 +170,7 @@ namespace meld {
     std::string name_;
     std::size_t concurrency_;
     std::vector<std::string> preceding_filters_;
+    std::vector<std::string> receive_stores_;
     tbb::flow::graph& graph_;
     function_t ft_;
     InputArgs input_args_;
@@ -186,12 +193,13 @@ namespace meld {
     complete_transform(std::string name,
                        std::size_t concurrency,
                        std::vector<std::string> preceding_filters,
+                       std::vector<std::string> receive_stores,
                        tbb::flow::graph& g,
                        function_t&& f,
                        InputArgs input,
                        std::array<std::string, Nactual> product_names,
                        std::array<std::string, M> output) :
-      declared_transform{move(name), move(preceding_filters)},
+      declared_transform{move(name), move(preceding_filters), move(receive_stores)},
       product_names_{move(product_names)},
       input_{move(input)},
       output_{move(output)},

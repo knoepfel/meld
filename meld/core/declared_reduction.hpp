@@ -37,7 +37,9 @@ namespace meld {
 
   class declared_reduction : public products_consumer {
   public:
-    declared_reduction(std::string name, std::vector<std::string> preceding_filters);
+    declared_reduction(std::string name,
+                       std::vector<std::string> preceding_filters,
+                       std::vector<std::string> receive_stores);
     virtual ~declared_reduction();
 
     virtual tbb::flow::sender<message>& sender() = 0;
@@ -92,14 +94,13 @@ namespace meld {
         move(name_),
         common_node_options_t::concurrency(),
         common_node_options_t::release_preceding_filters(),
+        common_node_options_t::release_store_names(),
         graph_,
         move(ft_),
         std::move(initializer_),
         move(processed_input_args),
         move(product_names)};
     }
-
-    using common_node_options_t::input;
 
   private:
     registrar<declared_reductions> reg_;
@@ -121,6 +122,7 @@ namespace meld {
                               std::string name,
                               std::size_t concurrency,
                               std::vector<std::string> preceding_filters,
+                              std::vector<std::string> receive_stores,
                               tbb::flow::graph& g,
                               function_t&& f,
                               InitTuple initializer,
@@ -128,6 +130,7 @@ namespace meld {
                               std::array<std::string, Nactual> product_names) :
       name_{move(name)},
       preceding_filters_{move(preceding_filters)},
+      receive_stores_{move(receive_stores)},
       concurrency_{concurrency},
       graph_{g},
       ft_{move(f)},
@@ -149,6 +152,7 @@ namespace meld {
         return std::make_unique<complete_reduction<Nactual, M, InputArgs>>(move(name_),
                                                                            concurrency_,
                                                                            move(preceding_filters_),
+                                                                           move(receive_stores_),
                                                                            graph_,
                                                                            move(ft_),
                                                                            std::move(initializer_),
@@ -170,6 +174,7 @@ namespace meld {
   private:
     std::string name_;
     std::vector<std::string> preceding_filters_;
+    std::vector<std::string> receive_stores_;
     std::size_t concurrency_;
     tbb::flow::graph& graph_;
     function_t ft_;
@@ -192,13 +197,14 @@ namespace meld {
     complete_reduction(std::string name,
                        std::size_t concurrency,
                        std::vector<std::string> preceding_filters,
+                       std::vector<std::string> release_stores,
                        tbb::flow::graph& g,
                        function_t&& f,
                        InitTuple initializer,
                        InputArgs input,
                        std::array<std::string, Nactual> product_names,
                        std::array<std::string, M> output) :
-      declared_reduction{move(name), move(preceding_filters)},
+      declared_reduction{move(name), move(preceding_filters), move(release_stores)},
       initializer_{std::move(initializer)},
       product_names_{move(product_names)},
       input_{move(input)},

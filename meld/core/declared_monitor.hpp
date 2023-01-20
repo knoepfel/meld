@@ -37,7 +37,9 @@ namespace meld {
 
   class declared_monitor : public products_consumer {
   public:
-    declared_monitor(std::string name, std::vector<std::string> preceding_filters);
+    declared_monitor(std::string name,
+                     std::vector<std::string> preceding_filters,
+                     std::vector<std::string> receive_stores);
     virtual ~declared_monitor();
   };
 
@@ -84,6 +86,7 @@ namespace meld {
           move(name_),
           common_node_options_t::concurrency(),
           common_node_options_t::release_preceding_filters(),
+          common_node_options_t::release_store_names(),
           graph_,
           move(ft_),
           move(inputs),
@@ -113,11 +116,12 @@ namespace meld {
     complete_monitor(std::string name,
                      std::size_t concurrency,
                      std::vector<std::string> preceding_filters,
+                     std::vector<std::string> receive_stores,
                      tbb::flow::graph& g,
                      function_t&& f,
                      InputArgs input,
                      std::array<std::string, Nactual> product_names) :
-      declared_monitor{move(name), move(preceding_filters)},
+      declared_monitor{move(name), move(preceding_filters), move(receive_stores)},
       product_names_{move(product_names)},
       input_{move(input)},
       join_{make_join_or_none(g, std::make_index_sequence<Nactual>{})},

@@ -58,7 +58,9 @@ namespace meld {
 
   class declared_splitter : public products_consumer {
   public:
-    declared_splitter(std::string name, std::vector<std::string> preceding_filters);
+    declared_splitter(std::string name,
+                      std::vector<std::string> preceding_filters,
+                      std::vector<std::string> receive_stores);
     virtual ~declared_splitter();
 
     virtual tbb::flow::sender<message>& to_output() = 0;
@@ -111,6 +113,7 @@ namespace meld {
         move(name_),
         common_node_options_t::concurrency(),
         common_node_options_t::release_preceding_filters(),
+        common_node_options_t::release_store_names(),
         graph_,
         move(ft_),
         move(processed_input_args),
@@ -136,6 +139,7 @@ namespace meld {
                                std::string name,
                                std::size_t concurrency,
                                std::vector<std::string> preceding_filters,
+                               std::vector<std::string> receive_stores,
                                tbb::flow::graph& g,
                                function_t&& f,
                                InputArgs input_args,
@@ -143,6 +147,7 @@ namespace meld {
       name_{move(name)},
       concurrency_{concurrency},
       preceding_filters_{move(preceding_filters)},
+      receive_stores_{move(receive_stores)},
       graph_{g},
       ft_{move(f)},
       input_args_{move(input_args)},
@@ -157,6 +162,7 @@ namespace meld {
         return std::make_unique<complete_splitter<Nactual, InputArgs>>(move(name_),
                                                                        concurrency_,
                                                                        move(preceding_filters_),
+                                                                       move(receive_stores_),
                                                                        graph_,
                                                                        move(ft_),
                                                                        move(input_args_),
@@ -170,6 +176,7 @@ namespace meld {
     std::string name_;
     std::size_t concurrency_;
     std::vector<std::string> preceding_filters_;
+    std::vector<std::string> receive_stores_;
     tbb::flow::graph& graph_;
     function_t ft_;
     InputArgs input_args_;
@@ -192,12 +199,13 @@ namespace meld {
     complete_splitter(std::string name,
                       std::size_t concurrency,
                       std::vector<std::string> preceding_filters,
+                      std::vector<std::string> receive_stores,
                       tbb::flow::graph& g,
                       function_t&& f,
                       InputArgs input,
                       std::array<std::string, Nactual> product_names,
                       std::vector<std::string> provided_products) :
-      declared_splitter{move(name), move(preceding_filters)},
+      declared_splitter{move(name), move(preceding_filters), move(receive_stores)},
       input_{move(input)},
       product_names_{move(product_names)},
       provided_{move(provided_products)},

@@ -15,7 +15,9 @@
 namespace meld {
   class products_consumer : public consumer {
   public:
-    products_consumer(std::string name, std::vector<std::string> preceding_filters);
+    products_consumer(std::string name,
+                      std::vector<std::string> preceding_filters,
+                      std::vector<std::string> receive_stores);
 
     virtual ~products_consumer();
 
