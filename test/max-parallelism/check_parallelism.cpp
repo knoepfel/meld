@@ -42,5 +42,5 @@ DEFINE_SOURCE(send_parallelism)
 DEFINE_MODULE(m, config)
 {
   m.declare_monitor(verify_expected)
-    .input("max_parallelism", use(config.get<std::size_t>("expected_parallelism")));
+    .input(consumes("max_parallelism"), use(config.get<std::size_t>("expected_parallelism")));
 }

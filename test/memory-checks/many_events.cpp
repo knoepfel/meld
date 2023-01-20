@@ -28,6 +28,6 @@ int main()
     ++i;
     return store;
   }};
-  g.declare_transform(pass_on).concurrency(unlimited).input("number").output("different");
+  g.declare_transform(pass_on).concurrency(unlimited).consumes("number").output("different");
   g.execute();
 }

@@ -11,5 +11,5 @@ DEFINE_MODULE(m, config)
 {
   m.declare_monitor(read_index)
     .concurrency(unlimited)
-    .input(config.get<std::string>("product_name"));
+    .consumes(config.get<std::string>("product_name"));
 }

@@ -49,8 +49,8 @@ namespace {
 
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
-  std::tuple const product_names{"number"s, "temperature"s, "name"s};
-  std::array const oproduct_names = to_array<std::string>(product_names);
+  std::tuple const product_names{consumes("number"), consumes("temperature"), consumes("name")};
+  std::array const oproduct_names = {"number"s, "temperature"s, "name"s};
   std::array const result{"result"s};
 
   auto store = make_product_store();

@@ -51,15 +51,15 @@ TEST_CASE("Call multiple functions", "[programming model]")
   {
     g.declare_transform(square_numbers)
       .concurrency(unlimited)
-      .input("numbers")
+      .consumes("numbers")
       .output("squared_numbers");
     g.declare_transform(sum_numbers)
       .concurrency(unlimited)
-      .input("squared_numbers")
+      .consumes("squared_numbers")
       .output("summed_numbers");
     g.declare_transform(sqrt_sum_numbers)
       .concurrency(unlimited)
-      .input("summed_numbers", "offset")
+      .consumes("summed_numbers", "offset")
       .output("result");
   }
 
@@ -67,20 +67,20 @@ TEST_CASE("Call multiple functions", "[programming model]")
   {
     g.declare_transform(square_numbers)
       .concurrency(unlimited)
-      .input("numbers")
+      .consumes("numbers")
       .output("squared_numbers");
     g.declare_transform(sum_numbers)
       .concurrency(unlimited)
-      .input("squared_numbers")
+      .consumes("squared_numbers")
       .output("summed_numbers");
     g.make<A>()
       .declare_transform(&A::sqrt_sum)
       .concurrency(unlimited)
-      .input("summed_numbers", "offset")
+      .consumes("summed_numbers", "offset")
       .output("result");
   }
 
   // The following is invoked for *each* section above
-  g.declare_monitor(verify_result).input("result", use(6.));
+  g.declare_monitor(verify_result).input(consumes("result"), use(6.));
   g.execute();
 }

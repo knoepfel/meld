@@ -110,17 +110,17 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   g.declare_transform(strtime, "get_the_time")
     .filtered_by()
     .concurrency(unlimited)
-    .input("time")
+    .consumes("time")
     .output("strtime");
-  g.declare_transform(square).concurrency(unlimited).input("number").output("squared_number");
+  g.declare_transform(square).concurrency(unlimited).consumes("number").output("squared_number");
   g.declare_reduction("add", add, 15u)
     .filtered_by()
     .concurrency(unlimited)
-    .input("squared_number")
+    .consumes("squared_number")
     .output("added_data");
 
-  g.declare_transform(scale).concurrency(unlimited).input("added_data").output("result");
-  g.declare_monitor(print_result).concurrency(unlimited).input("result", "strtime");
+  g.declare_transform(scale).concurrency(unlimited).consumes("added_data").output("result");
+  g.declare_monitor(print_result).concurrency(unlimited).consumes("result", "strtime");
 
   auto c = g.make<test::products_for_output>();
   c.declare_output(&test::products_for_output::save).filtered_by();

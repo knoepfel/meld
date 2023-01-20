@@ -13,6 +13,8 @@ Exploratory work to meet DUNE's processing needs.
   - [x] Implement basic facility
   - [ ] Figure out how to handle reductions
   - [ ] Implement tests that mandate an explicit name if the same function is registered twice
+- [ ] Add `consumes(...)` and `produces(...)` blurbs for all inputs/outputs that are products?
+  - [ ] What about `consumes_many`?  Is there a `consumes_many`?
 - [ ] Replicated modules
   - [x] Implement basic facility
   - [ ] Incorporate as part of `framework_graph`

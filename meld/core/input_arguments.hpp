@@ -19,6 +19,10 @@ namespace meld {
     }
   };
 
+  struct specified_label {
+    std::string name;
+  };
+
   template <typename T>
   struct specified_value {
     T value;

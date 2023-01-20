@@ -21,7 +21,9 @@
 namespace meld {
   // FIXME: Need to support Boost JSON strings
   template <typename T>
-  concept input_argument = std::convertible_to<T, std::string> || does_specify_value<T>;
+  concept input_argument = std::convertible_to<T, specified_label> || does_specify_value<T>;
+
+  inline specified_label consumes(std::string const& name) { return {name}; }
 
   // FIXME: Temporary API to tell the framework to use the given value for the specified
   //        argument instead of requiring a message.
@@ -62,6 +64,11 @@ namespace meld {
     T& filtered_by(std::convertible_to<std::string> auto&&... names)
     {
       return filtered_by({std::forward<decltype(names)>(names)...});
+    }
+
+    decltype(auto) consumes(std::convertible_to<std::string> auto&&... ts)
+    {
+      return input(meld::consumes(std::forward<decltype(ts)>(ts))...);
     }
 
     decltype(auto) input(input_argument auto&&... ts)

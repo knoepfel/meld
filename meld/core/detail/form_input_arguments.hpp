@@ -9,6 +9,7 @@
 #include <utility>
 
 namespace meld::detail {
+
   template <typename T>
   struct will_use {
     using product_type = T;
@@ -59,9 +60,9 @@ namespace meld::detail {
   }
 
   template <typename T>
-  auto select_input(std::string label)
+  auto select_input(specified_label label)
   {
-    return will_use<T>{std::move(label)};
+    return will_use<T>{std::move(label.name)};
   }
 
   template <typename T>

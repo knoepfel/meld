@@ -7,4 +7,4 @@ namespace {
   void read_id(meld::level_id const&) {}
 }
 
-DEFINE_MODULE(m) { m.declare_monitor(read_id).concurrency(unlimited).input("id"); }
+DEFINE_MODULE(m) { m.declare_monitor(read_id).concurrency(unlimited).consumes("id"); }

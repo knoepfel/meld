@@ -51,7 +51,7 @@ namespace {
 
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
-  std::tuple const product_names{"number"s, "temperature"s, "name"s};
+  std::tuple const product_names{consumes("number"), consumes("temperature"), consumes("name")};
   std::array const oproduct_names{"onumber"s, "otemperature"s, "oname"s};
 
   auto store = make_product_store();

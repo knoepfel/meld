@@ -12,6 +12,6 @@ DEFINE_MODULE(m, config)
 {
   m.declare_transform(last_index)
     .concurrency(unlimited)
-    .input("id")
+    .consumes("id")
     .output(config.get<std::string>("product_name", "a"));
 }
