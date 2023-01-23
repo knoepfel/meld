@@ -1,6 +1,6 @@
-#include "meld/core/handle.hpp"
-#include "meld/core/product_store.hpp"
-#include "meld/graph/transition.hpp"
+#include "meld/model/handle.hpp"
+#include "meld/model/product_store.hpp"
+#include "meld/model/transition.hpp"
 
 #include "catch2/catch.hpp"
 

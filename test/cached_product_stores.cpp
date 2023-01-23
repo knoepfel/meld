@@ -1,6 +1,7 @@
 #include "meld/core/cached_product_stores.hpp"
-#include "meld/core/product_store.hpp"
-#include "meld/graph/transition.hpp"
+#include "meld/model/level_hierarchy.hpp"
+#include "meld/model/product_store.hpp"
+#include "meld/model/transition.hpp"
 
 #include "catch2/catch.hpp"
 
@@ -8,7 +9,8 @@ using namespace meld;
 
 TEST_CASE("Cached product stores", "[data model]")
 {
-  cached_product_stores stores;
+  level_hierarchy org;
+  cached_product_stores stores{org.make_factory({"a", "b", "c", "d"})};
   SECTION("Root store")
   {
     auto store = stores.get_empty_store({});

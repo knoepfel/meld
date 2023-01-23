@@ -153,7 +153,8 @@ namespace meld {
         auto* input_port = collector ? collector : &node->port(product_name);
         if (it == cend(producers_)) {
           // Is there a way to detect mis-specified product dependencies?
-          result.emplace(product_name, multiplexer::named_input_port{node_name, input_port});
+          result.emplace(product_name,
+                         multiplexer::named_input_port{node_name, nullptr, input_port});
           continue;
         }
 

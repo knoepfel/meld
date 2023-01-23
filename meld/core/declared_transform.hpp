@@ -7,17 +7,18 @@
 #include "meld/core/detail/form_input_arguments.hpp"
 #include "meld/core/detail/port_names.hpp"
 #include "meld/core/fwd.hpp"
-#include "meld/core/handle.hpp"
 #include "meld/core/message.hpp"
-#include "meld/core/product_store.hpp"
 #include "meld/core/products_consumer.hpp"
 #include "meld/core/registrar.hpp"
 #include "meld/core/store_counters.hpp"
-#include "meld/graph/transition.hpp"
 #include "meld/metaprogramming/type_deduction.hpp"
+#include "meld/model/handle.hpp"
+#include "meld/model/product_store.hpp"
+#include "meld/model/transition.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"
+#include "spdlog/spdlog.h"
 
 #include <array>
 #include <concepts>
@@ -218,7 +219,7 @@ namespace meld {
                    }
                    else if (accessor a; needs_new(store, message_id, stay_in_graph, a)) {
                      auto result = call(ft, messages, std::make_index_sequence<N>{});
-                     auto new_store = make_product_store(store->id(), this->name());
+                     auto new_store = store->make_continuation(this->name());
                      add_to(*new_store, result, output_);
                      a->second = new_store;
 

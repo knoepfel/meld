@@ -2,7 +2,7 @@
 #define meld_core_multiplexer_hpp
 
 #include "meld/core/message.hpp"
-#include "meld/graph/transition.hpp"
+#include "meld/model/transition.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"
@@ -26,18 +26,15 @@ namespace meld {
     };
     struct named_input_port {
       std::string node_name;
+      std::vector<std::string> const* accepts_stores;
       tbb::flow::receiver<message>* port;
     };
     using head_nodes_t = std::multimap<std::string, named_input_port>;
 
-    explicit multiplexer(tbb::flow::graph& g, bool debug = false) :
-      base{g, tbb::flow::unlimited, std::bind_front(&multiplexer::multiplex, this)}, debug_{debug}
-    {
-    }
-
+    explicit multiplexer(tbb::flow::graph& g, bool debug = false);
     tbb::flow::continue_msg multiplex(message const& msg);
 
-    void finalize(head_nodes_t head_nodes) { head_nodes_ = std::move(head_nodes); }
+    void finalize(head_nodes_t head_nodes);
 
   private:
     head_nodes_t head_nodes_;

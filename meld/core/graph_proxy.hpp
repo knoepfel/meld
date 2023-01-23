@@ -1,5 +1,5 @@
-#ifndef meld_core_module_proxy_hpp
-#define meld_core_module_proxy_hpp
+#ifndef meld_core_graph_proxy_hpp
+#define meld_core_graph_proxy_hpp
 
 #include "meld/configuration.hpp"
 #include "meld/core/concepts.hpp"
@@ -28,7 +28,7 @@ namespace meld {
   // Registering user functions
 
   template <typename T>
-  class module_proxy {
+  class graph_proxy {
     auto qualified(std::string const& name)
     {
       return config_->get<std::string>("module_label") + ":" + name;
@@ -36,17 +36,17 @@ namespace meld {
 
   public:
     template <typename>
-    friend class module_proxy;
+    friend class graph_proxy;
 
-    module_proxy(configuration const& config,
-                 tbb::flow::graph& g,
-                 declared_filters& filters,
-                 declared_monitors& monitors,
-                 declared_outputs& outputs,
-                 declared_reductions& reductions,
-                 declared_splitters& splitters,
-                 declared_transforms& transforms,
-                 std::vector<std::string>& errors)
+    graph_proxy(configuration const& config,
+                tbb::flow::graph& g,
+                declared_filters& filters,
+                declared_monitors& monitors,
+                declared_outputs& outputs,
+                declared_reductions& reductions,
+                declared_splitters& splitters,
+                declared_transforms& transforms,
+                std::vector<std::string>& errors)
       requires(std::same_as<T, void_tag>)
       :
       config_{&config},
@@ -62,18 +62,18 @@ namespace meld {
     }
 
     template <typename U, typename... Args>
-    module_proxy<U> make(Args&&... args)
+    graph_proxy<U> make(Args&&... args)
     {
-      return module_proxy<U>{config_,
-                             graph_,
-                             filters_,
-                             monitors_,
-                             outputs_,
-                             reductions_,
-                             splitters_,
-                             transforms_,
-                             std::make_shared<U>(std::forward<Args>(args)...),
-                             errors_};
+      return graph_proxy<U>{config_,
+                            graph_,
+                            filters_,
+                            monitors_,
+                            outputs_,
+                            reductions_,
+                            splitters_,
+                            transforms_,
+                            std::make_shared<U>(std::forward<Args>(args)...),
+                            errors_};
     }
 
     auto declare_filter(auto f, std::string name = {})
@@ -135,16 +135,16 @@ namespace meld {
     }
 
   private:
-    module_proxy(configuration const* config,
-                 tbb::flow::graph& g,
-                 declared_filters& filters,
-                 declared_monitors& monitors,
-                 declared_outputs& outputs,
-                 declared_reductions& reductions,
-                 declared_splitters& splitters,
-                 declared_transforms& transforms,
-                 std::shared_ptr<T> bound_obj,
-                 std::vector<std::string>& errors)
+    graph_proxy(configuration const* config,
+                tbb::flow::graph& g,
+                declared_filters& filters,
+                declared_monitors& monitors,
+                declared_outputs& outputs,
+                declared_reductions& reductions,
+                declared_splitters& splitters,
+                declared_transforms& transforms,
+                std::shared_ptr<T> bound_obj,
+                std::vector<std::string>& errors)
       requires(not std::same_as<T, void_tag>)
       :
       config_{config},
@@ -173,4 +173,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_module_proxy_hpp */
+#endif /* meld_core_graph_proxy_hpp */

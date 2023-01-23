@@ -1,4 +1,4 @@
-#include "meld/graph/transition.hpp"
+#include "meld/model/transition.hpp"
 #include "meld/module.hpp"
 
 using namespace meld;
@@ -12,6 +12,6 @@ DEFINE_MODULE(m, config)
 {
   m.declare_transform(last_index)
     .concurrency(unlimited)
-    .consumes("id")
+    .react_to("id")
     .output(config.get<std::string>("product_name", "a"));
 }

@@ -7,13 +7,13 @@
 #include "meld/core/detail/form_input_arguments.hpp"
 #include "meld/core/detail/port_names.hpp"
 #include "meld/core/fwd.hpp"
-#include "meld/core/handle.hpp"
 #include "meld/core/message.hpp"
-#include "meld/core/product_store.hpp"
 #include "meld/core/products_consumer.hpp"
 #include "meld/core/registrar.hpp"
 #include "meld/core/store_counters.hpp"
-#include "meld/graph/transition.hpp"
+#include "meld/model/handle.hpp"
+#include "meld/model/product_store.hpp"
+#include "meld/model/transition.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
@@ -251,7 +251,7 @@ namespace meld {
                    bool const has_counter = counter_for(parent_id.hash(), cca);
                    if (has_counter && cca->second->is_flush(/*&parent_id*/)) {
                      // spdlog::trace(" -> Flushing for {}", parent_id);
-                     auto parent = make_product_store(parent_id, this->name());
+                     auto parent = store->make_parent(this->name());
                      commit_(*parent);
                      // spdlog::trace(" -> Sending message ID {}", counter.original_message_id());
                      get<0>(outputs).try_put({parent, counter.original_message_id()});

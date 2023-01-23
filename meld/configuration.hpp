@@ -8,6 +8,7 @@
 namespace meld {
   class configuration {
   public:
+    configuration() = default;
     explicit configuration(boost::json::object const& config) : config_{config} {}
 
     template <typename T>

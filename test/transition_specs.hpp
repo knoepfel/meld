@@ -1,7 +1,7 @@
 #ifndef test_transition_specs_hpp
 #define test_transition_specs_hpp
 
-#include "meld/graph/transition.hpp"
+#include "meld/model/transition.hpp"
 
 namespace meld::test {
   inline transition flush(char const* spec) { return {id_for(spec), stage::flush}; }

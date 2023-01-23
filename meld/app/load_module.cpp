@@ -57,9 +57,10 @@ namespace meld {
     creator(module_proxy, config);
   }
 
-  std::function<product_store_ptr()> load_source(boost::json::object const& config)
+  std::function<product_store_ptr()> load_source(boost::json::object const& raw_config)
   {
-    auto const& spec = value_to<std::string>(config.at("plugin"));
+    configuration const config{raw_config};
+    auto const& spec = config.get<std::string>("plugin");
     create_source = plugin_loader<detail::source_creator_t>(spec, "create_source");
     return create_source(config);
   }

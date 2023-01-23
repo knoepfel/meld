@@ -18,8 +18,9 @@
 
 #include "meld/core/cached_product_stores.hpp"
 #include "meld/core/framework_graph.hpp"
-#include "meld/core/product_store.hpp"
-#include "meld/graph/transition.hpp"
+#include "meld/model/level_hierarchy.hpp"
+#include "meld/model/product_store.hpp"
+#include "meld/model/transition.hpp"
 #include "meld/utilities/debug.hpp"
 #include "test/products_for_output.hpp"
 
@@ -89,7 +90,8 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   }
   auto it = cbegin(transitions);
   auto const e = cend(transitions);
-  cached_product_stores cached_stores;
+  level_hierarchy org;
+  cached_product_stores cached_stores{org.make_factory("run", "event")};
   framework_graph g{[&cached_stores, it, e]() mutable -> product_store_ptr {
     if (it == e) {
       return nullptr;
@@ -110,17 +112,17 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   g.declare_transform(strtime, "get_the_time")
     .filtered_by()
     .concurrency(unlimited)
-    .consumes("time")
+    .react_to("time")
     .output("strtime");
-  g.declare_transform(square).concurrency(unlimited).consumes("number").output("squared_number");
+  g.declare_transform(square).concurrency(unlimited).react_to("number").output("squared_number");
   g.declare_reduction("add", add, 15u)
     .filtered_by()
     .concurrency(unlimited)
-    .consumes("squared_number")
+    .react_to("squared_number")
     .output("added_data");
 
-  g.declare_transform(scale).concurrency(unlimited).consumes("added_data").output("result");
-  g.declare_monitor(print_result).concurrency(unlimited).consumes("result", "strtime");
+  g.declare_transform(scale).concurrency(unlimited).react_to("added_data").output("result");
+  g.declare_monitor(print_result).concurrency(unlimited).react_to("result", "strtime");
 
   auto c = g.make<test::products_for_output>();
   c.declare_output(&test::products_for_output::save).filtered_by();

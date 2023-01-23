@@ -1,17 +1,16 @@
-#ifndef meld_core_handle_hpp
-#define meld_core_handle_hpp
+#ifndef meld_model_handle_hpp
+#define meld_model_handle_hpp
 
-#include "meld/graph/transition.hpp"
-#include "meld/utilities/debug.hpp"
+#include "meld/model/transition.hpp"
 #include "meld/utilities/demangle_symbol.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 
-#include <map>
 #include <memory>
 #include <string>
 #include <type_traits>
 #include <typeindex>
+#include <unordered_map>
 #include <utility>
 #include <variant>
 
@@ -34,9 +33,9 @@ namespace meld {
   class products {
   public:
     template <typename T>
-    void add(std::string const& key, T const& t)
+    void add(std::string const& key, T&& t)
     {
-      add(key, std::make_shared<product<std::remove_cvref_t<T>>>(t));
+      add(key, std::make_shared<product<std::remove_cvref_t<T>>>(std::forward<T>(t)));
     }
 
     template <typename T>
@@ -66,7 +65,7 @@ namespace meld {
     auto end() const noexcept { return products_.end(); }
 
   private:
-    std::map<std::string, std::shared_ptr<product_base>> products_;
+    std::unordered_map<std::string, std::shared_ptr<product_base>> products_;
   };
 
   namespace detail {
@@ -168,4 +167,4 @@ namespace meld {
   using handle_for = typename handle_<T>::type;
 }
 
-#endif /* meld_core_handle_hpp */
+#endif /* meld_model_handle_hpp */

@@ -1,4 +1,4 @@
-#include "meld/core/product_store.hpp"
+#include "meld/model/product_store.hpp"
 #include "meld/source.hpp"
 #include "meld/utilities/thread_counter.hpp"
 

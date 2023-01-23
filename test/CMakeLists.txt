@@ -34,6 +34,15 @@ function(add_catch_test BASENAME)
   endif()
 endfunction()
 
+# include(FetchContent)
+#
+# # You can configure this for your need, presumbably you want speificy a git tag here instead of a branch
+# FetchContent_Declare(sqliteOrm
+#   GIT_REPOSITORY https://github.com/fnc12/sqlite_orm
+#   GIT_TAG        origin/dev
+# )
+# FetchContent_MakeAvailable(sqliteOrm)
+
 add_unit_test(concepts LIBRARIES meld::core)
 add_unit_test(iterator)
 add_unit_test(string_literal LIBRARIES meld::utilities)
@@ -50,14 +59,16 @@ add_catch_test(filter LIBRARIES meld::core Boost::json TEST_DOT_GRAPH)
 add_catch_test(function_component LIBRARIES meld::core Boost::json)
 add_catch_test(function_name LIBRARIES meld::metaprogramming)
 add_catch_test(hierarchical_nodes LIBRARIES Boost::json TBB::tbb meld::core TEST_DOT_GRAPH)
+add_catch_test(level_hierarchy LIBRARIES meld::model) # sqlite_orm::sqlite_orm)
 add_catch_test(make_edges LIBRARIES meld::graph)
 add_catch_test(multiple_function_component LIBRARIES Boost::json meld::core)
 add_catch_test(product_handle LIBRARIES meld::core)
 add_catch_test(product_store LIBRARIES meld::core)
+add_catch_test(product_store_factory LIBRARIES meld::model spdlog::spdlog)
 add_catch_test(replicated LIBRARIES TBB::tbb meld::utilities spdlog::spdlog)
 add_catch_test(serializer LIBRARIES meld::core TBB::tbb)
 add_catch_test(splitter LIBRARIES Boost::json meld::core TBB::tbb TEST_DOT_GRAPH)
-add_catch_test(transition LIBRARIES meld::core meld::utilities)
+add_catch_test(transition LIBRARIES meld::model)
 
 add_subdirectory(benchmarks)
 add_subdirectory(max-parallelism)

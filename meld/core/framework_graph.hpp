@@ -8,10 +8,11 @@
 #include "meld/core/declared_transform.hpp"
 #include "meld/core/filter/result_collector.hpp"
 #include "meld/core/glue.hpp"
+#include "meld/core/graph_proxy.hpp"
 #include "meld/core/message.hpp"
-#include "meld/core/module_proxy.hpp"
 #include "meld/core/multiplexer.hpp"
-#include "meld/core/product_store.hpp"
+#include "meld/model/level_hierarchy.hpp"
+#include "meld/model/product_store.hpp"
 #include "meld/utilities/usage.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
@@ -20,12 +21,25 @@
 #include <cassert>
 #include <functional>
 #include <map>
+#include <queue>
+#include <stack>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
 
 namespace meld {
+
+  class level_sentry {
+  public:
+    level_sentry(std::queue<product_store_ptr>& pending_stores, product_store_ptr store);
+    ~level_sentry();
+    level_id const& id() const;
+
+  private:
+    std::queue<product_store_ptr>& pending_stores_;
+    product_store_ptr store_;
+  };
 
   class framework_graph {
   public:
@@ -36,7 +50,7 @@ namespace meld {
 
     void execute(std::string const& dot_file_name = {});
 
-    module_proxy<void_tag> proxy(configuration const& config)
+    graph_proxy<void_tag> proxy(configuration const& config)
     {
       return {config,
               graph_,
@@ -102,7 +116,11 @@ namespace meld {
     void run();
     void finalize(std::string const& dot_file_name);
 
-    product_store_ptr next_pending_store();
+    void accept(product_store_ptr store);
+    void drain();
+    message send(product_store_ptr store);
+    std::size_t original_message_id(product_store_ptr const& store);
+    product_store_ptr pending_store();
 
     glue<void_tag> proxy()
     {
@@ -120,6 +138,7 @@ namespace meld {
     usage graph_usage{};
     concurrency::max_allowed_parallelism parallelism_limit_;
     tbb::flow::graph graph_{};
+    level_hierarchy hierarchy_{};
     declared_filters filters_{};
     declared_monitors monitors_{};
     declared_outputs outputs_{};
@@ -131,10 +150,8 @@ namespace meld {
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
     std::map<level_id, std::size_t> original_message_ids_;
-    product_store_ptr store_;
-    std::queue<transition> pending_transitions_;
-    level_id last_id_{};
-    std::map<level_id, std::size_t> flush_values_;
+    std::queue<product_store_ptr> pending_stores_;
+    std::stack<std::unique_ptr<level_sentry>> levels_;
     std::size_t calls_{};
     bool shutdown_{false};
   };

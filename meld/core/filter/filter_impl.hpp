@@ -1,8 +1,8 @@
 #ifndef meld_core_filter_filter_impl_hpp
 #define meld_core_filter_filter_impl_hpp
 
-#include "meld/core/product_store.hpp"
-#include "meld/graph/transition.hpp"
+#include "meld/model/product_store.hpp"
+#include "meld/model/transition.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"

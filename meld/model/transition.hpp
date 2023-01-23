@@ -1,5 +1,5 @@
-#ifndef meld_graph_transition_hpp
-#define meld_graph_transition_hpp
+#ifndef meld_model_transition_hpp
+#define meld_model_transition_hpp
 
 #include "fmt/format.h"
 #include "fmt/ranges.h"
@@ -30,7 +30,7 @@ namespace meld {
     explicit level_id(std::vector<std::size_t> numbers);
     level_id make_child(std::size_t new_level_number) const;
     std::size_t depth() const noexcept;
-    level_id parent() const;
+    level_id parent(std::size_t request_depth = -1ull) const;
     bool has_parent() const noexcept;
     std::size_t back() const;
     std::size_t hash() const noexcept;
@@ -91,4 +91,4 @@ namespace meld {
   std::ostream& operator<<(std::ostream& os, transition const& t);
 }
 
-#endif /* meld_graph_transition_hpp */
+#endif /* meld_model_transition_hpp */

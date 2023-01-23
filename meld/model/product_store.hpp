@@ -1,8 +1,9 @@
-#ifndef meld_core_product_store_hpp
-#define meld_core_product_store_hpp
+#ifndef meld_model_product_store_hpp
+#define meld_model_product_store_hpp
 
-#include "meld/core/handle.hpp"
-#include "meld/graph/transition.hpp"
+#include "meld/model/fwd.hpp"
+#include "meld/model/handle.hpp"
+#include "meld/model/transition.hpp"
 
 #include <array>
 #include <cstddef>
@@ -23,16 +24,17 @@ namespace meld {
     using ptr = std::shared_ptr<product_store>;
 
   public:
-    explicit product_store(level_id id = {},
-                           std::string source = {},
+    explicit product_store(product_store_factory const* factory,
+                           level_id id = {},
+                           std::string_view source = {},
                            stage processing_stage = stage::process);
     explicit product_store(ptr parent,
                            std::size_t new_level_number,
-                           std::string source,
+                           std::string_view source,
                            products new_products);
     explicit product_store(ptr parent,
                            std::size_t new_level_number,
-                           std::string source,
+                           std::string_view source,
                            stage processing_stage);
 
     // FIXME: 'stores_for_products()' may need to become a lazy range.
@@ -41,11 +43,16 @@ namespace meld {
     auto begin() const noexcept { return products_.begin(); }
     auto end() const noexcept { return products_.end(); }
 
-    std::string const& source() const noexcept;
+    std::string const& level_name() const noexcept;
+    std::string_view source() const noexcept;
     ptr const& parent() const noexcept;
-    ptr make_child(std::size_t new_level_number, std::string source, products new_products);
+    ptr make_flush(level_id const& id) const;
+    ptr make_parent(std::string_view source) const;
+    ptr make_parent(std::string const& level_name, std::string_view source) const;
+    ptr make_continuation(std::string_view source) const;
+    ptr make_child(std::size_t new_level_number, std::string_view source, products new_products);
     ptr make_child(std::size_t new_level_number,
-                   std::string source = {},
+                   std::string_view source = {},
                    stage st = stage::process);
     level_id const& id() const noexcept;
     bool is_flush() const noexcept;
@@ -70,18 +77,15 @@ namespace meld {
     // void add_product(labeled_data<T>&& data);
 
   private:
+    product_store_factory const* factory_;
     ptr parent_{nullptr};
     products products_{};
     level_id id_;
-    std::string source_;
+    std::string_view source_;
     stage stage_;
   };
 
   using product_store_ptr = std::shared_ptr<product_store>;
-
-  product_store_ptr make_product_store(level_id id = {},
-                                       std::string source = {},
-                                       stage processing_stage = stage::process);
 
   template <typename T>
   void add_to(product_store& store, T const& t, std::array<std::string, 1u> const& name)
@@ -161,4 +165,4 @@ namespace meld {
   }
 }
 
-#endif /* meld_core_product_store_hpp */
+#endif /* meld_model_product_store_hpp */

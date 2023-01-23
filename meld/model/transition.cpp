@@ -1,4 +1,4 @@
-#include "meld/graph/transition.hpp"
+#include "meld/model/transition.hpp"
 
 #include "boost/algorithm/string.hpp"
 
@@ -77,12 +77,16 @@ namespace meld {
 
   level_id operator"" _id(char const* c_str, std::size_t) { return id_for(c_str); }
 
-  level_id level_id::parent() const
+  level_id level_id::parent(std::size_t requested_depth) const
   {
     if (not has_parent())
       throw std::runtime_error("Empty ID does not have a parent.");
+
+    if (requested_depth == -1ull) {
+      requested_depth = depth() - 1;
+    }
     auto id = id_;
-    id.pop_back();
+    id.resize(requested_depth);
     return level_id{move(id)};
   }
 

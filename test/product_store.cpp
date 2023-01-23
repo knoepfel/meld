@@ -1,5 +1,6 @@
-#include "meld/core/product_store.hpp"
-#include "meld/core/handle.hpp"
+#include "meld/model/product_store.hpp"
+#include "meld/model/handle.hpp"
+#include "meld/model/level_hierarchy.hpp"
 
 #include "catch2/catch.hpp"
 
@@ -8,9 +9,14 @@
 
 using namespace meld;
 
+namespace {
+  level_hierarchy org;
+}
+
 TEST_CASE("Product store insertion", "[data model]")
 {
-  product_store store;
+  auto factory = org.make_factory();
+  product_store store{&factory};
   constexpr int number = 4;
   std::vector many_numbers{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
   store.add_product("number", number);
@@ -35,15 +41,16 @@ TEST_CASE("Product store insertion", "[data model]")
 
 TEST_CASE("Product store derivation", "[data model]")
 {
+  auto const factory = org.make_factory("a", "b", "c", "d", "e", "f");
   SECTION("Only one store")
   {
-    auto store = make_product_store();
+    auto store = factory.make();
     auto stores = std::make_tuple(store);
     CHECK(store == more_derived(store, store));
     CHECK(store == most_derived(stores));
   }
 
-  auto root = make_product_store();
+  auto root = factory.make();
   auto trunk = root->make_child(1);
   SECTION("Compare different generations")
   {

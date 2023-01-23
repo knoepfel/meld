@@ -1,13 +1,12 @@
 #include "meld/source.hpp"
 #include "meld/core/cached_product_stores.hpp"
-#include "meld/core/product_store.hpp"
+#include "meld/model/level_hierarchy.hpp"
+#include "meld/model/product_store.hpp"
 
 namespace {
   class number_generator {
   public:
-    number_generator(boost::json::value const& config) : n_{value_to<int>(config.at("max_numbers"))}
-    {
-    }
+    number_generator(meld::configuration const& config) : n_{config.get<int>("max_numbers")} {}
 
     meld::product_store_ptr next()
     {
@@ -29,7 +28,8 @@ namespace {
   private:
     int n_;
     int current_{};
-    meld::cached_product_stores stores_;
+    meld::level_hierarchy org_;
+    meld::cached_product_stores stores_{org_.make_factory("event")};
   };
 }
 

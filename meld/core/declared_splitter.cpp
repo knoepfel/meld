@@ -1,5 +1,5 @@
 #include "meld/core/declared_splitter.hpp"
-#include "meld/core/handle.hpp"
+#include "meld/model/handle.hpp"
 
 namespace meld {
 

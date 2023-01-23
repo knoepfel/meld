@@ -1,5 +1,6 @@
 #include "meld/core/framework_graph.hpp"
-#include "meld/core/product_store.hpp"
+#include "meld/model/level_hierarchy.hpp"
+#include "meld/model/product_store.hpp"
 
 #include "catch2/catch.hpp"
 
@@ -42,7 +43,8 @@ namespace {
 
 TEST_CASE("Call multiple functions", "[programming model]")
 {
-  auto store = make_product_store();
+  level_hierarchy org;
+  auto store = org.make_factory().make();
   store->add_product("numbers", std::vector<unsigned>{0, 1, 2, 3, 4});
   store->add_product("offset", 6u);
   framework_graph g{store};
@@ -51,15 +53,15 @@ TEST_CASE("Call multiple functions", "[programming model]")
   {
     g.declare_transform(square_numbers)
       .concurrency(unlimited)
-      .consumes("numbers")
+      .react_to("numbers")
       .output("squared_numbers");
     g.declare_transform(sum_numbers)
       .concurrency(unlimited)
-      .consumes("squared_numbers")
+      .react_to("squared_numbers")
       .output("summed_numbers");
     g.declare_transform(sqrt_sum_numbers)
       .concurrency(unlimited)
-      .consumes("summed_numbers", "offset")
+      .react_to("summed_numbers", "offset")
       .output("result");
   }
 
@@ -67,20 +69,20 @@ TEST_CASE("Call multiple functions", "[programming model]")
   {
     g.declare_transform(square_numbers)
       .concurrency(unlimited)
-      .consumes("numbers")
+      .react_to("numbers")
       .output("squared_numbers");
     g.declare_transform(sum_numbers)
       .concurrency(unlimited)
-      .consumes("squared_numbers")
+      .react_to("squared_numbers")
       .output("summed_numbers");
     g.make<A>()
       .declare_transform(&A::sqrt_sum)
       .concurrency(unlimited)
-      .consumes("summed_numbers", "offset")
+      .react_to("summed_numbers", "offset")
       .output("result");
   }
 
   // The following is invoked for *each* section above
-  g.declare_monitor(verify_result).input(consumes("result"), use(6.));
+  g.declare_monitor(verify_result).input(react_to("result"), use(6.));
   g.execute();
 }

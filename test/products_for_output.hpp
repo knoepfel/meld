@@ -1,7 +1,7 @@
 #ifndef test_products_for_output_hpp
 #define test_products_for_output_hpp
 
-#include "meld/core/product_store.hpp"
+#include "meld/model/product_store.hpp"
 #include "meld/utilities/debug.hpp"
 
 #include <sstream>

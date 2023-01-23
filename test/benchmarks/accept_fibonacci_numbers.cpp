@@ -36,5 +36,5 @@ DEFINE_MODULE(m, config)
   m.make<fibonacci_numbers>(config.get<int>("max_number"))
     .declare_filter(&fibonacci_numbers::accept)
     .concurrency(unlimited)
-    .consumes(config.get<std::string>("product_name"));
+    .react_to(config.get<std::string>("product_name"));
 }

@@ -1,5 +1,5 @@
 #include "meld/core/message.hpp"
-#include "meld/graph/transition.hpp"
+#include "meld/model/transition.hpp"
 
 #include <algorithm>
 #include <iterator>

@@ -1,4 +1,4 @@
-#include "meld/graph/transition.hpp"
+#include "meld/model/transition.hpp"
 #include "test/transition_specs.hpp"
 
 #include "catch2/catch.hpp"

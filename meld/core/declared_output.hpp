@@ -6,9 +6,9 @@
 #include "meld/core/consumer.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
-#include "meld/core/product_store.hpp"
 #include "meld/core/registrar.hpp"
-#include "meld/graph/transition.hpp"
+#include "meld/model/product_store.hpp"
+#include "meld/model/transition.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 

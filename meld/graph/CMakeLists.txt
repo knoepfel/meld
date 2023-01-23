@@ -1,7 +1,6 @@
 add_library(meld_graph SHARED
   serializer_node.cpp
-  transition.cpp
-  )
+)
 target_include_directories(meld_graph PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(meld_graph PRIVATE Boost::boost TBB::tbb meld::utilities fmt::fmt)
 

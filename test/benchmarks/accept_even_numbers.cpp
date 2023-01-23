@@ -12,5 +12,5 @@ DEFINE_MODULE(m, config)
 {
   m.declare_filter(accept_even_numbers)
     .concurrency(unlimited)
-    .consumes(config.get<std::string>("product_name"));
+    .react_to(config.get<std::string>("product_name"));
 }

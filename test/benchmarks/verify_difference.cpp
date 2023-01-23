@@ -11,7 +11,7 @@ DEFINE_MODULE(m, config)
 {
   m.declare_monitor(verify_difference)
     .concurrency(unlimited)
-    .input(consumes(config.get<std::string>("i", "b")),
-           consumes(config.get<std::string>("j", "c")),
+    .input(react_to(config.get<std::string>("i", "b")),
+           react_to(config.get<std::string>("j", "c")),
            use(config.get<int>("expected", 100)));
 }

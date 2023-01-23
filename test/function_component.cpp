@@ -1,6 +1,7 @@
 #include "meld/core/framework_graph.hpp"
-#include "meld/core/product_store.hpp"
 #include "meld/metaprogramming/to_array.hpp"
+#include "meld/model/level_hierarchy.hpp"
+#include "meld/model/product_store.hpp"
 
 #include "catch2/catch.hpp"
 
@@ -49,11 +50,13 @@ namespace {
 
 TEST_CASE("Call non-framework functions", "[programming model]")
 {
-  std::tuple const product_names{consumes("number"), consumes("temperature"), consumes("name")};
+  std::tuple const product_names{react_to("number"), react_to("temperature"), react_to("name")};
   std::array const oproduct_names = {"number"s, "temperature"s, "name"s};
   std::array const result{"result"s};
 
-  auto store = make_product_store();
+  level_hierarchy org;
+  auto factory = org.make_factory();
+  auto store = factory.make();
   store->add_product("number", 3);
   store->add_product("temperature", 98.5);
   store->add_product("name", std::string{"John"});

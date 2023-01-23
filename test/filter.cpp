@@ -2,8 +2,9 @@
 #include "meld/core/filter/result_collector.hpp"
 #include "meld/core/framework_graph.hpp"
 #include "meld/core/message.hpp"
-#include "meld/core/product_store.hpp"
 #include "meld/graph/make_edges.hpp"
+#include "meld/model/level_hierarchy.hpp"
+#include "meld/model/product_store.hpp"
 #include "meld/utilities/debug.hpp"
 
 #include "catch2/catch.hpp"
@@ -31,15 +32,16 @@ namespace {
 
   class source {
   public:
-    explicit source(unsigned const max_n) : max_{max_n} {}
+    explicit source(unsigned const max_n) : factory_{org_.make_factory({"event"})}, max_{max_n} {}
+
     product_store_ptr next()
     {
       if (i_ == 0) {
         ++i_;
-        return make_product_store(level_id::base());
+        return factory_.make(level_id::base());
       }
       if (i_ < max_ + 1) {
-        auto store = make_product_store(level_id::base().make_child(i_));
+        auto store = factory_.make(level_id::base().make_child(i_));
         store->add_product<unsigned int>("num", i_ - 1);
         store->add_product<unsigned int>("other_num", 100 + i_ - 1);
         ++i_;
@@ -49,6 +51,8 @@ namespace {
     }
 
   private:
+    level_hierarchy org_;
+    product_store_factory factory_;
     unsigned const max_;
     unsigned i_{};
   };
@@ -109,18 +113,18 @@ namespace {
 TEST_CASE("Two filters", "[filtering]")
 {
   framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
-  g.declare_filter(evens_only).concurrency(unlimited).input(consumes("num"));
-  g.declare_filter(odds_only).concurrency(unlimited).input(consumes("num"));
+  g.declare_filter(evens_only).concurrency(unlimited).input(react_to("num"));
+  g.declare_filter(odds_only).concurrency(unlimited).input(react_to("num"));
   g.make<sum_numbers>(20u)
     .declare_monitor(&sum_numbers::add, "add_evens")
     .concurrency(unlimited)
     .filtered_by("evens_only")
-    .input(consumes("num"));
+    .input(react_to("num"));
   g.make<sum_numbers>(25u)
     .declare_monitor(&sum_numbers::add, "add_odds")
     .concurrency(unlimited)
     .filtered_by("odds_only")
-    .input(consumes("num"));
+    .input(react_to("num"));
 
   g.execute("two_independent_filters_t.gv");
 }
@@ -128,16 +132,16 @@ TEST_CASE("Two filters", "[filtering]")
 TEST_CASE("Two filters in series", "[filtering]")
 {
   framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
-  g.declare_filter(evens_only).concurrency(unlimited).input(consumes("num"));
+  g.declare_filter(evens_only).concurrency(unlimited).input(react_to("num"));
   g.declare_filter(odds_only)
     .concurrency(unlimited)
     .filtered_by("evens_only")
-    .input(consumes("num"));
+    .input(react_to("num"));
   g.make<sum_numbers>(0u)
     .declare_monitor(&sum_numbers::add)
     .concurrency(unlimited)
     .filtered_by("odds_only")
-    .input(consumes("num"));
+    .input(react_to("num"));
 
   g.execute("two_filters_in_series_t.gv");
 }
@@ -145,13 +149,13 @@ TEST_CASE("Two filters in series", "[filtering]")
 TEST_CASE("Two filters in parallel", "[filtering]")
 {
   framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
-  g.declare_filter(evens_only).concurrency(unlimited).input(consumes("num"));
-  g.declare_filter(odds_only).concurrency(unlimited).input(consumes("num"));
+  g.declare_filter(evens_only).concurrency(unlimited).input(react_to("num"));
+  g.declare_filter(odds_only).concurrency(unlimited).input(react_to("num"));
   g.make<sum_numbers>(0u)
     .declare_monitor(&sum_numbers::add)
     .concurrency(unlimited)
     .filtered_by("odds_only", "evens_only")
-    .consumes("num");
+    .react_to("num");
 
   g.execute("two_filters_in_parallel_t.gv");
 }
@@ -172,7 +176,7 @@ TEST_CASE("Three filters in parallel", "[filtering]")
     g.make<not_in_range>(b, e)
       .declare_filter(&not_in_range::filter, name)
       .concurrency(unlimited)
-      .consumes("num");
+      .react_to("num");
   }
 
   std::vector<std::string> const filter_names{"exclude_0_to_4", "exclude_6_to_7", "exclude_gt_8"};
@@ -181,7 +185,7 @@ TEST_CASE("Three filters in parallel", "[filtering]")
     .declare_monitor(&collect_numbers::collect)
     .concurrency(unlimited)
     .filtered_by(filter_names)
-    .consumes("num");
+    .react_to("num");
 
   g.execute("three_filters_in_parallel_t.gv");
 }
@@ -189,18 +193,18 @@ TEST_CASE("Three filters in parallel", "[filtering]")
 TEST_CASE("Two filters in parallel (each with multiple arguments)", "[filtering]")
 {
   framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
-  g.declare_filter(evens_only).concurrency(unlimited).consumes("num");
-  g.declare_filter(odds_only).concurrency(unlimited).consumes("num");
+  g.declare_filter(evens_only).concurrency(unlimited).react_to("num");
+  g.declare_filter(odds_only).concurrency(unlimited).react_to("num");
   g.make<check_multiple_numbers>(5 * 100)
     .declare_monitor(&check_multiple_numbers::add_difference, "check_evens")
     .concurrency(unlimited)
     .filtered_by("evens_only")
-    .consumes("num", "other_num"); // <= Note input order
+    .react_to("num", "other_num"); // <= Note input order
   g.make<check_multiple_numbers>(-5 * 100)
     .declare_monitor(&check_multiple_numbers::add_difference, "check_odds")
     .concurrency(unlimited)
     .filtered_by("odds_only")
-    .consumes("other_num", "num"); // <= Note input order
+    .react_to("other_num", "num"); // <= Note input order
 
   g.execute("two_filters_in_parallel_multiarg_t.gv");
 }

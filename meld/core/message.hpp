@@ -1,7 +1,7 @@
 #ifndef meld_core_message_hpp
 #define meld_core_message_hpp
 
-#include "meld/core/product_store.hpp"
+#include "meld/model/product_store.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/flow_graph.h" // <-- belongs somewhere else

@@ -1,4 +1,4 @@
-#include "meld/graph/transition.hpp"
+#include "meld/model/transition.hpp"
 #include "meld/module.hpp"
 
 #include <string>
@@ -13,5 +13,5 @@ DEFINE_MODULE(m, config)
 {
   m.declare_filter(accept_even_ids)
     .concurrency(unlimited)
-    .consumes(config.get<std::string>("product_name"));
+    .react_to(config.get<std::string>("product_name"));
 }

@@ -16,8 +16,9 @@
 
 #include "meld/core/cached_product_stores.hpp"
 #include "meld/core/framework_graph.hpp"
-#include "meld/core/product_store.hpp"
-#include "meld/graph/transition.hpp"
+#include "meld/model/level_hierarchy.hpp"
+#include "meld/model/product_store.hpp"
+#include "meld/model/transition.hpp"
 #include "meld/utilities/debug.hpp"
 #include "test/products_for_output.hpp"
 
@@ -77,7 +78,8 @@ TEST_CASE("Splitting the processing", "[graph]")
 
   auto it = cbegin(transitions);
   auto const e = cend(transitions);
-  cached_product_stores cached_stores;
+  level_hierarchy org;
+  cached_product_stores cached_stores{org.make_factory("event")};
   framework_graph g{[&cached_stores, it, e]() mutable -> product_store_ptr {
     if (it == e) {
       return nullptr;
@@ -97,10 +99,10 @@ TEST_CASE("Splitting the processing", "[graph]")
   g.declare_splitter(split)
     .concurrency(unlimited)
     .filtered_by()
-    .consumes("max_number")
+    .react_to("max_number")
     .provides({"num"});
-  g.declare_reduction("add", add).concurrency(unlimited).consumes("num").output("sum");
-  g.declare_monitor(check_sum).concurrency(unlimited).consumes("sum");
+  g.declare_reduction("add", add).concurrency(unlimited).react_to("num").output("sum");
+  g.declare_monitor(check_sum).concurrency(unlimited).react_to("sum");
   g.make<test::products_for_output>()
     .declare_output(&test::products_for_output::save)
     .concurrency(serial);

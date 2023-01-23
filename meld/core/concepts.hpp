@@ -3,6 +3,7 @@
 
 #include "meld/core/fwd.hpp"
 #include "meld/metaprogramming/type_deduction.hpp"
+#include "meld/model/fwd.hpp"
 
 #include <concepts>
 #include <utility>

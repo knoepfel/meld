@@ -7,18 +7,19 @@
 #include "meld/core/detail/form_input_arguments.hpp"
 #include "meld/core/detail/port_names.hpp"
 #include "meld/core/fwd.hpp"
-#include "meld/core/handle.hpp"
 #include "meld/core/message.hpp"
-#include "meld/core/product_store.hpp"
 #include "meld/core/products_consumer.hpp"
 #include "meld/core/registrar.hpp"
 #include "meld/core/store_counters.hpp"
-#include "meld/graph/transition.hpp"
 #include "meld/metaprogramming/type_deduction.hpp"
+#include "meld/model/handle.hpp"
+#include "meld/model/product_store.hpp"
+#include "meld/model/transition.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
+#include "spdlog/spdlog.h"
 
 #include <array>
 #include <concepts>

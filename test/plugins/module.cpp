@@ -8,6 +8,6 @@ using namespace meld::concurrency;
 
 DEFINE_MODULE(m)
 {
-  m.declare_transform(test::add).concurrency(unlimited).consumes("i", "j").output("sum");
-  m.declare_monitor(test::verify).concurrency(unlimited).input(consumes("sum"), use(0));
+  m.declare_transform(test::add).concurrency(unlimited).react_to("i", "j").output("sum");
+  m.declare_monitor(test::verify).concurrency(unlimited).input(react_to("sum"), use(0));
 }

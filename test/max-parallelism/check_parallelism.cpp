@@ -8,7 +8,8 @@
 // =======================================================================================
 
 #include "meld/concurrency.hpp"
-#include "meld/core/product_store.hpp"
+#include "meld/model/level_hierarchy.hpp"
+#include "meld/model/product_store.hpp"
 #include "meld/module.hpp"
 #include "meld/source.hpp"
 
@@ -25,12 +26,14 @@ namespace {
         return nullptr;
       }
       executed_ = true;
-      auto store = make_product_store(meld::level_id::base());
+      auto store = factory_.make();
       store->add_product("max_parallelism", concurrency::max_allowed_parallelism::active_value());
       return store;
     }
 
   private:
+    level_hierarchy org_{};
+    product_store_factory factory_{org_.make_factory()};
     bool executed_{false};
   };
 
@@ -42,5 +45,5 @@ DEFINE_SOURCE(send_parallelism)
 DEFINE_MODULE(m, config)
 {
   m.declare_monitor(verify_expected)
-    .input(consumes("max_parallelism"), use(config.get<std::size_t>("expected_parallelism")));
+    .input(react_to("max_parallelism"), use(config.get<std::size_t>("expected_parallelism")));
 }

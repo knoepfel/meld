@@ -10,7 +10,8 @@
 // ===================================================================
 
 #include "meld/core/cached_product_stores.hpp"
-#include "meld/graph/transition.hpp"
+#include "meld/model/level_hierarchy.hpp"
+#include "meld/model/transition.hpp"
 
 namespace test {
   inline constexpr std::size_t n_runs{1};
@@ -69,7 +70,8 @@ namespace test {
 
   private:
     std::vector<meld::transition> transitions_;
-    meld::cached_product_stores stores_;
+    meld::level_hierarchy org_;
+    meld::cached_product_stores stores_{org_.make_factory({"run", "subrun", "event"})};
     decltype(transitions_)::iterator current_;
   };
 }
