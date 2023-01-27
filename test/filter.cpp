@@ -32,16 +32,16 @@ namespace {
 
   class source {
   public:
-    explicit source(unsigned const max_n) : factory_{org_.make_factory({"event"})}, max_{max_n} {}
+    explicit source(unsigned const max_n) : max_{max_n} {}
 
     product_store_ptr next()
     {
       if (i_ == 0) {
         ++i_;
-        return factory_.make(level_id::base());
+        return product_store::base();
       }
       if (i_ < max_ + 1) {
-        auto store = factory_.make(level_id::base().make_child(i_));
+        auto store = product_store::base()->make_child(i_, "event");
         store->add_product<unsigned int>("num", i_ - 1);
         store->add_product<unsigned int>("other_num", 100 + i_ - 1);
         ++i_;
@@ -51,8 +51,6 @@ namespace {
     }
 
   private:
-    level_hierarchy org_;
-    product_store_factory factory_;
     unsigned const max_;
     unsigned i_{};
   };

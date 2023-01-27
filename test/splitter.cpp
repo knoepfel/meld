@@ -16,7 +16,7 @@
 
 #include "meld/core/cached_product_stores.hpp"
 #include "meld/core/framework_graph.hpp"
-#include "meld/model/level_hierarchy.hpp"
+#include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
 #include "meld/model/transition.hpp"
 #include "meld/utilities/debug.hpp"
@@ -38,7 +38,7 @@ namespace {
       products new_products;
       new_products.add<unsigned>("num", i);
       // TODO: maybe support pair-wise/zip functionality
-      g.make_child(i, std::move(new_products));
+      g.make_child(i, "", std::move(new_products));
     }
   }
 
@@ -69,30 +69,29 @@ namespace {
 TEST_CASE("Splitting the processing", "[graph]")
 {
   constexpr auto index_limit = 2u;
-  std::vector<transition> transitions;
-  transitions.reserve(index_limit + 1u);
-  transitions.emplace_back(level_id::base(), stage::process);
+  std::vector<level_id_ptr> levels;
+  levels.reserve(index_limit + 1u);
+  levels.push_back(level_id::base_ptr());
   for (unsigned i = 0u; i != index_limit; ++i) {
-    transitions.emplace_back(level_id::base().make_child(i), stage::process);
+    levels.push_back(level_id::base().make_child(i, "event"));
   }
 
-  auto it = cbegin(transitions);
-  auto const e = cend(transitions);
-  level_hierarchy org;
-  cached_product_stores cached_stores{org.make_factory("event")};
+  auto it = cbegin(levels);
+  auto const e = cend(levels);
+  cached_product_stores cached_stores{};
   framework_graph g{[&cached_stores, it, e]() mutable -> product_store_ptr {
     if (it == e) {
       return nullptr;
     }
-    auto const& [id, stage] = *it++;
+    auto const& id = *it++;
 
-    auto store = cached_stores.get_empty_store(id, stage);
-    debug("Starting ", id, " with stage ", to_string(stage));
+    auto store = cached_stores.get_store(id, stage::process);
+    debug("Starting ", id->to_string(), " with stage ", to_string(stage::process));
 
-    if (store->id().depth() == 0ull) {
+    if (store->id()->depth() == 0ull) {
       return store;
     }
-    store->add_product<unsigned>("max_number", 10u * (id.back() + 1));
+    store->add_product<unsigned>("max_number", 10u * (id->back() + 1));
     return store;
   }};
 

@@ -32,11 +32,14 @@ namespace meld {
 
   class level_sentry {
   public:
-    level_sentry(std::queue<product_store_ptr>& pending_stores, product_store_ptr store);
+    level_sentry(level_hierarchy& hierarchy,
+                 std::queue<product_store_ptr>& pending_stores,
+                 product_store_ptr store);
     ~level_sentry();
     level_id const& id() const;
 
   private:
+    level_hierarchy& hierarchy_;
     std::queue<product_store_ptr>& pending_stores_;
     product_store_ptr store_;
   };
@@ -149,7 +152,7 @@ namespace meld {
     std::map<std::string, result_collector> filter_collectors_{};
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
-    std::map<level_id, std::size_t> original_message_ids_;
+    std::map<level_id_ptr, std::size_t> original_message_ids_;
     std::queue<product_store_ptr> pending_stores_;
     std::stack<std::unique_ptr<level_sentry>> levels_;
     std::size_t calls_{};

@@ -1,6 +1,7 @@
 #ifndef meld_core_message_hpp
 #define meld_core_message_hpp
 
+#include "meld/model/handle.hpp"
 #include "meld/model/product_store.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 
@@ -16,7 +17,7 @@
 namespace meld {
 
   struct message {
-    product_store_ptr store;
+    product_store_const_ptr store;
     std::size_t id;
     std::size_t original_id{-1ull}; // Used during flush
   };

@@ -1,5 +1,5 @@
 #include "meld/core/message.hpp"
-#include "meld/model/transition.hpp"
+#include "meld/model/level_id.hpp"
 
 #include <algorithm>
 #include <iterator>
@@ -12,7 +12,7 @@ namespace meld {
 
   message const& more_derived(message const& a, message const& b)
   {
-    if (a.store->id().depth() > b.store->id().depth()) {
+    if (a.store->id()->depth() > b.store->id()->depth()) {
       return a;
     }
     return b;

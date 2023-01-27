@@ -1,28 +1,25 @@
 #include "meld/model/product_store.hpp"
 #include "meld/model/level_hierarchy.hpp"
-#include "meld/model/transition.hpp"
+#include "meld/model/level_id.hpp"
 
 #include <memory>
 #include <utility>
 
 namespace meld {
 
-  product_store::product_store(product_store_factory const* factory,
-                               level_id id,
-                               std::string_view source,
-                               stage processing_stage) :
-    factory_{factory}, id_{std::move(id)}, source_{source}, stage_{processing_stage}
+  product_store::product_store(level_id_ptr id, std::string_view source, stage processing_stage) :
+    id_{move(id)}, source_{source}, stage_{processing_stage}
   {
   }
 
   product_store::product_store(product_store_ptr parent,
                                std::size_t new_level_number,
+                               std::string const& new_level_name,
                                std::string_view source,
                                products new_products) :
-    factory_{parent->factory_},
     parent_{parent},
     products_{std::move(new_products)},
-    id_{parent->id().make_child(new_level_number)},
+    id_{parent->id()->make_child(new_level_number, new_level_name)},
     source_{source},
     stage_{stage::process}
   {
@@ -30,77 +27,89 @@ namespace meld {
 
   product_store::product_store(product_store_ptr parent,
                                std::size_t new_level_number,
+                               std::string const& new_level_name,
                                std::string_view source,
                                stage processing_stage) :
-    factory_{parent->factory_},
     parent_{parent},
-    id_{parent->id().make_child(new_level_number)},
+    id_{parent->id()->make_child(new_level_number, new_level_name)},
     source_{source},
     stage_{processing_stage}
   {
   }
 
-  std::map<std::string, std::weak_ptr<product_store>> product_store::stores_for_products()
+  product_store_ptr product_store::base() { return ptr{new product_store}; }
+
+  product_store_const_ptr product_store::parent(std::string const& level_name) const
   {
-    std::map<std::string, std::weak_ptr<product_store>> result;
-    auto store = shared_from_this();
+    auto store = parent_;
     while (store != nullptr) {
-      for (auto const& [key, _] : *store) {
-        result.try_emplace(key, store);
+      if (store->level_name() == level_name) {
+        return store;
       }
       store = store->parent_;
     }
-    return result;
+    return nullptr;
   }
 
-  product_store_ptr product_store::make_flush(level_id const& id) const
+  product_store_const_ptr product_store::store_for_product(std::string const& product_name) const
   {
-    return factory_->make(id, "[inserted]", stage::flush);
+    auto store = shared_from_this();
+    while (store != nullptr) {
+      if (store->contains_product(product_name)) {
+        return store;
+      }
+      store = store->parent_;
+    }
+    return nullptr;
+  }
+
+  product_store_ptr product_store::make_flush(level_id_ptr id) const
+  {
+    return ptr{new product_store{std::move(id), "[inserted]", stage::flush}};
   }
 
   product_store_ptr product_store::make_parent(std::string_view source) const
   {
-    return factory_->make(id_.parent(), source, stage::process);
+    return ptr{new product_store{id_->parent(), source, stage::process}};
   }
 
   product_store_ptr product_store::make_parent(std::string const& level_name,
                                                std::string_view source) const
   {
-    auto depth = factory_->depth(level_name);
-    if (depth == -1ull) {
+    auto parent_id = id_->parent(level_name);
+    if (!parent_id) {
       throw std::runtime_error("Trying to create parent with non-existent level " + level_name);
     }
-    return factory_->make(id_.parent(depth), source, stage::process);
+    return ptr{new product_store{parent_id, source, stage::process}};
   }
 
   product_store_ptr product_store::make_continuation(std::string_view source) const
   {
-    return factory_->make(id_, source, stage::process);
+    return ptr{new product_store{id_, source, stage::process}};
   }
 
   product_store_ptr product_store::make_child(std::size_t new_level_number,
+                                              std::string const& new_level_name,
                                               std::string_view source,
                                               products new_products)
   {
-    return std::make_shared<product_store>(
-      shared_from_this(), new_level_number, source, std::move(new_products));
+    return ptr{new product_store{
+      shared_from_this(), new_level_number, new_level_name, source, std::move(new_products)}};
   }
 
   product_store_ptr product_store::make_child(std::size_t new_level_number,
+                                              std::string const& new_level_name,
                                               std::string_view source,
                                               stage processing_stage)
   {
-    return std::make_shared<product_store>(
-      shared_from_this(), new_level_number, source, processing_stage);
+    return ptr{new product_store{
+      shared_from_this(), new_level_number, new_level_name, source, processing_stage}};
   }
 
-  std::string const& product_store::level_name() const noexcept
-  {
-    return factory_->level_name(id_);
-  }
+  std::string const& product_store::level_name() const noexcept { return id_->level_name(); }
   std::string_view product_store::source() const noexcept { return source_; }
   product_store_ptr const& product_store::parent() const noexcept { return parent_; }
-  level_id const& product_store::id() const noexcept { return id_; }
+  level_id_ptr const& product_store::id() const noexcept { return id_; }
   bool product_store::is_flush() const noexcept { return stage_ == stage::flush; }
 
   bool product_store::contains_product(std::string const& product_name) const
@@ -110,7 +119,7 @@ namespace meld {
 
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b)
   {
-    if (a->id().depth() > b->id().depth()) {
+    if (a->id()->depth() > b->id()->depth()) {
       return a;
     }
     return b;

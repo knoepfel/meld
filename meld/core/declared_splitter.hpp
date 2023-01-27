@@ -13,8 +13,8 @@
 #include "meld/core/registrar.hpp"
 #include "meld/core/store_counters.hpp"
 #include "meld/model/handle.hpp"
+#include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
-#include "meld/model/transition.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
@@ -39,12 +39,12 @@ namespace meld {
 
   class generator {
   public:
-    explicit generator(product_store_ptr const& parent,
+    explicit generator(product_store_const_ptr const& parent,
                        std::string const& node_name,
                        multiplexer& m,
                        tbb::flow::broadcast_node<message>& to_output,
                        std::atomic<std::size_t>& counter);
-    void make_child(std::size_t i, products new_products = {});
+    void make_child(std::size_t i, std::string const& new_level_name, products new_products = {});
     message flush_message();
 
   private:
@@ -66,7 +66,7 @@ namespace meld {
 
     virtual tbb::flow::sender<message>& to_output() = 0;
     virtual std::vector<std::string> const& provided_products() const = 0;
-    virtual void finalize(multiplexer::head_nodes_t head_nodes) = 0;
+    virtual void finalize(multiplexer::head_ports_t head_ports) = 0;
   };
 
   using declared_splitter_ptr = std::unique_ptr<declared_splitter>;
@@ -220,18 +220,19 @@ namespace meld {
           auto const& store = msg.store;
           if (store->is_flush()) {
             flag_accessor ca;
-            flag_for(store->id().parent().hash(), ca).flush_received(msg.id);
+            flag_for(store->id()->parent()->hash(), ca).flush_received(msg.id);
           }
-          else if (accessor a; stores_.insert(a, store->id().hash())) {
+          else if (accessor a; stores_.insert(a, store->id()->hash())) {
             generator g{msg.store, this->name(), multiplexer_, to_output_, counter_};
             call(ft, g, messages, std::make_index_sequence<N>{});
             multiplexer_.try_put(g.flush_message());
 
             flag_accessor ca;
-            flag_for(store->id().hash(), ca).mark_as_processed();
+            flag_for(store->id()->hash(), ca).mark_as_processed();
           }
 
-          auto const id_hash = store->is_flush() ? store->id().parent().hash() : store->id().hash();
+          auto const id_hash =
+            store->is_flush() ? store->id()->parent()->hash() : store->id()->hash();
           if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_flush()) {
             stores_.erase(id_hash);
             erase_flag(ca);
@@ -249,7 +250,7 @@ namespace meld {
         spdlog::warn("Splitter {} has {} cached stores.", name(), stores_.size());
       }
       for (auto const& [_, store] : stores_) {
-        spdlog::debug(" => ID: ", store->id());
+        spdlog::debug(" => ID: ", store->id()->to_string());
       }
     }
 
@@ -271,9 +272,9 @@ namespace meld {
     }
     std::vector<std::string> const& provided_products() const override { return provided_; }
 
-    void finalize(multiplexer::head_nodes_t head_nodes) override
+    void finalize(multiplexer::head_ports_t head_ports) override
     {
-      multiplexer_.finalize(std::move(head_nodes));
+      multiplexer_.finalize(std::move(head_ports));
     }
 
     template <std::size_t... Is>

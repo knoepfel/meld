@@ -1,5 +1,5 @@
 add_library(benchmarks_source MODULE benchmarks_source.cpp)
-target_link_libraries(benchmarks_source PRIVATE meld::module)
+target_link_libraries(benchmarks_source PRIVATE meld::model Boost::json)
 
 add_library(last_index MODULE last_index.cpp)
 target_link_libraries(last_index PRIVATE meld::module)

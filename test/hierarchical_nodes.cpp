@@ -19,8 +19,8 @@
 #include "meld/core/cached_product_stores.hpp"
 #include "meld/core/framework_graph.hpp"
 #include "meld/model/level_hierarchy.hpp"
+#include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
-#include "meld/model/transition.hpp"
 #include "meld/utilities/debug.hpp"
 #include "test/products_for_output.hpp"
 
@@ -69,8 +69,10 @@ namespace {
 
   void print_result(handle<double> result, std::string const& stringized_time)
   {
-    spdlog::debug(
-      "{}: {} @ {}", result.id(), *result, stringized_time.substr(0, stringized_time.find('\n')));
+    spdlog::debug("{}: {} @ {}",
+                  result.id().to_string(),
+                  *result,
+                  stringized_time.substr(0, stringized_time.find('\n')));
   }
 }
 
@@ -78,33 +80,32 @@ TEST_CASE("Hierarchical nodes", "[graph]")
 {
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
-  std::vector<transition> transitions;
-  transitions.reserve(1 + index_limit * (number_limit + 1u));
-  transitions.emplace_back(level_id::base(), stage::process);
+  std::vector<level_id_ptr> levels;
+  levels.reserve(1 + index_limit * (number_limit + 1u));
+  levels.push_back(level_id::base_ptr());
   for (unsigned i = 0u; i != index_limit; ++i) {
-    auto id = level_id::base().make_child(i);
-    transitions.emplace_back(id, stage::process);
+    auto id = level_id::base().make_child(i, "run");
+    levels.push_back(id);
     for (unsigned j = 0u; j != number_limit; ++j) {
-      transitions.emplace_back(id.make_child(j), stage::process);
+      levels.push_back(id->make_child(j, "event"));
     }
   }
-  auto it = cbegin(transitions);
-  auto const e = cend(transitions);
-  level_hierarchy org;
-  cached_product_stores cached_stores{org.make_factory("run", "event")};
+  auto it = cbegin(levels);
+  auto const e = cend(levels);
+  cached_product_stores cached_stores{};
   framework_graph g{[&cached_stores, it, e]() mutable -> product_store_ptr {
     if (it == e) {
       return nullptr;
     }
-    auto const& [id, stage] = *it++;
+    auto const& id = *it++;
 
-    auto store = cached_stores.get_empty_store(id, stage);
+    auto store = cached_stores.get_store(id, stage::process);
 
-    if (id.depth() == 1ull) {
+    if (id->depth() == 1ull) {
       store->add_product<std::time_t>("time", std::time(nullptr));
     }
-    if (id.depth() == 2ull) {
-      store->add_product<unsigned>("number", id.back() + id.parent().back());
+    if (id->depth() == 2ull) {
+      store->add_product<unsigned>("number", id->back() + id->parent()->back());
     }
     return store;
   }};
@@ -124,8 +125,9 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   g.declare_transform(scale).concurrency(unlimited).react_to("added_data").output("result");
   g.declare_monitor(print_result).concurrency(unlimited).react_to("result", "strtime");
 
-  auto c = g.make<test::products_for_output>();
-  c.declare_output(&test::products_for_output::save).filtered_by();
+  g.make<test::products_for_output>()
+    .declare_output(&test::products_for_output::save)
+    .filtered_by();
 
   g.execute("hierarchical_nodes_t.gv");
 }

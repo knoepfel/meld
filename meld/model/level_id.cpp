@@ -1,4 +1,4 @@
-#include "meld/model/transition.hpp"
+#include "meld/model/level_id.hpp"
 
 #include "boost/algorithm/string.hpp"
 
@@ -11,95 +11,165 @@
 #include <tuple>
 
 namespace {
-  std::size_t hash_nums(std::vector<std::size_t> const& nums) noexcept
+
+  std::hash<std::string> const string_hasher{};
+  constexpr std::size_t hash_numbers(std::size_t i, std::size_t j)
   {
-    // Pilfered from
-    // https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector#comment126511630_27216842
-    // The std::size() free function is not noexcept, so we use the
-    // std::vector::size() member function.
-    return std::accumulate(
-      cbegin(nums), cend(nums), nums.size(), [](std::size_t h, std::size_t f) noexcept {
-        return h ^= f + 0x9e3779b9 + (h << 6) + (h >> 2);
-      });
+    return i ^ (j + 0x9e3779b9 + (i << 6) + (i >> 2));
   }
 
-  meld::level_id const base_id{};
+  std::vector<std::size_t> all_numbers(meld::level_id const& id)
+  {
+    if (!id.has_parent()) {
+      return {};
+    }
+
+    auto const* current = &id;
+    std::vector<std::size_t> result(id.depth());
+    for (std::size_t i = id.depth(); i > 0; --i) {
+      result[i - 1] = current->back();
+      current = current->parent().get();
+    }
+    return result;
+  }
+
 }
 
 namespace meld {
 
-  level_id::level_id() : hash_{hash_nums({})} {}
-  level_id::level_id(std::initializer_list<std::size_t> numbers) :
-    level_id{std::vector<std::size_t>{numbers}}
+  level_id::level_id() : level_hash_{string_hasher(level_name_)} {}
+
+  // Hash algorithm pilfered from
+  // https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector#comment126511630_27216842
+  level_id::level_id(const_ptr parent, std::size_t i, std::string const& level_name) :
+    parent_{move(parent)},
+    number_{i},
+    level_name_{level_name},
+    level_hash_{hash_numbers(parent_->level_hash_, string_hasher(level_name_))},
+    depth_{parent_->depth_ + 1},
+    hash_{hash_numbers(parent_->hash_, number_)}
   {
   }
-  level_id::level_id(std::vector<std::size_t> numbers) : id_{move(numbers)}, hash_{hash_nums(id_)}
+
+  level_id const& level_id::base() { return *base_ptr(); }
+  level_id_ptr level_id::base_ptr()
   {
+    static meld::level_id_ptr base_id{new level_id};
+    return base_id;
   }
 
-  level_id const& level_id::base() { return base_id; }
+  std::string const& level_id::level_name() const noexcept { return level_name_; }
+  std::size_t level_id::depth() const noexcept { return depth_; }
 
-  std::size_t level_id::depth() const noexcept { return id_.size(); }
-
-  level_id level_id::make_child(std::size_t const new_level_number) const
+  level_id_ptr level_id::make_child(std::size_t const new_level_number,
+                                    std::string const& new_level_name) const
   {
-    auto numbers = id_;
-    numbers.push_back(new_level_number);
-    return level_id{move(numbers)};
+    return level_id_ptr{new level_id{shared_from_this(), new_level_number, new_level_name}};
   }
 
-  bool level_id::has_parent() const noexcept
-  {
-    // Use std::vector::empty member function which is noexcept.
-    return not id_.empty();
-  }
+  bool level_id::has_parent() const noexcept { return static_cast<bool>(parent_); }
 
-  std::size_t level_id::back() const { return id_.back(); }
+  std::size_t level_id::back() const { return number_; }
   std::size_t level_id::hash() const noexcept { return hash_; }
+  std::size_t level_id::level_hash() const noexcept { return level_hash_; }
 
-  bool level_id::operator==(level_id const& other) const { return id_ == other.id_; }
-  bool level_id::operator<(level_id const& other) const { return id_ < other.id_; }
+  bool level_id::operator==(level_id const& other) const
+  {
+    if (depth_ != other.depth_)
+      return false;
+    auto const same_numbers = number_ == other.number_;
+    if (not parent_) {
+      return same_numbers;
+    }
+    return *parent_ == *other.parent_ && same_numbers;
+  }
 
-  level_id id_for(char const* c_str)
+  bool level_id::operator<(level_id const& other) const
+  {
+    auto these_numbers = all_numbers(*this);
+    auto those_numbers = all_numbers(other);
+    return std::lexicographical_compare(
+      begin(these_numbers), end(these_numbers), begin(those_numbers), end(those_numbers));
+  }
+
+  level_id_ptr id_for(std::vector<std::size_t> nums)
+  {
+    auto current = level_id::base_ptr();
+    for (auto const num : nums) {
+      current = current->make_child(num, "");
+    }
+    return current;
+  }
+
+  level_id_ptr id_for(char const* c_str)
   {
     std::vector<std::string> strs;
     split(strs, c_str, boost::is_any_of(":"));
 
-    strs.erase(std::remove_if(begin(strs), end(strs), [](auto& str) { return empty(str); }),
-               end(strs));
+    erase_if(strs, [](auto& str) { return empty(str); });
 
-    std::vector<std::size_t> numbers;
-    transform(begin(strs), end(strs), back_inserter(numbers), [](auto const& str) {
+    std::vector<std::size_t> nums;
+    std::transform(begin(strs), end(strs), back_inserter(nums), [](auto const& str) {
       return std::stoull(str);
     });
-    return level_id{move(numbers)};
+    return id_for(move(nums));
   }
 
-  level_id operator"" _id(char const* c_str, std::size_t) { return id_for(c_str); }
+  level_id_ptr operator"" _id(char const* c_str, std::size_t) { return id_for(c_str); }
 
-  level_id level_id::parent(std::size_t requested_depth) const
+  level_id_ptr level_id::parent(std::string const& level_name) const
   {
-    if (not has_parent())
-      throw std::runtime_error("Empty ID does not have a parent.");
+    level_id_ptr parent = parent_;
+    while (parent) {
+      if (parent->level_name_ == level_name) {
+        return parent;
+      }
+      parent = parent->parent_;
+    }
+    return nullptr;
+  }
 
+  level_id_ptr level_id::parent(std::size_t requested_depth) const
+  {
     if (requested_depth == -1ull) {
       requested_depth = depth() - 1;
     }
-    auto id = id_;
-    id.resize(requested_depth);
-    return level_id{move(id)};
+
+    level_id_ptr parent = parent_;
+    while (parent) {
+      if (parent->depth_ == requested_depth) {
+        return parent;
+      }
+      parent = parent->parent_;
+    }
+    return nullptr;
   }
 
-  std::ostream& operator<<(std::ostream& os, level_id const& id)
+  std::string level_id::to_string() const
   {
-    if (not id.has_parent())
-      return os << "[]";
-    auto const& nums = id.id_;
-    os << '[' << nums.front();
-    for (auto b = begin(nums) + 1, e = end(nums); b != e; ++b) {
-      os << ", " << *b;
+    // FIXME: prefix needs to be adjusted esp. if a root name can be supplied by the user.
+    std::string prefix{"["}; //"root: ["};
+    std::string result;
+    std::string suffix{"]"};
+
+    if (number_ != -1ull) {
+      result = to_string_this_level();
+      auto parent = parent_;
+      while (parent != nullptr and parent->number_ != -1ull) {
+        result.insert(0, parent->to_string_this_level() + ", ");
+        parent = parent->parent_;
+      }
     }
-    os << ']';
-    return os;
+    return prefix + result + suffix;
   }
+
+  std::string level_id::to_string_this_level() const
+  {
+    if (empty(level_name_)) {
+      return std::to_string(number_);
+    }
+    return level_name_ + ":" + std::to_string(number_);
+  }
+
+  std::ostream& operator<<(std::ostream& os, level_id const& id) { return os << id.to_string(); }
 }

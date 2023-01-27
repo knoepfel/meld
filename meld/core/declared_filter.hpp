@@ -13,8 +13,8 @@
 #include "meld/core/store_counters.hpp"
 #include "meld/metaprogramming/type_deduction.hpp"
 #include "meld/model/handle.hpp"
+#include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
-#include "meld/model/transition.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
@@ -136,20 +136,20 @@ namespace meld {
                 filter_result result{};
                 if (store->is_flush()) {
                   flag_accessor ca;
-                  flag_for(store->id().parent().hash(), ca).flush_received(message_id);
+                  flag_for(store->id()->parent()->hash(), ca).flush_received(message_id);
                 }
-                else if (const_accessor a; results_.find(a, store->id().hash())) {
+                else if (const_accessor a; results_.find(a, store->id()->hash())) {
                   result = {message_id, a->second.result};
                 }
-                else if (accessor a; results_.insert(a, store->id().hash())) {
+                else if (accessor a; results_.insert(a, store->id()->hash())) {
                   bool const rc = call(ft, messages, std::make_index_sequence<N>{});
                   result = a->second = {message_id, rc};
                   flag_accessor ca;
-                  flag_for(store->id().hash(), ca).mark_as_processed();
+                  flag_for(store->id()->hash(), ca).mark_as_processed();
                 }
 
                 auto const id_hash =
-                  store->is_flush() ? store->id().parent().hash() : store->id().hash();
+                  store->is_flush() ? store->id()->parent()->hash() : store->id()->hash();
                 if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_flush()) {
                   results_.erase(id_hash);
                   erase_flag(ca);

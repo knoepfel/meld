@@ -2,7 +2,7 @@
 #define meld_core_store_counters_hpp
 
 #include "meld/core/fwd.hpp"
-#include "meld/model/transition.hpp"
+#include "meld/model/level_id.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 

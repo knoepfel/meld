@@ -13,8 +13,8 @@
 #include "meld/core/store_counters.hpp"
 #include "meld/metaprogramming/type_deduction.hpp"
 #include "meld/model/handle.hpp"
+#include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
-#include "meld/model/transition.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
@@ -139,16 +139,16 @@ namespace meld {
                  //               to_string(st));
                  if (store->is_flush()) {
                    flag_accessor ca;
-                   flag_for(store->id().parent().hash(), ca).flush_received(message_id);
+                   flag_for(store->id()->parent()->hash(), ca).flush_received(message_id);
                  }
                  else if (accessor a; needs_new(store, a)) {
                    call(ft, messages, std::make_index_sequence<N>{});
                    a->second = true;
                    flag_accessor ca;
-                   flag_for(store->id().hash(), ca).mark_as_processed();
+                   flag_for(store->id()->hash(), ca).mark_as_processed();
                  }
                  auto const id_hash =
-                   store->is_flush() ? store->id().parent().hash() : store->id().hash();
+                   store->is_flush() ? store->id()->parent()->hash() : store->id()->hash();
                  if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_flush()) {
                    erase_flag(ca);
                    stores_.erase(id_hash);
@@ -185,13 +185,13 @@ namespace meld {
       return product_names_;
     }
 
-    bool needs_new(product_store_ptr const& store, accessor& a)
+    bool needs_new(product_store_const_ptr const& store, accessor& a)
     {
-      if (stores_.count(store->id().hash()) > 0ull) {
+      if (stores_.count(store->id()->hash()) > 0ull) {
         return false;
       }
 
-      bool const new_insert = stores_.insert(a, store->id().hash());
+      bool const new_insert = stores_.insert(a, store->id()->hash());
       if (!new_insert) {
         return false;
       }

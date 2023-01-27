@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_BUILD_TYPE "Debug")
 add_compile_options(-Wall -Werror -Wunused -Wunused-parameter -pedantic)
+add_link_options("LINKER:-undefined,error")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
 
 find_package(Boost REQUIRED COMPONENTS headers json program_options stacktrace_basic)

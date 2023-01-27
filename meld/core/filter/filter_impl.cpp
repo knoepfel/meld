@@ -49,11 +49,11 @@ namespace meld {
 
   data_map::data_map(for_output_t) : data_map{for_output_only} {}
 
-  void data_map::update(std::size_t const msg_id, product_store_ptr const& store)
+  void data_map::update(std::size_t const msg_id, product_store_const_ptr const& store)
   {
     decltype(stores_)::accessor a;
     if (stores_.insert(a, msg_id)) {
-      a->second = std::vector<product_store_ptr>(nargs_);
+      a->second = std::vector<product_store_const_ptr>(nargs_);
     }
     auto& elem = a->second;
     if (nargs_ == 1ull) {
@@ -81,9 +81,9 @@ namespace meld {
     return false;
   }
 
-  std::vector<product_store_ptr> data_map::release_data(accessor& a, std::size_t const msg_id)
+  std::vector<product_store_const_ptr> data_map::release_data(accessor& a, std::size_t const msg_id)
   {
-    std::vector<product_store_ptr> result;
+    std::vector<product_store_const_ptr> result;
     if (stores_.find(a, msg_id)) {
       result = std::move(a->second);
       stores_.erase(a);

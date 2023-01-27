@@ -4,7 +4,7 @@
 #include "meld/core/consumer.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
-#include "meld/model/transition.hpp"
+#include "meld/model/level_id.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 

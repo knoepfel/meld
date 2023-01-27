@@ -5,36 +5,34 @@
 //        thread-safe.
 
 #include "meld/model/fwd.hpp"
-#include "meld/model/product_store_factory.hpp"
-#include "meld/model/transition.hpp"
+#include "meld/model/level_id.hpp"
+#include "meld/model/product_store.hpp"
 
 namespace meld {
 
   class cached_product_stores {
   public:
-    explicit cached_product_stores(product_store_factory factory) : factory_{std::move(factory)} {}
-    product_store_ptr get_empty_store(level_id const& id, stage processing_stage = stage::process)
+    product_store_ptr get_store(level_id_ptr id, stage processing_stage = stage::process)
     {
-      auto it = product_stores_.find(id);
+      auto it = product_stores_.find(id->hash());
       if (it != cend(product_stores_)) {
         return it->second;
       }
-      if (id == level_id::base()) {
-        return new_store(factory_.make(level_id::base(), source_name_));
+      if (id == level_id::base_ptr()) {
+        return new_store(product_store::base());
       }
       return new_store(
-        get_empty_store(id.parent())->make_child(id.back(), source_name_, processing_stage));
+        get_store(id->parent())->make_child(id->back(), "", source_name_, processing_stage));
     }
 
   private:
     product_store_ptr new_store(product_store_ptr const& store)
     {
-      return product_stores_.try_emplace(store->id(), store).first->second;
+      return product_stores_.try_emplace(store->id()->hash(), store).first->second;
     }
 
-    product_store_factory factory_;
     std::string const source_name_{"Source"};
-    std::map<level_id, product_store_ptr> product_stores_;
+    std::map<level_id::hash_type, product_store_ptr> product_stores_{};
   };
 
 }

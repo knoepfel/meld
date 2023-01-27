@@ -105,6 +105,7 @@ TEST_CASE("Cached function calls", "[data model]")
   g.execute("cached_execution_t.gv");
 
   using namespace test;
+
   // FIXME: Need to improve the synchronization to supply strict equality
   CHECK(a1_counter >= n_runs);
   CHECK(a2_counter >= n_runs);

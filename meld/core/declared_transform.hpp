@@ -13,8 +13,8 @@
 #include "meld/core/store_counters.hpp"
 #include "meld/metaprogramming/type_deduction.hpp"
 #include "meld/model/handle.hpp"
+#include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
-#include "meld/model/transition.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"
@@ -213,7 +213,7 @@ namespace meld {
                    auto& [stay_in_graph, to_output] = output;
                    if (store->is_flush()) {
                      flag_accessor fa;
-                     flag_for(store->id().parent().hash(), fa).flush_received(msg.original_id);
+                     flag_for(store->id()->parent()->hash(), fa).flush_received(msg.original_id);
                      // spdlog::debug("Transform {} sending flush message {}/{}", this->name(), message_id, msg.original_id);
                      stay_in_graph.try_put(msg);
                    }
@@ -224,16 +224,14 @@ namespace meld {
                      a->second = new_store;
 
                      message const new_msg{a->second, message_id};
-                     // spdlog::debug("Transform {} sending process message {}", this->name(), message_id);
                      stay_in_graph.try_put(new_msg);
                      to_output.try_put(new_msg);
                      flag_accessor fa;
-                     flag_for(store->id().hash(), fa).mark_as_processed();
+                     flag_for(store->id()->hash(), fa).mark_as_processed();
                    }
-                   auto const& id = store->is_flush() ? store->id().parent() : store->id();
-                   auto const id_hash = id.hash();
+                   auto const& id = store->is_flush() ? store->id()->parent() : store->id();
+                   auto const id_hash = id->hash();
                    if (const_flag_accessor fa; flag_for(id_hash, fa) && fa->second->is_flush()) {
-                     // spdlog::debug("Transform {}: deleting store for {}", this->name(), id);
                      stores_.erase(id_hash);
                      erase_flag(fa);
                    }
@@ -248,7 +246,7 @@ namespace meld {
         spdlog::warn("Transform {} has {} cached stores.", name(), stores_.size());
       }
       for (auto const& [hash, store] : stores_) {
-        spdlog::debug(" => ID: {} (hash: {})", store->id(), hash);
+        spdlog::debug(" => ID: {} (hash: {})", store->id()->to_string(), hash);
       }
     }
 
@@ -271,7 +269,7 @@ namespace meld {
     }
     std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
 
-    bool needs_new(product_store_ptr const& store,
+    bool needs_new(product_store_const_ptr const& store,
                    std::size_t message_id,
                    auto& stay_in_graph,
                    accessor& a)
@@ -281,12 +279,12 @@ namespace meld {
         return false;
       }
 
-      if (const_accessor cached; stores_.find(cached, store->id().hash())) {
+      if (const_accessor cached; stores_.find(cached, store->id()->hash())) {
         stay_in_graph.try_put({cached->second, message_id});
         return false;
       }
 
-      bool const new_insert = stores_.insert(a, store->id().hash());
+      bool const new_insert = stores_.insert(a, store->id()->hash());
       if (!new_insert) {
         stay_in_graph.try_put({a->second, message_id});
         return false;

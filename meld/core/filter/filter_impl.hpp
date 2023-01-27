@@ -1,8 +1,8 @@
 #ifndef meld_core_filter_filter_impl_hpp
 #define meld_core_filter_filter_impl_hpp
 
+#include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
-#include "meld/model/transition.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/flow_graph.h"
@@ -44,7 +44,8 @@ namespace meld {
   };
 
   class data_map {
-    using stores_t = oneapi::tbb::concurrent_hash_map<std::size_t, std::vector<product_store_ptr>>;
+    using stores_t =
+      oneapi::tbb::concurrent_hash_map<std::size_t, std::vector<product_store_const_ptr>>;
 
   public:
     using accessor = stores_t::accessor;
@@ -56,11 +57,11 @@ namespace meld {
 
     bool is_complete(std::size_t const msg_id) const;
 
-    void update(std::size_t const msg_id, product_store_ptr const& store);
-    std::vector<product_store_ptr> release_data(accessor& a, std::size_t const msg_id);
+    void update(std::size_t const msg_id, product_store_const_ptr const& store);
+    std::vector<product_store_const_ptr> release_data(accessor& a, std::size_t const msg_id);
 
   private:
-    oneapi::tbb::concurrent_hash_map<std::size_t, std::vector<product_store_ptr>> stores_;
+    stores_t stores_;
     std::span<std::string const> product_names_;
     std::size_t nargs_;
   };

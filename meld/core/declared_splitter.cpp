@@ -3,12 +3,12 @@
 
 namespace meld {
 
-  generator::generator(product_store_ptr const& parent,
+  generator::generator(product_store_const_ptr const& parent,
                        std::string const& node_name,
                        multiplexer& m,
                        tbb::flow::broadcast_node<message>& to_output,
                        std::atomic<std::size_t>& counter) :
-    parent_{parent},
+    parent_{std::const_pointer_cast<product_store>(parent)},
     node_name_{node_name},
     multiplexer_{m},
     to_output_{to_output},
@@ -16,11 +16,14 @@ namespace meld {
   {
   }
 
-  void generator::make_child(std::size_t const i, products new_products)
+  void generator::make_child(std::size_t const i,
+                             std::string const& new_level_name,
+                             products new_products)
   {
     ++counter_;
     ++calls_;
-    message const msg{parent_->make_child(i, node_name_, std::move(new_products)), counter_};
+    message const msg{parent_->make_child(i, node_name_, new_level_name, std::move(new_products)),
+                      counter_};
     to_output_.try_put(msg);
     multiplexer_.try_put(msg);
   }
@@ -28,8 +31,9 @@ namespace meld {
   message generator::flush_message()
   {
     auto const message_id = ++counter_;
-    return {
-      parent_->make_child(calls_, node_name_, stage::flush), message_id, original_message_id_};
+    return {parent_->make_child(calls_, node_name_, "flush", stage::flush),
+            message_id,
+            original_message_id_};
   }
 
   declared_splitter::declared_splitter(std::string name,

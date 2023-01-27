@@ -7,8 +7,8 @@
 #include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/registrar.hpp"
+#include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
-#include "meld/model/transition.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 

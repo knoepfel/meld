@@ -3,7 +3,8 @@
 
 #include "meld/model/fwd.hpp"
 #include "meld/model/handle.hpp"
-#include "meld/model/transition.hpp"
+#include "meld/model/level_id.hpp"
+#include "meld/model/products.hpp"
 
 #include <array>
 #include <cstddef>
@@ -22,39 +23,33 @@ namespace meld {
 
   class product_store : public std::enable_shared_from_this<product_store> {
     using ptr = std::shared_ptr<product_store>;
+    using const_ptr = std::shared_ptr<product_store const>;
 
   public:
-    explicit product_store(product_store_factory const* factory,
-                           level_id id = {},
-                           std::string_view source = {},
-                           stage processing_stage = stage::process);
-    explicit product_store(ptr parent,
-                           std::size_t new_level_number,
-                           std::string_view source,
-                           products new_products);
-    explicit product_store(ptr parent,
-                           std::size_t new_level_number,
-                           std::string_view source,
-                           stage processing_stage);
+    static ptr base();
 
-    // FIXME: 'stores_for_products()' may need to become a lazy range.
-    std::map<std::string, std::weak_ptr<product_store>> stores_for_products();
+    const_ptr store_for_product(std::string const& product_name) const;
 
     auto begin() const noexcept { return products_.begin(); }
     auto end() const noexcept { return products_.end(); }
 
     std::string const& level_name() const noexcept;
     std::string_view source() const noexcept;
+    const_ptr parent(std::string const& level_name) const;
     ptr const& parent() const noexcept;
-    ptr make_flush(level_id const& id) const;
+    ptr make_flush(level_id_ptr id) const;
     ptr make_parent(std::string_view source) const;
     ptr make_parent(std::string const& level_name, std::string_view source) const;
     ptr make_continuation(std::string_view source) const;
-    ptr make_child(std::size_t new_level_number, std::string_view source, products new_products);
     ptr make_child(std::size_t new_level_number,
+                   std::string const& new_level_name,
+                   std::string_view source,
+                   products new_products);
+    ptr make_child(std::size_t new_level_number,
+                   std::string const& new_level_name,
                    std::string_view source = {},
                    stage st = stage::process);
-    level_id const& id() const noexcept;
+    level_id_ptr const& id() const noexcept;
     bool is_flush() const noexcept;
 
     // Product interface
@@ -77,15 +72,29 @@ namespace meld {
     // void add_product(labeled_data<T>&& data);
 
   private:
-    product_store_factory const* factory_;
+    explicit product_store(level_id_ptr id = level_id::base_ptr(),
+                           std::string_view source = {},
+                           stage processing_stage = stage::process);
+    explicit product_store(ptr parent,
+                           std::size_t new_level_number,
+                           std::string const& new_level_name,
+                           std::string_view source,
+                           products new_products);
+    explicit product_store(ptr parent,
+                           std::size_t new_level_number,
+                           std::string const& new_level_name,
+                           std::string_view source,
+                           stage processing_stage);
+
     ptr parent_{nullptr};
     products products_{};
-    level_id id_;
+    level_id_ptr id_;
     std::string_view source_;
     stage stage_;
   };
 
   using product_store_ptr = std::shared_ptr<product_store>;
+  using product_store_const_ptr = std::shared_ptr<product_store const>;
 
   template <typename T>
   void add_to(product_store& store, T const& t, std::array<std::string, 1u> const& name)
@@ -142,7 +151,7 @@ namespace meld {
   template <typename T>
   void product_store::add_product(std::string const& key, std::shared_ptr<T>&& t)
   {
-    products_.add(key, std::move(t));
+    products_.add(key, move(t));
   }
 
   // template <typename T>
@@ -155,7 +164,7 @@ namespace meld {
   template <typename T>
   [[nodiscard]] handle<T> product_store::get_handle(std::string const& key) const
   {
-    return handle<T>{products_.get<T>(key), id_};
+    return handle<T>{products_.get<T>(key), *id_};
   }
 
   template <typename T>

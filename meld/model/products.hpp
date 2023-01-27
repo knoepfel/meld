@@ -1,0 +1,83 @@
+#ifndef meld_model_products_hpp
+#define meld_model_products_hpp
+
+#include "meld/model/level_id.hpp"
+#include "meld/utilities/demangle_symbol.hpp"
+#include "spdlog/spdlog.h"
+
+#include <iostream>
+#include <memory>
+#include <string>
+#include <typeindex>
+#include <unordered_map>
+#include <utility>
+
+namespace meld {
+
+  struct product_base {
+    virtual ~product_base() = default;
+    virtual void const* address() const = 0;
+    virtual std::type_index type() const = 0;
+  };
+
+  template <typename T>
+  struct product : product_base {
+    explicit product(T const& prod) : obj{prod} {}
+    void const* address() const final { return &obj; }
+    virtual std::type_index type() const { return std::type_index{typeid(T)}; }
+    std::remove_cvref_t<T> obj;
+  };
+
+  class products {
+    using collection_t = std::unordered_map<std::string, std::shared_ptr<product_base>>;
+
+  public:
+    using const_iterator = collection_t::const_iterator;
+
+    template <typename T>
+    void add(std::string const& product_name, T&& t)
+    {
+      add(product_name, std::make_shared<product<std::remove_cvref_t<T>>>(std::forward<T>(t)));
+    }
+
+    template <typename T>
+    void add(std::string const& product_name, std::shared_ptr<product<T>>&& t)
+    {
+      products_.emplace(product_name, move(t));
+    }
+
+    template <typename T>
+    std::variant<T const*, std::string> get(std::string const& product_name) const
+    {
+      auto it = products_.find(product_name);
+      if (it == cend(products_)) {
+        return "No product exists with the name '" + product_name + "'.";
+      }
+
+      // Should be able to use dynamic_cast a la:
+      //
+      //   if (auto t = dynamic_cast<product<T> const*>(it->second.get())) {
+      //     return &t->obj;
+      //   }
+      //
+      // Unfortunately, this doesn't work well whenever products are inserted across
+      // modules and shared object libraries.
+
+      auto available_product = it->second.get();
+      if (std::strcmp(typeid(T).name(), available_product->type().name()) == 0) {
+        return &reinterpret_cast<product<T> const*>(available_product)->obj;
+      }
+      return "Cannot get product '" + product_name + "' with type '" + demangle_symbol(typeid(T)) +
+             "' -- must specify type '" + demangle_symbol(available_product->type().name()) + "'.";
+    }
+
+    bool contains(std::string const& product_name) const;
+    const_iterator begin() const noexcept;
+    const_iterator end() const noexcept;
+
+  private:
+    collection_t products_;
+  };
+}
+
+#endif /* meld_model_products_hpp */

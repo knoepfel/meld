@@ -1,88 +1,84 @@
 #include "meld/model/level_hierarchy.hpp"
-#include "meld/model/product_store_factory.hpp"
 
+#include "fmt/format.h"
+#include "spdlog/spdlog.h"
+
+#include <list>
 #include <ostream>
 
 namespace {
-  std::string const root_name{"(root)"};
+  std::string const unnamed{"(unnamed)"};
+  std::string const& maybe_name(std::string const& name) { return empty(name) ? unnamed : name; }
+  std::string indent(std::size_t num)
+  {
+    std::string prefix;
+    while (num-- != 0) {
+      prefix.append("  ");
+    }
+    return prefix;
+  }
 }
 
 namespace meld {
 
-  product_store_factory level_hierarchy::make_factory(std::vector<std::string> levels)
+  void level_hierarchy::update(level_id_ptr const& id)
   {
-    return product_store_factory{this, add_order(levels)};
-  }
-
-  std::size_t level_hierarchy::index(std::string const& name) const
-  {
-    auto const b = begin(levels_);
-    auto const e = end(levels_);
-    auto it = find_if(b, e, [&name](auto const& level) { return level.name == name; });
-    return it != e ? distance(b, it) : -1ull;
-  }
-
-  std::string const& level_hierarchy::level_name(level_order_index hindex) const
-  {
-    if (hindex == -1ull) {
-      return root_name;
+    if (!levels_.contains(id->level_hash())) {
+      auto const parent_hash = id->has_parent() ? id->parent()->level_hash() : -1ull;
+      levels_[id->level_hash()] = {id->level_name(), parent_hash, id->depth()};
     }
-    return levels_[hindex].name;
+
+    level_counter_v2* parent_counter = nullptr;
+    if (auto parent = id->parent()) {
+      parent_counter = counters_.at(parent->hash()).get();
+    }
+    counters_[id->hash()] = std::make_shared<level_counter_v2>(parent_counter, id->level_name());
   }
 
-  std::vector<std::vector<std::string>> level_hierarchy::orders() const
+  flush_counts level_hierarchy::complete(level_id_ptr const& id)
   {
-    std::vector<std::vector<std::string>> result;
-    result.reserve(size(orders_));
-    for (auto const& order : orders_) {
-      result.push_back(order.to_strings());
+    ++levels_.at(id->level_hash()).count;
+    return counters_.extract(id->hash()).mapped()->result();
+  }
+
+  std::size_t level_hierarchy::count_for(std::string const& level_name) const
+  {
+    auto it = find_if(begin(levels_), end(levels_), [&level_name](auto const& level) {
+      return level.second.name == level_name;
+    });
+    return it != cend(levels_) ? it->second.count : 0;
+  }
+
+  void level_hierarchy::print() const
+  {
+    for (auto const& str : graph_layout()) {
+      spdlog::info(str);
+    }
+  }
+
+  std::vector<std::string> level_hierarchy::graph_layout() const
+  {
+    if (empty(levels_)) {
+      return {};
+    }
+    auto const b = levels_.begin();
+    std::list<std::pair<std::size_t, level_entry>> ordered_levels{*b};
+    for (auto it = next(b), e = levels_.end(); it != e; ++it) {
+      auto parent_it =
+        find_if(begin(ordered_levels), end(ordered_levels), [&it](auto const& ordered_level) {
+          return it->second.parent_hash == ordered_level.first;
+        });
+
+      auto position = parent_it != end(ordered_levels) ? next(parent_it) : begin(ordered_levels);
+      ordered_levels.insert(position, *it);
+    }
+
+    std::vector<std::string> result;
+    result.reserve(size(ordered_levels));
+    for (auto const& [_, entry] : ordered_levels) {
+      result.push_back(
+        fmt::format("{}{}: {}", indent(entry.depth), maybe_name(entry.name), entry.count));
     }
     return result;
   }
-
-  void level_hierarchy::print(std::ostream& os) const
-  {
-    for (auto const& order : orders_) {
-      print(os, order);
-    }
-  }
-
-  level_order level_hierarchy::add_order(std::vector<std::string> const& levels)
-  {
-    if (empty(levels))
-      return {};
-
-    std::vector<level_order_index> indices;
-    indices.reserve(size(levels));
-    for (std::size_t local_parent_index = -1ull; auto const& level : levels) {
-      auto i = index(level);
-      if (i != -1ull) {
-        indices.push_back(i);
-        ++local_parent_index;
-        continue;
-      }
-
-      std::size_t parent_index = local_parent_index;
-      if (local_parent_index != -1ull) {
-        parent_index = index(levels[local_parent_index]);
-      }
-      indices.push_back(size(levels_));
-      levels_.push_back({level, parent_index});
-      ++local_parent_index;
-    }
-    return *orders_.emplace(this, std::move(indices)).first;
-  }
-
-  void level_hierarchy::print(std::ostream& os, level_order const& h) const
-  {
-    os << "[";
-    for (std::string prefix; auto const& name : h.to_strings()) {
-      os << prefix << '"' << name << '"';
-      if (empty(prefix)) {
-        prefix = ", ";
-      }
-    }
-    os << "]\n";
-  }
-
 }

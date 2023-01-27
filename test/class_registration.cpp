@@ -1,5 +1,4 @@
 #include "meld/core/framework_graph.hpp"
-#include "meld/model/level_hierarchy.hpp"
 #include "meld/model/product_store.hpp"
 #include "meld/utilities/debug.hpp"
 
@@ -55,46 +54,44 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   std::tuple const product_names{react_to("number"), react_to("temperature"), react_to("name")};
   std::array const oproduct_names{"onumber"s, "otemperature"s, "oname"s};
 
-  level_hierarchy org;
-  auto factory = org.make_factory({"event"});
-  auto store = factory.make();
+  auto store = product_store::base();
   store->add_product("number", 3);
   store->add_product("temperature", 98.5);
   store->add_product("name", std::string{"John"});
 
   framework_graph g{store};
-  auto a_component = g.make<A>();
+  auto glueball = g.make<A>();
   SECTION("No framework")
   {
-    a_component.declare_transform(&A::no_framework)
+    glueball.declare_transform(&A::no_framework)
       .concurrency(unlimited)
       .input(product_names)
       .output(oproduct_names);
   }
   SECTION("No framework, all references")
   {
-    a_component.declare_transform(&A::no_framework_all_refs)
+    glueball.declare_transform(&A::no_framework_all_refs)
       .concurrency(unlimited)
       .input(product_names)
       .output(oproduct_names);
   }
   SECTION("No framework, all pointers")
   {
-    a_component.declare_transform(&A::no_framework_all_ptrs)
+    glueball.declare_transform(&A::no_framework_all_ptrs)
       .concurrency(unlimited)
       .input(product_names)
       .output(oproduct_names);
   }
   SECTION("One framework argument")
   {
-    a_component.declare_transform(&A::one_framework_arg)
+    glueball.declare_transform(&A::one_framework_arg)
       .concurrency(unlimited)
       .input(product_names)
       .output(oproduct_names);
   }
   SECTION("All framework arguments")
   {
-    a_component.declare_transform(&A::all_framework_args)
+    glueball.declare_transform(&A::all_framework_args)
       .concurrency(unlimited)
       .input(product_names)
       .output(oproduct_names);

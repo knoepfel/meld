@@ -43,8 +43,7 @@ namespace {
 
 TEST_CASE("Call multiple functions", "[programming model]")
 {
-  level_hierarchy org;
-  auto store = org.make_factory().make();
+  auto store = product_store::base();
   store->add_product("numbers", std::vector<unsigned>{0, 1, 2, 3, 4});
   store->add_product("offset", 6u);
   framework_graph g{store};
@@ -65,7 +64,7 @@ TEST_CASE("Call multiple functions", "[programming model]")
       .output("result");
   }
 
-  SECTION("Transforms, one from a component")
+  SECTION("Transforms, one from a class")
   {
     g.declare_transform(square_numbers)
       .concurrency(unlimited)

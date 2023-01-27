@@ -102,7 +102,6 @@ namespace meld {
       if (empty(name)) {
         name = function_name(f);
       }
-      spdlog::info("Transform name: {}", name);
       return incomplete_transform{
         registrar{transforms_, errors_}, nullptr, move(name), graph_, delegate(bound_obj_, f)};
     }

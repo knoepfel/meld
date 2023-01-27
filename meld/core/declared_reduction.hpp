@@ -12,8 +12,8 @@
 #include "meld/core/registrar.hpp"
 #include "meld/core/store_counters.hpp"
 #include "meld/model/handle.hpp"
+#include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
-#include "meld/model/transition.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
@@ -142,7 +142,7 @@ namespace meld {
     }
 
     template <std::size_t Msize>
-    void output(std::array<std::string, Msize> output_keys)
+    auto& output(std::array<std::string, Msize> output_keys)
     {
       static_assert(
         M == Msize,
@@ -158,18 +158,22 @@ namespace meld {
                                                                            std::move(initializer_),
                                                                            move(input_args_),
                                                                            move(product_names_),
-                                                                           move(outputs));
+                                                                           move(outputs),
+                                                                           move(output_level_));
       });
+      return *this;
     }
 
-    void output(std::convertible_to<std::string> auto&&... ts)
+    auto& output(std::convertible_to<std::string> auto&&... ts)
     {
       static_assert(
         M == sizeof...(ts),
         "The number of function parameters is not the same as the number of returned output "
         "objects.");
-      output(std::array<std::string, sizeof...(ts)>{std::forward<decltype(ts)>(ts)...});
+      return output(std::array<std::string, sizeof...(ts)>{std::forward<decltype(ts)>(ts)...});
     }
+
+    void into(std::string const& level_name) { output_level_ = level_name; }
 
   private:
     std::string name_;
@@ -181,6 +185,7 @@ namespace meld {
     InitTuple initializer_;
     InputArgs input_args_;
     std::array<std::string, Nactual> product_names_;
+    std::string output_level_;
     registrar<declared_reductions> reg_;
   };
 
@@ -203,12 +208,14 @@ namespace meld {
                        InitTuple initializer,
                        InputArgs input,
                        std::array<std::string, Nactual> product_names,
-                       std::array<std::string, M> output) :
+                       std::array<std::string, M> output,
+                       std::string output_level) :
       declared_reduction{move(name), move(preceding_filters), move(release_stores)},
       initializer_{std::move(initializer)},
       product_names_{move(product_names)},
       input_{move(input)},
       output_{move(output)},
+      output_level_{move(output_level)},
       join_{make_join_or_none(g, std::make_index_sequence<Nactual>{})},
       reduction_{g,
                  concurrency,
@@ -218,7 +225,7 @@ namespace meld {
                    //      to be propagated to downstream nodes.
                    auto const& msg = most_derived(messages);
                    auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
-                   auto const parent_id = store->id().parent();
+                   auto const parent_id = *store->id()->parent();
 
                    // meld::stage const st{store->is_flush() ? meld::stage::flush : meld::stage::process};
                    // spdlog::debug("Reduction {} received {} from {} ({}, original message {})",
@@ -233,11 +240,11 @@ namespace meld {
                      return;
                    }
                    if (store->is_flush()) {
-                     counter.set_flush_value(store->id(), original_message_id);
+                     counter.set_flush_value(*store->id(), original_message_id);
                    }
                    else {
                      // FIXME: Check re. depth?
-                     depth_ = store->id().depth();
+                     depth_ = store->id()->depth();
                      call(ft, messages, std::make_index_sequence<N>{});
                      counter.increment();
                    }
@@ -284,7 +291,7 @@ namespace meld {
     template <std::size_t... Is>
     void call(function_t const& ft, messages_t<Nactual> const& messages, std::index_sequence<Is...>)
     {
-      auto const parent_id = most_derived(messages).store->id().parent();
+      auto const parent_id = *most_derived(messages).store->id()->parent();
       // FIXME: Not the safest approach!
       auto it = results_.find(parent_id);
       if (it == results_.end()) {
@@ -307,7 +314,7 @@ namespace meld {
 
     void commit_(product_store& store)
     {
-      auto& result = results_.at(store.id());
+      auto& result = results_.at(*store.id());
       if constexpr (requires { result->send(); }) {
         store.add_product(output()[0], result->send());
       }
@@ -325,6 +332,7 @@ namespace meld {
     std::array<std::string, Nactual> product_names_;
     InputArgs input_;
     std::array<std::string, M> output_;
+    std::string output_level_;
     join_or_none_t<Nactual> join_;
     tbb::flow::multifunction_node<messages_t<Nactual>, messages_t<1>> reduction_;
     tbb::concurrent_unordered_map<level_id, std::unique_ptr<R>> results_;

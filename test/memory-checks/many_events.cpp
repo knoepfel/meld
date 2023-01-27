@@ -1,5 +1,4 @@
 #include "meld/core/framework_graph.hpp"
-#include "meld/model/level_hierarchy.hpp"
 #include "meld/model/product_store.hpp"
 #include "test/products_for_output.hpp"
 
@@ -12,21 +11,19 @@ namespace {
 
 int main()
 {
-  level_hierarchy org;
-  auto factory = org.make_factory("event");
   constexpr auto max_events{100'000u};
   //  spdlog::flush_on(spdlog::level::trace);
 
-  framework_graph g{[&factory, i = 0u]() mutable -> product_store_ptr {
+  framework_graph g{[i = 0u]() mutable -> product_store_ptr {
     if (i == max_events + 1) { // + 1 is for initial product store
       return nullptr;
     }
     if (i == 0u) {
       ++i;
-      return factory.make(level_id::base(), "Source");
+      return product_store::base();
     }
 
-    auto store = factory.make(level_id::base().make_child(i), "Source");
+    auto store = product_store::base()->make_child(i, "event", "Source");
     store->add_product("number", i);
     ++i;
     return store;

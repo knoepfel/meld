@@ -1,5 +1,5 @@
 #include "meld/model/level_counter.hpp"
-#include "meld/model/transition.hpp"
+#include "meld/model/level_id.hpp"
 
 #include <iostream>
 
@@ -11,7 +11,7 @@ namespace meld {
       return;
     }
     accessor a;
-    if (counter_.insert(a, id.parent().hash())) {
+    if (counter_.insert(a, id.parent()->hash())) {
       a->second = 1;
     }
     else {
@@ -25,14 +25,5 @@ namespace meld {
       return a->second;
     }
     return 0;
-  }
-
-  level_id level_counter::value_as_id(level_id const& id) const { return id.make_child(value(id)); }
-
-  void level_counter::print() const
-  {
-    for (auto const& [id, count] : counter_) {
-      std::cout << id << " (" << count << ")\n";
-    }
   }
 }

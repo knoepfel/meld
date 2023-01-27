@@ -8,7 +8,6 @@
 // =======================================================================================
 
 #include "meld/concurrency.hpp"
-#include "meld/model/level_hierarchy.hpp"
 #include "meld/model/product_store.hpp"
 #include "meld/module.hpp"
 #include "meld/source.hpp"
@@ -26,14 +25,12 @@ namespace {
         return nullptr;
       }
       executed_ = true;
-      auto store = factory_.make();
+      auto store = product_store::base();
       store->add_product("max_parallelism", concurrency::max_allowed_parallelism::active_value());
       return store;
     }
 
   private:
-    level_hierarchy org_{};
-    product_store_factory factory_{org_.make_factory()};
     bool executed_{false};
   };
 

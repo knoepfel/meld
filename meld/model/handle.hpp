@@ -1,72 +1,15 @@
 #ifndef meld_model_handle_hpp
 #define meld_model_handle_hpp
 
-#include "meld/model/transition.hpp"
-#include "meld/utilities/demangle_symbol.hpp"
+#include "meld/model/level_id.hpp"
+#include "meld/model/products.hpp"
 
-#include "oneapi/tbb/concurrent_unordered_map.h"
-
-#include <memory>
 #include <string>
 #include <type_traits>
-#include <typeindex>
-#include <unordered_map>
 #include <utility>
 #include <variant>
 
 namespace meld {
-
-  struct product_base {
-    virtual ~product_base() = default;
-    virtual void const* address() const = 0;
-    virtual std::type_index type() const = 0;
-  };
-
-  template <typename T>
-  struct product : product_base {
-    explicit product(T const& prod) : obj{prod} {}
-    void const* address() const final { return &obj; }
-    virtual std::type_index type() const { return std::type_index{typeid(T)}; }
-    std::remove_cvref_t<T> obj;
-  };
-
-  class products {
-  public:
-    template <typename T>
-    void add(std::string const& key, T&& t)
-    {
-      add(key, std::make_shared<product<std::remove_cvref_t<T>>>(std::forward<T>(t)));
-    }
-
-    template <typename T>
-    void add(std::string const& key, std::shared_ptr<product<T>>&& t)
-    {
-      products_.emplace(key, std::move(t));
-    }
-
-    template <typename T>
-    std::variant<T const*, std::string> get(std::string const& key) const
-    {
-      auto it = products_.find(key);
-      if (it == cend(products_)) {
-        return "No product exists with the key '" + key + "'.";
-      }
-      if (auto t = dynamic_cast<product<T> const*>(it->second.get())) {
-        return &t->obj;
-      }
-      return "Cannot get product '" + key + "' with type '" + demangle_symbol(typeid(T)) + "'.";
-    }
-
-    bool contains(std::string const& product_name) const
-    {
-      return products_.contains(product_name);
-    }
-    auto begin() const noexcept { return products_.begin(); }
-    auto end() const noexcept { return products_.end(); }
-
-  private:
-    std::unordered_map<std::string, std::shared_ptr<product_base>> products_;
-  };
 
   namespace detail {
     template <typename T>

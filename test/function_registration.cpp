@@ -1,6 +1,5 @@
 #include "meld/core/framework_graph.hpp"
 #include "meld/metaprogramming/to_array.hpp"
-#include "meld/model/level_hierarchy.hpp"
 #include "meld/model/product_store.hpp"
 
 #include "catch2/catch.hpp"
@@ -54,9 +53,7 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   std::array const oproduct_names = {"number"s, "temperature"s, "name"s};
   std::array const result{"result"s};
 
-  level_hierarchy org;
-  auto factory = org.make_factory();
-  auto store = factory.make();
+  auto store = product_store::base();
   store->add_product("number", 3);
   store->add_product("temperature", 98.5);
   store->add_product("name", std::string{"John"});

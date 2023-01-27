@@ -10,8 +10,9 @@
 // ===================================================================
 
 #include "meld/core/cached_product_stores.hpp"
-#include "meld/model/level_hierarchy.hpp"
-#include "meld/model/transition.hpp"
+#include "meld/model/level_id.hpp"
+
+#include <cassert>
 
 namespace test {
   inline constexpr std::size_t n_runs{1};
@@ -28,51 +29,48 @@ namespace test {
     {
       using namespace meld;
 
-      meld::level_id const job_id{};
-      transitions_.emplace_back(level_id{}, stage::process);
+      auto const job_id = level_id::base_ptr();
+      levels_.push_back(job_id);
       for (std::size_t i = 0; i != n_runs; ++i) {
-        auto const run_id = job_id.make_child(i);
-        transitions_.emplace_back(run_id, stage::process);
+        auto const run_id = job_id->make_child(i, "run");
+        levels_.push_back(run_id);
         for (std::size_t j = 0; j != n_subruns; ++j) {
-          auto const subrun_id = run_id.make_child(j);
-          transitions_.emplace_back(subrun_id, stage::process);
+          auto const subrun_id = run_id->make_child(j, "subrun");
+          levels_.push_back(subrun_id);
           for (std::size_t k = 0; k != n_events; ++k) {
-            auto event_id = subrun_id.make_child(k);
-            transitions_.emplace_back(event_id, stage::process);
+            auto event_id = subrun_id->make_child(k, "event");
+            levels_.push_back(event_id);
           }
         }
       }
-      current_ = begin(transitions_);
+      current_ = begin(levels_);
+      assert(size(levels_) == 1 + n_runs * (1 + n_subruns * (1 + n_events)));
     }
 
     meld::product_store_ptr next()
     {
-      if (current_ == end(transitions_)) {
+      if (current_ == end(levels_)) {
         return nullptr;
       }
-      auto const& [id, stage] = *current_++;
+      auto const& id = *current_++;
 
-      auto store = stores_.get_empty_store(id, stage);
-      if (store->is_flush()) {
-        return store;
+      auto store = cached_stores_.get_store(id);
+      if (store->id()->depth() == 1ull) {
+        store->add_product<int>("number", 2 * store->id()->back());
       }
-      if (store->id().depth() == 1ull) {
-        store->add_product<int>("number", 2 * store->id().back());
+      if (store->id()->depth() == 2ull) {
+        store->add_product<int>("another", 3 * store->id()->back());
       }
-      if (store->id().depth() == 2ull) {
-        store->add_product<int>("another", 3 * store->id().back());
-      }
-      if (store->id().depth() == 3ull) {
-        store->add_product<int>("still", 4 * store->id().back());
+      if (store->id()->depth() == 3ull) {
+        store->add_product<int>("still", 4 * store->id()->back());
       }
       return store;
     }
 
   private:
-    std::vector<meld::transition> transitions_;
-    meld::level_hierarchy org_;
-    meld::cached_product_stores stores_{org_.make_factory({"run", "subrun", "event"})};
-    decltype(transitions_)::iterator current_;
+    std::vector<meld::level_id_ptr> levels_;
+    meld::cached_product_stores cached_stores_{};
+    decltype(levels_)::iterator current_;
   };
 }
 

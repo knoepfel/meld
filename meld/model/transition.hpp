@@ -9,9 +9,6 @@
 #include <vector>
 
 namespace meld {
-  transitions transitions_between(level_id begin, level_id const& end, level_counter& counter);
-  transitions transitions_for(std::vector<level_id> const& ids);
-
   std::string to_string(stage);
   std::ostream& operator<<(std::ostream& os, transition const& t);
 }

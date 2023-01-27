@@ -13,10 +13,12 @@ namespace {
 }
 
 namespace meld {
-  level_sentry::level_sentry(std::queue<product_store_ptr>& pending_stores,
+  level_sentry::level_sentry(level_hierarchy& hierarchy,
+                             std::queue<product_store_ptr>& pending_stores,
                              product_store_ptr store) :
-    pending_stores_{pending_stores}, store_{move(store)}
+    hierarchy_{hierarchy}, pending_stores_{pending_stores}, store_{move(store)}
   {
+    hierarchy_.update(store_->id());
     if (id().has_parent()) {
       counter.record_parent(id());
     }
@@ -25,10 +27,13 @@ namespace meld {
 
   level_sentry::~level_sentry()
   {
-    pending_stores_.push(store_->make_flush(counter.value_as_id(id())));
+    auto results = hierarchy_.complete(store_->id());
+    auto flush_store = store_->make_flush(store_->id()->make_child(counter.value(id()), "flush"));
+    flush_store->add_product("[flush]", results);
+    pending_stores_.push(move(flush_store));
   }
 
-  level_id const& level_sentry::id() const { return store_->id(); }
+  level_id const& level_sentry::id() const { return *store_->id(); }
 
   framework_graph::framework_graph(product_store_ptr store, int const max_parallelism) :
     framework_graph{[store]() mutable {
@@ -80,6 +85,7 @@ namespace meld {
   {
     finalize(dot_file_name);
     run();
+    hierarchy_.print();
   }
 
   void framework_graph::run()
@@ -147,11 +153,11 @@ namespace meld {
   void framework_graph::accept(product_store_ptr store)
   {
     assert(store);
-    auto const new_depth = store->id().depth();
+    auto const new_depth = store->id()->depth();
     while (not empty(levels_) and new_depth <= levels_.top()->id().depth()) {
       levels_.pop();
     }
-    levels_.push(std::make_unique<level_sentry>(pending_stores_, move(store)));
+    levels_.push(std::make_unique<level_sentry>(hierarchy_, pending_stores_, move(store)));
   }
 
   void framework_graph::drain()
@@ -177,11 +183,11 @@ namespace meld {
     assert(store->is_flush());
 
     auto const& id = store->id();
-    if (not id.has_parent()) {
+    if (not id->has_parent()) {
       return 1;
     }
 
-    auto h = original_message_ids_.extract(id.parent());
+    auto h = original_message_ids_.extract(id->parent());
     assert(h);
     return h.mapped();
   }

@@ -13,8 +13,10 @@ namespace meld {
   bool store_flag::is_flush(level_id const* id) noexcept
   {
     if (id) {
-      spdlog::trace(
-        " ===> Checking {}: Processed {}  Flush received {}", *id, processed_, flush_received_);
+      spdlog::info(" ===> Checking {}: Processed {}  Flush received {}",
+                   id->to_string(),
+                   processed_,
+                   flush_received_);
     }
     return processed_ and flush_received_;
   }
@@ -51,7 +53,8 @@ namespace meld {
   bool store_counter::is_flush(level_id const* id) noexcept
   {
     if (id) {
-      spdlog::trace(" ===> Checking {}: Count {}  Stop after {}", *id, count_, stop_after_);
+      spdlog::info(
+        " ===> Checking {}: Count {}  Stop after {}", id->to_string(), count_, stop_after_);
     }
     auto stop_after = stop_after_.load();
     return count_.compare_exchange_strong(stop_after, -2u);

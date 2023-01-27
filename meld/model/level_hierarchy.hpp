@@ -2,7 +2,7 @@
 #define meld_model_level_hierarchy_hpp
 
 #include "meld/model/fwd.hpp"
-#include "meld/model/product_store_factory.hpp"
+#include "meld/model/level_counter.hpp"
 
 #include <concepts>
 #include <iosfwd>
@@ -14,30 +14,27 @@ namespace meld {
 
   class level_hierarchy {
   public:
-    product_store_factory make_factory(std::vector<std::string> level_names);
-    product_store_factory make_factory(std::convertible_to<std::string> auto&&... level_names)
-    {
-      return make_factory({std::forward<decltype(level_names)>(level_names)...});
-    }
+    void update(level_id_ptr const& id);
+    flush_counts complete(level_id_ptr const& id);
 
-    std::size_t index(std::string const& name) const;
-    std::string const& level_name(std::size_t const name_index) const;
+    std::size_t count_for(std::string const& level_name) const;
+    auto const& all_counts() const { return levels_; }
 
-    std::vector<std::vector<std::string>> orders() const;
-
-    void print(std::ostream& os) const;
+    void print() const;
 
   private:
-    level_order add_order(std::vector<std::string> const& levels);
-    void print(std::ostream& os, level_order const& h) const;
+    std::vector<std::string> graph_layout() const;
 
     struct level_entry {
       std::string name;
-      std::size_t parent_id;
+      std::size_t parent_hash;
+      std::size_t depth;
+      std::size_t count;
     };
 
-    std::vector<level_entry> levels_;
-    std::set<level_order> orders_;
+    // FIXME: Doesn't support levels with the same names but different parents.
+    std::map<std::size_t, level_entry> levels_;
+    std::map<level_id::hash_type, std::shared_ptr<level_counter_v2>> counters_;
   };
 
 }
