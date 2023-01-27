@@ -68,7 +68,7 @@ namespace meld {
                       std::string name,
                       tbb::flow::graph& g,
                       function_t f) :
-      common_node_options_t{this, config},
+      common_node_options_t{config},
       name_{move(name)},
       graph_{g},
       ft_{move(f)},

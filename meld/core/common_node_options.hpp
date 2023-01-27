@@ -41,7 +41,7 @@ namespace meld {
       if (!store_names_) {
         store_names_ = move(store_names);
       }
-      return *t_;
+      return self();
     }
 
     T& when_in(std::convertible_to<std::string> auto&&... store_names)
@@ -54,7 +54,7 @@ namespace meld {
       if (!concurrency_) {
         concurrency_ = n;
       }
-      return *t_;
+      return self();
     }
 
     T& filtered_by(std::vector<std::string> preceding_filters)
@@ -62,7 +62,7 @@ namespace meld {
       if (!preceding_filters_) {
         preceding_filters_ = move(preceding_filters);
       }
-      return *t_;
+      return self();
     }
 
     T& filtered_by(std::convertible_to<std::string> auto&&... names)
@@ -80,11 +80,11 @@ namespace meld {
       static_assert(T::N == sizeof...(ts),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      return t_->input(std::make_tuple(std::forward<decltype(ts)>(ts)...));
+      return self().input(std::make_tuple(std::forward<decltype(ts)>(ts)...));
     }
 
   protected:
-    explicit common_node_options(T* t, configuration const* config) : t_{t}
+    explicit common_node_options(configuration const* config)
     {
       if (!config) {
         return;
@@ -109,7 +109,7 @@ namespace meld {
     std::size_t concurrency() const noexcept { return concurrency_.value_or(concurrency::serial); }
 
   private:
-    T* t_;
+    auto& self() { return *static_cast<T*>(this); }
     std::optional<std::vector<std::string>> store_names_{};
     std::optional<std::vector<std::string>> preceding_filters_{};
     std::optional<size_t> concurrency_{};

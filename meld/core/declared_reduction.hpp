@@ -71,7 +71,7 @@ namespace meld {
                          tbb::flow::graph& g,
                          function_t f,
                          InitTuple initializer) :
-      common_node_options_t{this, config},
+      common_node_options_t{config},
       reg_{std::move(reg)},
       name_{move(name)},
       graph_{g},
