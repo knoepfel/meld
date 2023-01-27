@@ -2,6 +2,7 @@
 
 #include "meld/concurrency.hpp"
 #include "meld/core/edge_maker.hpp"
+#include "meld/model/level_counter.hpp"
 #include "meld/model/product_store.hpp"
 
 #include "spdlog/cfg/env.h"

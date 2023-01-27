@@ -1,4 +1,5 @@
 #include "meld/model/transition.hpp"
+#include "meld/model/level_counter.hpp"
 #include "test/transition_specs.hpp"
 
 #include "catch2/catch.hpp"

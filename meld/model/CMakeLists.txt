@@ -1,5 +1,7 @@
 add_library(meld_model SHARED
+  level_counter.cpp
   level_hierarchy.cpp
+  level_id.cpp
   level_order.cpp
   product_store.cpp
   product_store_factory.cpp
