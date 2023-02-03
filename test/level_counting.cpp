@@ -6,17 +6,16 @@
 #include "catch2/catch.hpp"
 
 using namespace meld;
-using counter = level_counter_v2;
 
 TEST_CASE("Counter with nothing processed", "[data model]")
 {
-  counter job_counter{};
+  level_counter job_counter{};
   CHECK(job_counter.result().empty());
 }
 
 TEST_CASE("Counter one layer deep", "[data model]")
 {
-  counter job_counter{};
+  level_counter job_counter{};
   for (std::size_t i = 0; i != 10; ++i) {
     job_counter.make_child("event");
   }
@@ -44,7 +43,6 @@ TEST_CASE("Counter multiple layers deep", "[data model]")
     CHECK(h.count_for("event") == processed_events);
   };
 
-  // counter job_counter{};
   auto job_store = product_store::base();
   h.update(job_store->id());
   for (std::size_t i = 0; i != nruns; ++i) {

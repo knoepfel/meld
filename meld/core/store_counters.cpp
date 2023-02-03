@@ -1,4 +1,5 @@
 #include "meld/core/store_counters.hpp"
+#include "meld/model/level_counter.hpp"
 
 #include "spdlog/spdlog.h"
 
@@ -42,9 +43,20 @@ namespace meld {
 
   // =====================================================================================
 
-  void store_counter::set_flush_value(level_id const& id, std::size_t const original_message_id)
+  void store_counter::set_flush_value(product_store_const_ptr const& store,
+                                      std::size_t const original_message_id)
   {
-    stop_after_ = id.back();
+    auto const& id = *store->id();
+    auto const& counts = store->get_product<flush_counts>("[flush]");
+    if (counts.empty()) {
+      // FIXME: This is poor man's way of making sure we're not setting a flush value
+      // based on the lowest processing level.  This will eventually be replaced by a
+      // check that the flush store corresponds to the level over which the reduction is
+      // being calculated.
+      return;
+    }
+
+    stop_after_ = counts.count_for(id.parent()->level_name());
     original_message_id_ = original_message_id;
   }
 

@@ -136,7 +136,7 @@ namespace meld {
                 filter_result result{};
                 if (store->is_flush()) {
                   flag_accessor ca;
-                  flag_for(store->id()->parent()->hash(), ca).flush_received(message_id);
+                  flag_for(store->id()->hash(), ca).flush_received(message_id);
                 }
                 else if (const_accessor a; results_.find(a, store->id()->hash())) {
                   result = {message_id, a->second.result};
@@ -148,8 +148,7 @@ namespace meld {
                   flag_for(store->id()->hash(), ca).mark_as_processed();
                 }
 
-                auto const id_hash =
-                  store->is_flush() ? store->id()->parent()->hash() : store->id()->hash();
+                auto const id_hash = store->id()->hash();
                 if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_flush()) {
                   results_.erase(id_hash);
                   erase_flag(ca);

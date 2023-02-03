@@ -7,11 +7,6 @@
 
 #include "spdlog/cfg/env.h"
 
-namespace {
-  meld::level_counter counter;
-
-}
-
 namespace meld {
   level_sentry::level_sentry(level_hierarchy& hierarchy,
                              std::queue<product_store_ptr>& pending_stores,
@@ -19,17 +14,13 @@ namespace meld {
     hierarchy_{hierarchy}, pending_stores_{pending_stores}, store_{move(store)}
   {
     hierarchy_.update(store_->id());
-    if (id().has_parent()) {
-      counter.record_parent(id());
-    }
     pending_stores_.push(store_);
   }
 
   level_sentry::~level_sentry()
   {
-    auto results = hierarchy_.complete(store_->id());
-    auto flush_store = store_->make_flush(store_->id()->make_child(counter.value(id()), "flush"));
-    flush_store->add_product("[flush]", results);
+    auto flush_store = store_->make_flush(store_->id());
+    flush_store->add_product("[flush]", hierarchy_.complete(store_->id()));
     pending_stores_.push(move(flush_store));
   }
 
@@ -182,12 +173,7 @@ namespace meld {
     assert(store);
     assert(store->is_flush());
 
-    auto const& id = store->id();
-    if (not id->has_parent()) {
-      return 1;
-    }
-
-    auto h = original_message_ids_.extract(id->parent());
+    auto h = original_message_ids_.extract(store->id());
     assert(h);
     return h.mapped();
   }

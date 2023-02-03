@@ -3,6 +3,7 @@
 
 #include "meld/core/fwd.hpp"
 #include "meld/model/level_id.hpp"
+#include "meld/model/product_store.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 
@@ -40,7 +41,7 @@ namespace meld {
 
   class store_counter {
   public:
-    void set_flush_value(level_id const& id, std::size_t original_message_id);
+    void set_flush_value(product_store_const_ptr const& ptr, std::size_t original_message_id);
     void increment() noexcept;
     bool is_flush(level_id const* id = nullptr) noexcept;
     unsigned int original_message_id() const noexcept;

@@ -213,7 +213,7 @@ namespace meld {
                    auto& [stay_in_graph, to_output] = output;
                    if (store->is_flush()) {
                      flag_accessor fa;
-                     flag_for(store->id()->parent()->hash(), fa).flush_received(msg.original_id);
+                     flag_for(store->id()->hash(), fa).flush_received(msg.original_id);
                      // spdlog::debug("Transform {} sending flush message {}/{}", this->name(), message_id, msg.original_id);
                      stay_in_graph.try_put(msg);
                    }
@@ -229,8 +229,7 @@ namespace meld {
                      flag_accessor fa;
                      flag_for(store->id()->hash(), fa).mark_as_processed();
                    }
-                   auto const& id = store->is_flush() ? store->id()->parent() : store->id();
-                   auto const id_hash = id->hash();
+                   auto const id_hash = store->id()->hash();
                    if (const_flag_accessor fa; flag_for(id_hash, fa) && fa->second->is_flush()) {
                      stores_.erase(id_hash);
                      erase_flag(fa);

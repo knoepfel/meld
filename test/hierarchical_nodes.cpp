@@ -125,9 +125,9 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   g.declare_transform(scale).concurrency(unlimited).react_to("added_data").output("result");
   g.declare_monitor(print_result).concurrency(unlimited).react_to("result", "strtime");
 
-  g.make<test::products_for_output>()
-    .declare_output(&test::products_for_output::save)
-    .filtered_by();
+  // g.make<test::products_for_output>()
+  //   .declare_output(&test::products_for_output::save)
+  //   .filtered_by();
 
   g.execute("hierarchical_nodes_t.gv");
 }

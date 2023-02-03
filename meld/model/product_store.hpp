@@ -15,6 +15,19 @@
 
 namespace meld {
 
+  template <typename T>
+  struct is_shared_pointer_impl : std::false_type {};
+
+  template <typename T>
+  struct is_shared_pointer_impl<std::shared_ptr<T>> : std::true_type {};
+
+  template <typename T>
+  concept is_shared_pointer = is_shared_pointer_impl<T>::value;
+
+  template <typename T>
+  concept is_not_shared_pointer = !
+  is_shared_pointer<T>;
+
   // template <typename T>
   // struct labeled_data {
   //   std::string label;
@@ -41,6 +54,7 @@ namespace meld {
     ptr make_parent(std::string_view source) const;
     ptr make_parent(std::string const& level_name, std::string_view source) const;
     ptr make_continuation(std::string_view source) const;
+    ptr make_continuation(level_id_ptr id, std::string_view source) const;
     ptr make_child(std::size_t new_level_number,
                    std::string const& new_level_name,
                    std::string_view source,
@@ -66,7 +80,7 @@ namespace meld {
     void add_product(std::string const& key, T const& t);
 
     template <typename T>
-    void add_product(std::string const& key, std::shared_ptr<T>&& t);
+    void add_product(std::string const& key, std::shared_ptr<product<T>>&& t);
 
     // template <typename T>
     // void add_product(labeled_data<T>&& data);
@@ -149,7 +163,7 @@ namespace meld {
   }
 
   template <typename T>
-  void product_store::add_product(std::string const& key, std::shared_ptr<T>&& t)
+  void product_store::add_product(std::string const& key, std::shared_ptr<product<T>>&& t)
   {
     products_.add(key, move(t));
   }

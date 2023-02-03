@@ -54,6 +54,7 @@ namespace meld {
     tbb::flow::broadcast_node<message>& to_output_;
     std::atomic<std::size_t>& counter_;
     std::atomic<std::size_t> calls_{};
+    std::map<std::string, std::size_t> child_counts_;
     std::size_t const original_message_id_{counter_};
   };
 
@@ -220,7 +221,7 @@ namespace meld {
           auto const& store = msg.store;
           if (store->is_flush()) {
             flag_accessor ca;
-            flag_for(store->id()->parent()->hash(), ca).flush_received(msg.id);
+            flag_for(store->id()->hash(), ca).flush_received(msg.id);
           }
           else if (accessor a; stores_.insert(a, store->id()->hash())) {
             generator g{msg.store, this->name(), multiplexer_, to_output_, counter_};
@@ -231,8 +232,7 @@ namespace meld {
             flag_for(store->id()->hash(), ca).mark_as_processed();
           }
 
-          auto const id_hash =
-            store->is_flush() ? store->id()->parent()->hash() : store->id()->hash();
+          auto const id_hash = store->id()->hash();
           if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_flush()) {
             stores_.erase(id_hash);
             erase_flag(ca);

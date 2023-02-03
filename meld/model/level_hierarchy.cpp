@@ -28,11 +28,11 @@ namespace meld {
       levels_[id->level_hash()] = {id->level_name(), parent_hash, id->depth()};
     }
 
-    level_counter_v2* parent_counter = nullptr;
+    level_counter* parent_counter = nullptr;
     if (auto parent = id->parent()) {
       parent_counter = counters_.at(parent->hash()).get();
     }
-    counters_[id->hash()] = std::make_shared<level_counter_v2>(parent_counter, id->level_name());
+    counters_[id->hash()] = std::make_shared<level_counter>(parent_counter, id->level_name());
   }
 
   flush_counts level_hierarchy::complete(level_id_ptr const& id)

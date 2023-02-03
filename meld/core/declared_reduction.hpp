@@ -225,42 +225,35 @@ namespace meld {
                    //      to be propagated to downstream nodes.
                    auto const& msg = most_derived(messages);
                    auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
-                   auto const parent_id = *store->id()->parent();
 
-                   // meld::stage const st{store->is_flush() ? meld::stage::flush : meld::stage::process};
-                   // spdlog::debug("Reduction {} received {} from {} ({}, original message {})",
-                   //               this->name(),
-                   //               store->id(),
-                   //               store->source(),
-                   //               to_string(st),
-                   //               original_message_id);
-                   counter_accessor ca;
-                   auto& counter = counter_for(parent_id.hash(), ca);
-                   if (depth_ != -1ull and parent_id.depth() != depth_ - 1) {
-                     return;
+                   if (depth_ != -1ull) {
+                     if (store->is_flush() and store->id()->depth() != depth_ - 1) {
+                       return;
+                     }
+                     if (store->id()->depth() != depth_) {
+                       return;
+                     }
                    }
+
+                   counter_accessor ca;
+                   auto const& id = store->is_flush() ? store->id() : store->id()->parent();
+                   auto& counter = counter_for(id->hash(), ca);
                    if (store->is_flush()) {
-                     counter.set_flush_value(*store->id(), original_message_id);
+                     counter.set_flush_value(store, original_message_id);
                    }
                    else {
                      // FIXME: Check re. depth?
-                     depth_ = store->id()->depth();
+                     depth_ = id->depth();
                      call(ft, messages, std::make_index_sequence<N>{});
                      counter.increment();
                    }
                    ca.release();
 
-                   if (parent_id.depth() != depth_ - 1)
-                     return;
-
                    const_counter_accessor cca;
-                   // spdlog::trace(" => Counter for {} ", parent_id);
-                   bool const has_counter = counter_for(parent_id.hash(), cca);
-                   if (has_counter && cca->second->is_flush(/*&parent_id*/)) {
-                     // spdlog::trace(" -> Flushing for {}", parent_id);
-                     auto parent = store->make_parent(this->name());
+                   bool const has_counter = counter_for(id->hash(), cca);
+                   if (has_counter && cca->second->is_flush()) {
+                     auto parent = store->make_continuation(id, this->name());
                      commit_(*parent);
-                     // spdlog::trace(" -> Sending message ID {}", counter.original_message_id());
                      get<0>(outputs).try_put({parent, counter.original_message_id()});
                      erase_counter(cca);
                    }

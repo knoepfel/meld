@@ -1,5 +1,6 @@
 #include "meld/core/declared_splitter.hpp"
 #include "meld/model/handle.hpp"
+#include "meld/model/level_counter.hpp"
 
 namespace meld {
 
@@ -20,6 +21,7 @@ namespace meld {
                              std::string const& new_level_name,
                              products new_products)
   {
+    ++child_counts_[new_level_name];
     ++counter_;
     ++calls_;
     message const msg{parent_->make_child(i, node_name_, new_level_name, std::move(new_products)),
@@ -31,9 +33,10 @@ namespace meld {
   message generator::flush_message()
   {
     auto const message_id = ++counter_;
-    return {parent_->make_child(calls_, node_name_, "flush", stage::flush),
-            message_id,
-            original_message_id_};
+    auto flush_store = parent_->make_child(calls_, node_name_, "flush", stage::flush);
+    flush_store->add_product("[flush]",
+                             flush_counts{parent_->id()->level_name(), move(child_counts_)});
+    return {move(flush_store), message_id, original_message_id_};
   }
 
   declared_splitter::declared_splitter(std::string name,

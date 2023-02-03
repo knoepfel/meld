@@ -88,6 +88,11 @@ namespace meld {
     return ptr{new product_store{id_, source, stage::process}};
   }
 
+  product_store_ptr product_store::make_continuation(level_id_ptr id, std::string_view source) const
+  {
+    return ptr{new product_store{move(id), source, stage::process}};
+  }
+
   product_store_ptr product_store::make_child(std::size_t new_level_number,
                                               std::string const& new_level_name,
                                               std::string_view source,

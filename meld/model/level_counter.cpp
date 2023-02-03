@@ -4,26 +4,36 @@
 #include <iostream>
 
 namespace meld {
-  void level_counter::record_parent(level_id const& id)
+
+  flush_counts::flush_counts(std::string const& level_name,
+                             std::map<std::string, std::size_t> const& child_counts) :
+    level_name_{level_name}, child_counts_{child_counts}
   {
-    if (not id.has_parent()) {
-      // No parent to record
-      return;
-    }
-    accessor a;
-    if (counter_.insert(a, id.parent()->hash())) {
-      a->second = 1;
-    }
-    else {
-      ++a->second;
+  }
+
+  level_counter::level_counter(level_counter* parent, std::string level_name) :
+    parent_{parent}, level_name_{move(level_name)}
+  {
+  }
+
+  level_counter::~level_counter()
+  {
+    if (parent_) {
+      parent_->adjust(*this);
     }
   }
 
-  std::size_t level_counter::value(level_id const& id) const
+  level_counter level_counter::make_child(std::string const& level_name)
   {
-    if (accessor a; counter_.find(a, id.hash())) {
-      return a->second;
-    }
-    return 0;
+    return {this, level_name};
   }
+
+  void level_counter::adjust(level_counter& child)
+  {
+    ++child_counts_[child.level_name_];
+    for (auto const& [nested_level_name, count] : child.child_counts_) {
+      child_counts_[nested_level_name] += count;
+    }
+  }
+
 }
