@@ -12,7 +12,7 @@ namespace meld {
   {
   }
 
-  product_store::product_store(product_store_ptr parent,
+  product_store::product_store(product_store_const_ptr parent,
                                std::size_t new_level_number,
                                std::string const& new_level_name,
                                std::string_view source,
@@ -25,7 +25,7 @@ namespace meld {
   {
   }
 
-  product_store::product_store(product_store_ptr parent,
+  product_store::product_store(product_store_const_ptr parent,
                                std::size_t new_level_number,
                                std::string const& new_level_name,
                                std::string_view source,
@@ -37,9 +37,9 @@ namespace meld {
   {
   }
 
-  product_store_ptr product_store::base() { return ptr{new product_store}; }
+  product_store_ptr product_store::base() { return product_store_ptr{new product_store}; }
 
-  product_store_const_ptr product_store::parent(std::string const& level_name) const
+  product_store_const_ptr product_store::parent(std::string const& level_name) const noexcept
   {
     auto store = parent_;
     while (store != nullptr) {
@@ -63,34 +63,19 @@ namespace meld {
     return nullptr;
   }
 
-  product_store_ptr product_store::make_flush(level_id_ptr id) const
+  product_store_ptr product_store::make_flush() const
   {
-    return ptr{new product_store{std::move(id), "[inserted]", stage::flush}};
-  }
-
-  product_store_ptr product_store::make_parent(std::string_view source) const
-  {
-    return ptr{new product_store{id_->parent(), source, stage::process}};
-  }
-
-  product_store_ptr product_store::make_parent(std::string const& level_name,
-                                               std::string_view source) const
-  {
-    auto parent_id = id_->parent(level_name);
-    if (!parent_id) {
-      throw std::runtime_error("Trying to create parent with non-existent level " + level_name);
-    }
-    return ptr{new product_store{parent_id, source, stage::process}};
+    return product_store_ptr{new product_store{id_, "[inserted]", stage::flush}};
   }
 
   product_store_ptr product_store::make_continuation(std::string_view source) const
   {
-    return ptr{new product_store{id_, source, stage::process}};
+    return product_store_ptr{new product_store{id_, source, stage::process}};
   }
 
   product_store_ptr product_store::make_continuation(level_id_ptr id, std::string_view source) const
   {
-    return ptr{new product_store{move(id), source, stage::process}};
+    return product_store_ptr{new product_store{move(id), source, stage::process}};
   }
 
   product_store_ptr product_store::make_child(std::size_t new_level_number,
@@ -98,7 +83,7 @@ namespace meld {
                                               std::string_view source,
                                               products new_products)
   {
-    return ptr{new product_store{
+    return product_store_ptr{new product_store{
       shared_from_this(), new_level_number, new_level_name, source, std::move(new_products)}};
   }
 
@@ -107,13 +92,13 @@ namespace meld {
                                               std::string_view source,
                                               stage processing_stage)
   {
-    return ptr{new product_store{
+    return product_store_ptr{new product_store{
       shared_from_this(), new_level_number, new_level_name, source, processing_stage}};
   }
 
   std::string const& product_store::level_name() const noexcept { return id_->level_name(); }
   std::string_view product_store::source() const noexcept { return source_; }
-  product_store_ptr const& product_store::parent() const noexcept { return parent_; }
+  product_store_const_ptr product_store::parent() const noexcept { return parent_; }
   level_id_ptr const& product_store::id() const noexcept { return id_; }
   bool product_store::is_flush() const noexcept { return stage_ == stage::flush; }
 

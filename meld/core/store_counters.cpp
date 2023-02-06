@@ -47,15 +47,11 @@ namespace meld {
                                       std::size_t const original_message_id)
   {
     auto const& id = *store->id();
-    auto const& counts = store->get_product<flush_counts>("[flush]");
-    if (counts.empty()) {
-      // FIXME: This is poor man's way of making sure we're not setting a flush value
-      // based on the lowest processing level.  This will eventually be replaced by a
-      // check that the flush store corresponds to the level over which the reduction is
-      // being calculated.
+    if (not store->contains_product("[flush]")) {
       return;
     }
 
+    auto const& counts = store->get_product<flush_counts>("[flush]");
     stop_after_ = counts.count_for(id.parent()->level_name());
     original_message_id_ = original_message_id;
   }

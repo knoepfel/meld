@@ -36,12 +36,13 @@ namespace meld {
                  std::queue<product_store_ptr>& pending_stores,
                  product_store_ptr store);
     ~level_sentry();
-    level_id const& id() const;
+    std::size_t depth() const noexcept;
 
   private:
     level_hierarchy& hierarchy_;
     std::queue<product_store_ptr>& pending_stores_;
     product_store_ptr store_;
+    std::size_t depth_;
   };
 
   class framework_graph {
@@ -154,7 +155,7 @@ namespace meld {
     multiplexer multiplexer_;
     std::map<level_id_ptr, std::size_t> original_message_ids_;
     std::queue<product_store_ptr> pending_stores_;
-    std::stack<std::unique_ptr<level_sentry>> levels_;
+    std::stack<level_sentry> levels_;
     std::size_t calls_{};
     bool shutdown_{false};
   };

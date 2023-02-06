@@ -12,42 +12,47 @@
 namespace meld {
   class flush_counts {
   public:
-    flush_counts(std::string const& level_name,
-                 std::map<std::string, std::size_t> const& child_counts);
+    explicit flush_counts(std::string_view level_name);
+    flush_counts(std::string_view level_name, std::map<std::string_view, std::size_t> child_counts);
 
-    std::string const& level_name() const noexcept { return level_name_; }
+    std::string_view level_name() const noexcept { return level_name_; }
 
     auto begin() const { return child_counts_.begin(); }
     auto end() const { return child_counts_.end(); }
     bool empty() const { return child_counts_.empty(); }
     auto size() const { return child_counts_.size(); }
 
-    std::size_t count_for(std::string const& level_name) const
+    std::size_t count_for(std::string_view level_name) const
     {
       return child_counts_.at(level_name);
     }
 
   private:
-    std::string level_name_;
-    std::map<std::string, std::size_t> child_counts_{};
+    std::string_view level_name_;
+    std::map<std::string_view, std::size_t> child_counts_{};
   };
 
   class level_counter {
   public:
-    level_counter(level_counter* parent = nullptr, std::string level_name = "(root)");
+    level_counter(level_counter* parent = nullptr, std::string_view level_name = "(root)");
     ~level_counter();
 
-    level_counter make_child(std::string const& level_name);
-    flush_counts result() const { return {level_name_, child_counts_}; }
+    level_counter make_child(std::string_view level_name);
+    flush_counts result() const
+    {
+      if (empty(child_counts_)) {
+        return flush_counts{level_name_};
+      }
+      return {level_name_, child_counts_};
+    }
 
   private:
     void adjust(level_counter& child);
 
     level_counter* parent_;
-    std::string level_name_;
-    std::map<std::string, std::size_t> child_counts_{};
+    std::string_view level_name_;
+    std::map<std::string_view, std::size_t> child_counts_{};
   };
-
 }
 
 #endif /* meld_model_level_counter_hpp */

@@ -5,7 +5,7 @@ using namespace meld;
 using namespace meld::concurrency;
 
 namespace {
-  int last_index(level_id const& id) { return static_cast<int>(id.back()); }
+  int last_index(level_id const& id) { return static_cast<int>(id.number()); }
 }
 
 DEFINE_MODULE(m, config)

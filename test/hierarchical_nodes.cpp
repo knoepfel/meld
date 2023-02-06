@@ -98,14 +98,13 @@ TEST_CASE("Hierarchical nodes", "[graph]")
       return nullptr;
     }
     auto const& id = *it++;
-
     auto store = cached_stores.get_store(id, stage::process);
 
-    if (id->depth() == 1ull) {
+    if (id->level_name() == "run") {
       store->add_product<std::time_t>("time", std::time(nullptr));
     }
-    if (id->depth() == 2ull) {
-      store->add_product<unsigned>("number", id->back() + id->parent()->back());
+    if (id->level_name() == "event") {
+      store->add_product<unsigned>("number", id->number() + id->parent()->number());
     }
     return store;
   }};
@@ -125,9 +124,9 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   g.declare_transform(scale).concurrency(unlimited).react_to("added_data").output("result");
   g.declare_monitor(print_result).concurrency(unlimited).react_to("result", "strtime");
 
-  // g.make<test::products_for_output>()
-  //   .declare_output(&test::products_for_output::save)
-  //   .filtered_by();
+  g.make<test::products_for_output>()
+    .declare_output(&test::products_for_output::save)
+    .filtered_by();
 
   g.execute("hierarchical_nodes_t.gv");
 }

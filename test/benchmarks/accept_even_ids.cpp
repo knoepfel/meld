@@ -6,7 +6,7 @@
 using namespace meld::concurrency;
 
 namespace {
-  bool accept_even_ids(meld::level_id const& id) { return id.back() % 2 == 0; }
+  bool accept_even_ids(meld::level_id const& id) { return id.number() % 2 == 0; }
 }
 
 DEFINE_MODULE(m, config)

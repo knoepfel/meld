@@ -11,7 +11,10 @@ namespace meld {
   level_sentry::level_sentry(level_hierarchy& hierarchy,
                              std::queue<product_store_ptr>& pending_stores,
                              product_store_ptr store) :
-    hierarchy_{hierarchy}, pending_stores_{pending_stores}, store_{move(store)}
+    hierarchy_{hierarchy},
+    pending_stores_{pending_stores},
+    store_{move(store)},
+    depth_{store_->id()->depth()}
   {
     hierarchy_.update(store_->id());
     pending_stores_.push(store_);
@@ -19,12 +22,15 @@ namespace meld {
 
   level_sentry::~level_sentry()
   {
-    auto flush_store = store_->make_flush(store_->id());
-    flush_store->add_product("[flush]", hierarchy_.complete(store_->id()));
+    auto flush_store = store_->make_flush();
+    auto flush_result = hierarchy_.complete(store_->id());
+    if (not flush_result.empty()) {
+      flush_store->add_product("[flush]", std::move(flush_result));
+    }
     pending_stores_.push(move(flush_store));
   }
 
-  level_id const& level_sentry::id() const { return *store_->id(); }
+  std::size_t level_sentry::depth() const noexcept { return depth_; }
 
   framework_graph::framework_graph(product_store_ptr store, int const max_parallelism) :
     framework_graph{[store]() mutable {
@@ -145,10 +151,10 @@ namespace meld {
   {
     assert(store);
     auto const new_depth = store->id()->depth();
-    while (not empty(levels_) and new_depth <= levels_.top()->id().depth()) {
+    while (not empty(levels_) and new_depth <= levels_.top().depth()) {
       levels_.pop();
     }
-    levels_.push(std::make_unique<level_sentry>(hierarchy_, pending_stores_, move(store)));
+    levels_.emplace(hierarchy_, pending_stores_, move(store));
   }
 
   void framework_graph::drain()

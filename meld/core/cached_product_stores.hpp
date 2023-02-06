@@ -22,7 +22,7 @@ namespace meld {
         return new_store(product_store::base());
       }
       return new_store(
-        get_store(id->parent())->make_child(id->back(), "", source_name_, processing_stage));
+        get_store(id->parent())->make_child(id->number(), "", source_name_, processing_stage));
     }
 
   private:

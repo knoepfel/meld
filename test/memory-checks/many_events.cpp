@@ -12,7 +12,8 @@ namespace {
 int main()
 {
   constexpr auto max_events{100'000u};
-  //  spdlog::flush_on(spdlog::level::trace);
+  // constexpr auto max_events{1'000'000u};
+  // spdlog::flush_on(spdlog::level::trace);
 
   framework_graph g{[i = 0u]() mutable -> product_store_ptr {
     if (i == max_events + 1) { // + 1 is for initial product store

@@ -1,17 +1,16 @@
 #include "meld/model/level_counter.hpp"
-#include "meld/model/level_id.hpp"
-
-#include <iostream>
 
 namespace meld {
 
-  flush_counts::flush_counts(std::string const& level_name,
-                             std::map<std::string, std::size_t> const& child_counts) :
-    level_name_{level_name}, child_counts_{child_counts}
+  flush_counts::flush_counts(std::string_view level_name) : level_name_{level_name} {}
+
+  flush_counts::flush_counts(std::string_view level_name,
+                             std::map<std::string_view, std::size_t> child_counts) :
+    level_name_{level_name}, child_counts_{move(child_counts)}
   {
   }
 
-  level_counter::level_counter(level_counter* parent, std::string level_name) :
+  level_counter::level_counter(level_counter* parent, std::string_view level_name) :
     parent_{parent}, level_name_{move(level_name)}
   {
   }
@@ -23,7 +22,7 @@ namespace meld {
     }
   }
 
-  level_counter level_counter::make_child(std::string const& level_name)
+  level_counter level_counter::make_child(std::string_view level_name)
   {
     return {this, level_name};
   }

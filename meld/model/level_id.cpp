@@ -1,6 +1,7 @@
 #include "meld/model/level_id.hpp"
 
 #include "boost/algorithm/string.hpp"
+#include "fmt/ranges.h"
 
 #include <algorithm>
 #include <iostream>
@@ -27,7 +28,7 @@ namespace {
     auto const* current = &id;
     std::vector<std::size_t> result(id.depth());
     for (std::size_t i = id.depth(); i > 0; --i) {
-      result[i - 1] = current->back();
+      result[i - 1] = current->number();
       current = current->parent().get();
     }
     return result;
@@ -69,7 +70,7 @@ namespace meld {
 
   bool level_id::has_parent() const noexcept { return static_cast<bool>(parent_); }
 
-  std::size_t level_id::back() const { return number_; }
+  std::size_t level_id::number() const { return number_; }
   std::size_t level_id::hash() const noexcept { return hash_; }
   std::size_t level_id::level_hash() const noexcept { return level_hash_; }
 
@@ -117,27 +118,13 @@ namespace meld {
 
   level_id_ptr operator"" _id(char const* c_str, std::size_t) { return id_for(c_str); }
 
+  level_id_ptr level_id::parent() const noexcept { return parent_; }
+
   level_id_ptr level_id::parent(std::string const& level_name) const
   {
     level_id_ptr parent = parent_;
     while (parent) {
       if (parent->level_name_ == level_name) {
-        return parent;
-      }
-      parent = parent->parent_;
-    }
-    return nullptr;
-  }
-
-  level_id_ptr level_id::parent(std::size_t requested_depth) const
-  {
-    if (requested_depth == -1ull) {
-      requested_depth = depth() - 1;
-    }
-
-    level_id_ptr parent = parent_;
-    while (parent) {
-      if (parent->depth_ == requested_depth) {
         return parent;
       }
       parent = parent->parent_;

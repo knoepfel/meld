@@ -5,7 +5,7 @@
 #include "meld/model/level_counter.hpp"
 
 #include <concepts>
-#include <iosfwd>
+#include <map>
 #include <set>
 #include <utility>
 #include <vector>

@@ -4,7 +4,6 @@ add_library(meld_model SHARED
   level_id.cpp
   products.cpp
   product_store.cpp
-  transition.cpp
 )
 target_include_directories(meld_model PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(meld_model

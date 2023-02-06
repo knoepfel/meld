@@ -15,54 +15,30 @@
 
 namespace meld {
 
-  template <typename T>
-  struct is_shared_pointer_impl : std::false_type {};
-
-  template <typename T>
-  struct is_shared_pointer_impl<std::shared_ptr<T>> : std::true_type {};
-
-  template <typename T>
-  concept is_shared_pointer = is_shared_pointer_impl<T>::value;
-
-  template <typename T>
-  concept is_not_shared_pointer = !
-  is_shared_pointer<T>;
-
-  // template <typename T>
-  // struct labeled_data {
-  //   std::string label;
-  //   T data;
-  // };
-
   class product_store : public std::enable_shared_from_this<product_store> {
-    using ptr = std::shared_ptr<product_store>;
-    using const_ptr = std::shared_ptr<product_store const>;
-
   public:
-    static ptr base();
+    static product_store_ptr base();
 
-    const_ptr store_for_product(std::string const& product_name) const;
+    product_store_const_ptr store_for_product(std::string const& product_name) const;
 
     auto begin() const noexcept { return products_.begin(); }
     auto end() const noexcept { return products_.end(); }
 
     std::string const& level_name() const noexcept;
     std::string_view source() const noexcept;
-    const_ptr parent(std::string const& level_name) const;
-    ptr const& parent() const noexcept;
-    ptr make_flush(level_id_ptr id) const;
-    ptr make_parent(std::string_view source) const;
-    ptr make_parent(std::string const& level_name, std::string_view source) const;
-    ptr make_continuation(std::string_view source) const;
-    ptr make_continuation(level_id_ptr id, std::string_view source) const;
-    ptr make_child(std::size_t new_level_number,
-                   std::string const& new_level_name,
-                   std::string_view source,
-                   products new_products);
-    ptr make_child(std::size_t new_level_number,
-                   std::string const& new_level_name,
-                   std::string_view source = {},
-                   stage st = stage::process);
+    product_store_const_ptr parent(std::string const& level_name) const noexcept;
+    product_store_const_ptr parent() const noexcept;
+    product_store_ptr make_flush() const;
+    product_store_ptr make_continuation(std::string_view source) const;
+    product_store_ptr make_continuation(level_id_ptr id, std::string_view source) const;
+    product_store_ptr make_child(std::size_t new_level_number,
+                                 std::string const& new_level_name,
+                                 std::string_view source,
+                                 products new_products);
+    product_store_ptr make_child(std::size_t new_level_number,
+                                 std::string const& new_level_name,
+                                 std::string_view source = {},
+                                 stage st = stage::process);
     level_id_ptr const& id() const noexcept;
     bool is_flush() const noexcept;
 
@@ -77,38 +53,32 @@ namespace meld {
 
     // Thread-unsafe operations
     template <typename T>
-    void add_product(std::string const& key, T const& t);
+    void add_product(std::string const& key, T&& t);
 
     template <typename T>
     void add_product(std::string const& key, std::shared_ptr<product<T>>&& t);
-
-    // template <typename T>
-    // void add_product(labeled_data<T>&& data);
 
   private:
     explicit product_store(level_id_ptr id = level_id::base_ptr(),
                            std::string_view source = {},
                            stage processing_stage = stage::process);
-    explicit product_store(ptr parent,
+    explicit product_store(product_store_const_ptr parent,
                            std::size_t new_level_number,
                            std::string const& new_level_name,
                            std::string_view source,
                            products new_products);
-    explicit product_store(ptr parent,
+    explicit product_store(product_store_const_ptr parent,
                            std::size_t new_level_number,
                            std::string const& new_level_name,
                            std::string_view source,
                            stage processing_stage);
 
-    ptr parent_{nullptr};
+    product_store_const_ptr parent_{nullptr};
     products products_{};
     level_id_ptr id_;
     std::string_view source_;
     stage stage_;
   };
-
-  using product_store_ptr = std::shared_ptr<product_store>;
-  using product_store_const_ptr = std::shared_ptr<product_store const>;
 
   template <typename T>
   void add_to(product_store& store, T const& t, std::array<std::string, 1u> const& name)
@@ -157,9 +127,9 @@ namespace meld {
 
   // Implementation details
   template <typename T>
-  void product_store::add_product(std::string const& key, T const& t)
+  void product_store::add_product(std::string const& key, T&& t)
   {
-    add_product(key, std::make_shared<product<std::remove_cvref_t<T>>>(t));
+    add_product(key, std::make_shared<product<std::remove_cvref_t<T>>>(std::forward<T>(t)));
   }
 
   template <typename T>

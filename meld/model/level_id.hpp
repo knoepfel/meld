@@ -4,7 +4,6 @@
 #include "meld/model/fwd.hpp"
 
 #include "fmt/format.h"
-#include "fmt/ranges.h"
 
 #include <cstddef>
 #include <initializer_list>
@@ -17,8 +16,8 @@
 namespace meld {
   class level_id : public std::enable_shared_from_this<level_id> {
   public:
-    using const_ptr = std::shared_ptr<level_id const>;
     static level_id const& base();
+    using const_ptr = std::shared_ptr<level_id const>;
     static const_ptr base_ptr();
 
     using hash_type = std::size_t;
@@ -26,9 +25,9 @@ namespace meld {
     std::string const& level_name() const noexcept;
     std::size_t depth() const noexcept;
     const_ptr parent(std::string const& level_name) const;
-    const_ptr parent(std::size_t request_depth = -1ull) const;
+    const_ptr parent() const noexcept;
     bool has_parent() const noexcept;
-    std::size_t back() const;
+    std::size_t number() const;
     std::size_t hash() const noexcept;
     std::size_t level_hash() const noexcept;
     bool operator==(level_id const& other) const;

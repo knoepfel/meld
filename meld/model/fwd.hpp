@@ -1,21 +1,18 @@
 #ifndef meld_model_fwd_hpp
 #define meld_model_fwd_hpp
 
-#include <utility>
-#include <vector>
+#include <memory>
 
 namespace meld {
   class level_counter;
   class level_hierarchy;
   class level_id;
-  class level_order;
   class product_store;
-  class product_store_factory;
+
+  using product_store_const_ptr = std::shared_ptr<product_store const>;
+  using product_store_ptr = std::shared_ptr<product_store>;
 
   enum class stage { process, flush };
-
-  using transition = std::pair<level_id, stage>;
-  using transitions = std::vector<transition>;
 }
 
 #endif /* meld_model_fwd_hpp */

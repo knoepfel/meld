@@ -55,14 +55,14 @@ namespace test {
       auto const& id = *current_++;
 
       auto store = cached_stores_.get_store(id);
-      if (store->id()->depth() == 1ull) {
-        store->add_product<int>("number", 2 * store->id()->back());
+      if (id->level_name() == "run") {
+        store->add_product<int>("number", 2 * store->id()->number());
       }
-      if (store->id()->depth() == 2ull) {
-        store->add_product<int>("another", 3 * store->id()->back());
+      if (id->level_name() == "subrun") {
+        store->add_product<int>("another", 3 * store->id()->number());
       }
-      if (store->id()->depth() == 3ull) {
-        store->add_product<int>("still", 4 * store->id()->back());
+      if (id->level_name() == "event") {
+        store->add_product<int>("still", 4 * store->id()->number());
       }
       return store;
     }

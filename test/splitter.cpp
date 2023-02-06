@@ -18,7 +18,6 @@
 #include "meld/core/framework_graph.hpp"
 #include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
-#include "meld/model/transition.hpp"
 #include "meld/utilities/debug.hpp"
 #include "test/products_for_output.hpp"
 
@@ -57,7 +56,7 @@ namespace {
 
   void check_sum(handle<unsigned int> const sum)
   {
-    if (sum.id().back() == 0ull) {
+    if (sum.id().number() == 0ull) {
       CHECK(*sum == 45);
     }
     else {
@@ -86,12 +85,12 @@ TEST_CASE("Splitting the processing", "[graph]")
     auto const& id = *it++;
 
     auto store = cached_stores.get_store(id, stage::process);
-    debug("Starting ", id->to_string(), " with stage ", to_string(stage::process));
+    debug("Starting ", id->to_string());
 
     if (store->id()->depth() == 0ull) {
       return store;
     }
-    store->add_product<unsigned>("max_number", 10u * (id->back() + 1));
+    store->add_product<unsigned>("max_number", 10u * (id->number() + 1));
     return store;
   }};
 
