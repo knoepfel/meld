@@ -65,39 +65,39 @@ TEST_CASE("Cached function calls", "[data model]")
 
   std::atomic<unsigned int> a1_counter{};
   g.make<OneArg>(a1_counter)
-    .declare_transform(&OneArg::call, "A1")
+    .declare_transform("A1", &OneArg::call)
     .concurrency(unlimited)
     .input(react_to("number"))
     .output("one");
   std::atomic<unsigned int> a2_counter{};
   g.make<OneArg>(a2_counter)
-    .declare_transform(&OneArg::call, "A2")
+    .declare_transform("A2", &OneArg::call)
     .concurrency(unlimited)
     .input(react_to("one"))
     .output("used_one");
   std::atomic<unsigned int> a3_counter{};
   g.make<OneArg>(a3_counter)
-    .declare_transform(&OneArg::call, "A3")
+    .declare_transform("A3", &OneArg::call)
     .concurrency(unlimited)
     .input(react_to("used_one"))
     .output("done_one");
 
   std::atomic<unsigned int> b1_counter{};
   g.make<TwoArgs>(b1_counter)
-    .declare_transform(&TwoArgs::call, "B1")
+    .declare_transform("B1", &TwoArgs::call)
     .concurrency(unlimited)
     .input(react_to("one"), react_to("another"))
     .output("two");
   std::atomic<unsigned int> b2_counter{};
   g.make<TwoArgs>(b2_counter)
-    .declare_transform(&TwoArgs::call, "B2")
+    .declare_transform("B2", &TwoArgs::call)
     .concurrency(unlimited)
     .input(react_to("used_one"), react_to("two"))
     .output("used_two");
 
   std::atomic<unsigned int> c_counter{};
   g.make<TwoArgs>(c_counter)
-    .declare_transform(&TwoArgs::call, "C")
+    .declare_transform("C", &TwoArgs::call)
     .concurrency(unlimited)
     .input(react_to("used_two"), react_to("still"))
     .output("three");

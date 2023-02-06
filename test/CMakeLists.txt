@@ -62,12 +62,12 @@ add_catch_test(hierarchical_nodes LIBRARIES Boost::json TBB::tbb meld::core TEST
 add_catch_test(make_edges LIBRARIES meld::graph)
 add_catch_test(multiple_function_registration LIBRARIES Boost::json meld::core)
 add_catch_test(level_counting LIBRARIES meld::model)
+add_catch_test(level_id LIBRARIES meld::model)
 add_catch_test(product_handle LIBRARIES meld::core)
 add_catch_test(product_store LIBRARIES meld::core)
 add_catch_test(replicated LIBRARIES TBB::tbb meld::utilities spdlog::spdlog)
 add_catch_test(serializer LIBRARIES meld::core TBB::tbb)
 add_catch_test(splitter LIBRARIES Boost::json meld::core TBB::tbb TEST_DOT_GRAPH)
-add_catch_test(transition LIBRARIES meld::model)
 
 add_subdirectory(benchmarks)
 add_subdirectory(max-parallelism)

@@ -114,12 +114,12 @@ TEST_CASE("Two filters", "[filtering]")
   g.declare_filter(evens_only).concurrency(unlimited).input(react_to("num"));
   g.declare_filter(odds_only).concurrency(unlimited).input(react_to("num"));
   g.make<sum_numbers>(20u)
-    .declare_monitor(&sum_numbers::add, "add_evens")
+    .declare_monitor("add_evens", &sum_numbers::add)
     .concurrency(unlimited)
     .filtered_by("evens_only")
     .input(react_to("num"));
   g.make<sum_numbers>(25u)
-    .declare_monitor(&sum_numbers::add, "add_odds")
+    .declare_monitor("add_odds", &sum_numbers::add)
     .concurrency(unlimited)
     .filtered_by("odds_only")
     .input(react_to("num"));
@@ -172,7 +172,7 @@ TEST_CASE("Three filters in parallel", "[filtering]")
   framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
   for (auto const& [name, b, e] : configs) {
     g.make<not_in_range>(b, e)
-      .declare_filter(&not_in_range::filter, name)
+      .declare_filter(name, &not_in_range::filter)
       .concurrency(unlimited)
       .react_to("num");
   }
@@ -194,12 +194,12 @@ TEST_CASE("Two filters in parallel (each with multiple arguments)", "[filtering]
   g.declare_filter(evens_only).concurrency(unlimited).react_to("num");
   g.declare_filter(odds_only).concurrency(unlimited).react_to("num");
   g.make<check_multiple_numbers>(5 * 100)
-    .declare_monitor(&check_multiple_numbers::add_difference, "check_evens")
+    .declare_monitor("check_evens", &check_multiple_numbers::add_difference)
     .concurrency(unlimited)
     .filtered_by("evens_only")
     .react_to("num", "other_num"); // <= Note input order
   g.make<check_multiple_numbers>(-5 * 100)
-    .declare_monitor(&check_multiple_numbers::add_difference, "check_odds")
+    .declare_monitor("check_odds", &check_multiple_numbers::add_difference)
     .concurrency(unlimited)
     .filtered_by("odds_only")
     .react_to("other_num", "num"); // <= Note input order

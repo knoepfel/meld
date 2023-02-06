@@ -109,13 +109,13 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     return store;
   }};
 
-  g.declare_transform(strtime, "get_the_time")
+  g.declare_transform("get_the_time", strtime)
     .filtered_by()
     .concurrency(unlimited)
     .react_to("time")
     .output("strtime");
   g.declare_transform(square).concurrency(unlimited).react_to("number").output("squared_number");
-  g.declare_reduction("add", add, 15u)
+  g.declare_reduction(add, 15u)
     .filtered_by()
     .concurrency(unlimited)
     .react_to("squared_number")

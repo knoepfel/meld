@@ -73,34 +73,43 @@ namespace meld {
     //      right?
 
     template <typename... Args>
-    auto declare_filter(bool (*f)(Args...), std::string name = {})
+    auto declare_filter(std::string name, bool (*f)(Args...))
     {
-      return proxy().declare_filter(f, move(name));
+      return proxy().declare_filter(move(name), f);
     }
+    auto declare_filter(auto f) { return declare_filter(function_name(f), f); }
 
     template <typename... Args>
-    auto declare_monitor(void (*f)(Args...), std::string name = {})
+    auto declare_monitor(std::string name, void (*f)(Args...))
     {
-      return proxy().declare_monitor(f, move(name));
+      return proxy().declare_monitor(move(name), f);
     }
+    auto declare_monitor(auto f) { return declare_monitor(function_name(f), f); }
 
     template <typename R, typename... Args, typename... InitArgs>
     auto declare_reduction(std::string name, void (*f)(R&, Args...), InitArgs&&... init_args)
     {
       return proxy().declare_reduction(move(name), f, std::forward<InitArgs>(init_args)...);
     }
+    template <typename R, typename... Args, typename... InitArgs>
+    auto declare_reduction(void (*f)(R&, Args...), InitArgs&&... init_args)
+    {
+      return declare_reduction(function_name(f), f, std::forward<InitArgs>(init_args)...);
+    }
 
     template <typename... Args>
-    auto declare_splitter(void (*f)(Args...), std::string name = {})
+    auto declare_splitter(std::string name, void (*f)(Args...))
     {
-      return proxy().declare_splitter(f, move(name));
+      return proxy().declare_splitter(move(name), f);
     }
+    auto declare_splitter(auto f) { return declare_splitter(function_name(f), f); }
 
     template <typename R, typename... Args>
-    auto declare_transform(R (*f)(Args...), std::string name = {})
+    auto declare_transform(std::string name, R (*f)(Args...))
     {
-      return proxy().declare_transform(f, move(name));
+      return proxy().declare_transform(move(name), f);
     }
+    auto declare_transform(auto f) { return declare_transform(function_name(f), f); }
 
     template <typename T, typename... Args>
     glue<T> make(Args&&... args)

@@ -99,7 +99,7 @@ TEST_CASE("Splitting the processing", "[graph]")
     .filtered_by()
     .react_to("max_number")
     .provides({"num"});
-  g.declare_reduction("add", add).concurrency(unlimited).react_to("num").output("sum");
+  g.declare_reduction(add).concurrency(unlimited).react_to("num").output("sum");
   g.declare_monitor(check_sum).concurrency(unlimited).react_to("sum");
   g.make<test::products_for_output>()
     .declare_output(&test::products_for_output::save)
