@@ -149,17 +149,22 @@ namespace meld {
         "The number of function parameters is not the same as the number of returned output "
         "objects.");
       reg_.set([this, outputs = move(output_keys)] {
-        return std::make_unique<complete_reduction<Nactual, M, InputArgs>>(move(name_),
-                                                                           concurrency_,
-                                                                           move(preceding_filters_),
-                                                                           move(receive_stores_),
-                                                                           graph_,
-                                                                           move(ft_),
-                                                                           std::move(initializer_),
-                                                                           move(input_args_),
-                                                                           move(product_names_),
-                                                                           move(outputs),
-                                                                           move(output_level_));
+        if (empty(reduction_interval_)) {
+          throw std::runtime_error(
+            "The reduction range must be specified using the 'over(...)' syntax.");
+        }
+        return std::make_unique<complete_reduction<Nactual, M, InputArgs>>(
+          move(name_),
+          concurrency_,
+          move(preceding_filters_),
+          move(receive_stores_),
+          graph_,
+          move(ft_),
+          std::move(initializer_),
+          move(input_args_),
+          move(product_names_),
+          move(outputs),
+          move(reduction_interval_));
       });
       return *this;
     }
@@ -173,7 +178,7 @@ namespace meld {
       return output(std::array<std::string, sizeof...(ts)>{std::forward<decltype(ts)>(ts)...});
     }
 
-    void into(std::string const& level_name) { output_level_ = level_name; }
+    void over(std::string const& level_name) { reduction_interval_ = level_name; }
 
   private:
     std::string name_;
@@ -185,7 +190,7 @@ namespace meld {
     InitTuple initializer_;
     InputArgs input_args_;
     std::array<std::string, Nactual> product_names_;
-    std::string output_level_;
+    std::string reduction_interval_;
     registrar<declared_reductions> reg_;
   };
 
@@ -209,55 +214,59 @@ namespace meld {
                        InputArgs input,
                        std::array<std::string, Nactual> product_names,
                        std::array<std::string, M> output,
-                       std::string output_level) :
+                       std::string reduction_interval) :
       declared_reduction{move(name), move(preceding_filters), move(release_stores)},
       initializer_{std::move(initializer)},
       product_names_{move(product_names)},
       input_{move(input)},
       output_{move(output)},
-      output_level_{move(output_level)},
+      reduction_interval_{move(reduction_interval)},
       join_{make_join_or_none(g, std::make_index_sequence<Nactual>{})},
-      reduction_{g,
-                 concurrency,
-                 [this, ft = std::move(f)](messages_t<Nactual> const& messages, auto& outputs) {
-                   // N.B. The assumption is that a reduction will *never* need to cache
-                   //      the product store it creates.  Any flush messages *do not* need
-                   //      to be propagated to downstream nodes.
-                   auto const& msg = most_derived(messages);
-                   auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
+      reduction_{
+        g,
+        concurrency,
+        [this, ft = std::move(f)](messages_t<Nactual> const& messages, auto& outputs) {
+          // N.B. The assumption is that a reduction will *never* need to cache
+          //      the product store it creates.  Any flush messages *do not* need
+          //      to be propagated to downstream nodes.
+          auto const& msg = most_derived(messages);
+          auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
 
-                   if (depth_ != -1ull) {
-                     if (store->is_flush() and store->id()->depth() != depth_ - 1) {
-                       return;
-                     }
-                     if (store->id()->depth() != depth_) {
-                       return;
-                     }
-                   }
+          if (not store->is_flush() and not store->id()->parent(reduction_interval_)) {
+            return;
+          }
 
-                   counter_accessor ca;
-                   auto const& id = store->is_flush() ? store->id() : store->id()->parent();
-                   auto& counter = counter_for(id->hash(), ca);
-                   if (store->is_flush()) {
-                     counter.set_flush_value(store, original_message_id);
-                   }
-                   else {
-                     // FIXME: Check re. depth?
-                     depth_ = id->depth();
-                     call(ft, messages, std::make_index_sequence<N>{});
-                     counter.increment();
-                   }
-                   ca.release();
+          if (store->is_flush()) {
+            if (store->id()->level_name() != reduction_interval_) {
+              return;
+            }
+            // Make sure downstream nodes get the flush.
+            // FIXME: Need to find a way to support flushes at a level higher than the reduction interval.
+            get<0>(outputs).try_put(msg);
+          }
 
-                   const_counter_accessor cca;
-                   bool const has_counter = counter_for(id->hash(), cca);
-                   if (has_counter && cca->second->is_flush()) {
-                     auto parent = store->make_continuation(id, this->name());
-                     commit_(*parent);
-                     get<0>(outputs).try_put({parent, counter.original_message_id()});
-                     erase_counter(cca);
-                   }
-                 }}
+          counter_accessor ca;
+          auto const& id = store->is_flush() ? store->id() : store->id()->parent();
+          auto& counter = counter_for(id->hash(), ca);
+          if (store->is_flush()) {
+            counter.set_flush_value(store, original_message_id);
+          }
+          else {
+            // FIXME: Check re. depth?
+            call(ft, messages, std::make_index_sequence<N>{});
+            counter.increment();
+          }
+          ca.release();
+
+          const_counter_accessor cca;
+          bool const has_counter = counter_for(id->hash(), cca);
+          if (has_counter && cca->second->is_flush()) {
+            auto parent = store->make_continuation(id, this->name());
+            commit_(*parent);
+            get<0>(outputs).try_put({parent, counter.original_message_id()});
+            erase_counter(cca);
+          }
+        }}
     {
       make_edge(join_, reduction_);
     }
@@ -284,7 +293,7 @@ namespace meld {
     template <std::size_t... Is>
     void call(function_t const& ft, messages_t<Nactual> const& messages, std::index_sequence<Is...>)
     {
-      auto const parent_id = *most_derived(messages).store->id()->parent();
+      auto const& parent_id = *most_derived(messages).store->id()->parent();
       // FIXME: Not the safest approach!
       auto it = results_.find(parent_id);
       if (it == results_.end()) {
@@ -325,11 +334,10 @@ namespace meld {
     std::array<std::string, Nactual> product_names_;
     InputArgs input_;
     std::array<std::string, M> output_;
-    std::string output_level_;
+    std::string reduction_interval_;
     join_or_none_t<Nactual> join_;
     tbb::flow::multifunction_node<messages_t<Nactual>, messages_t<1>> reduction_;
     tbb::concurrent_unordered_map<level_id, std::unique_ptr<R>> results_;
-    std::atomic<std::size_t> depth_{-1ull};
   };
 }
 

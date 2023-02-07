@@ -2,15 +2,15 @@
 
 namespace meld {
 
-  flush_counts::flush_counts(std::string_view level_name) : level_name_{level_name} {}
+  flush_counts::flush_counts(std::string level_name) : level_name_{move(level_name)} {}
 
-  flush_counts::flush_counts(std::string_view level_name,
-                             std::map<std::string_view, std::size_t> child_counts) :
-    level_name_{level_name}, child_counts_{move(child_counts)}
+  flush_counts::flush_counts(std::string level_name,
+                             std::map<std::string, std::size_t> child_counts) :
+    level_name_{move(level_name)}, child_counts_{move(child_counts)}
   {
   }
 
-  level_counter::level_counter(level_counter* parent, std::string_view level_name) :
+  level_counter::level_counter(level_counter* parent, std::string level_name) :
     parent_{parent}, level_name_{move(level_name)}
   {
   }
@@ -22,14 +22,18 @@ namespace meld {
     }
   }
 
-  level_counter level_counter::make_child(std::string_view level_name)
+  level_counter level_counter::make_child(std::string level_name)
   {
-    return {this, level_name};
+    return {this, move(level_name)};
   }
 
   void level_counter::adjust(level_counter& child)
   {
-    ++child_counts_[child.level_name_];
+    auto it = child_counts_.find(child.level_name_);
+    if (it == cend(child_counts_)) {
+      it = child_counts_.try_emplace(child.level_name_, 0).first;
+    }
+    ++it->second;
     for (auto const& [nested_level_name, count] : child.child_counts_) {
       child_counts_[nested_level_name] += count;
     }

@@ -84,7 +84,7 @@ TEST_CASE("Splitting the processing", "[graph]")
     }
     auto const& id = *it++;
 
-    auto store = cached_stores.get_store(id, stage::process);
+    auto store = cached_stores.get_store(id);
     debug("Starting ", id->to_string());
 
     if (store->id()->depth() == 0ull) {
@@ -99,7 +99,7 @@ TEST_CASE("Splitting the processing", "[graph]")
     .filtered_by()
     .react_to("max_number")
     .provides({"num"});
-  g.declare_reduction(add).concurrency(unlimited).react_to("num").output("sum");
+  g.declare_reduction(add).concurrency(unlimited).react_to("num").output("sum").over("(root)");
   g.declare_monitor(check_sum).concurrency(unlimited).react_to("sum");
   g.make<test::products_for_output>()
     .declare_output(&test::products_for_output::save)

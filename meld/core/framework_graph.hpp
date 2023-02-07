@@ -51,6 +51,7 @@ namespace meld {
                              int max_parallelism = oneapi::tbb::info::default_concurrency());
     explicit framework_graph(std::function<product_store_ptr()> f,
                              int max_parallelism = oneapi::tbb::info::default_concurrency());
+    ~framework_graph();
 
     void execute(std::string const& dot_file_name = {});
 

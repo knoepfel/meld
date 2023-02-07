@@ -2,12 +2,15 @@
 #define meld_core_store_counters_hpp
 
 #include "meld/core/fwd.hpp"
+#include "meld/model/level_counter.hpp"
 #include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
 
 #include <atomic>
+#include <memory>
+#include <version>
 
 namespace meld {
   class store_flag {
@@ -43,12 +46,16 @@ namespace meld {
   public:
     void set_flush_value(product_store_const_ptr const& ptr, std::size_t original_message_id);
     void increment() noexcept;
-    bool is_flush(level_id const* id = nullptr) noexcept;
+    bool is_flush() const;
     unsigned int original_message_id() const noexcept;
 
   private:
-    std::atomic<unsigned int> count_{};
-    std::atomic<unsigned int> stop_after_{-1u};
+    std::atomic<std::size_t> count_{};
+#ifdef __cpp_lib_atomic_shared_ptr
+    std::atomic<flush_counts_ptr> flush_counts_{nullptr};
+#else
+    flush_counts_ptr flush_counts_{nullptr};
+#endif
     unsigned int original_message_id_{}; // Necessary for matching inputs to downstream join nodes.
   };
 

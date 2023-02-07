@@ -12,8 +12,8 @@
 namespace meld {
   class flush_counts {
   public:
-    explicit flush_counts(std::string_view level_name);
-    flush_counts(std::string_view level_name, std::map<std::string_view, std::size_t> child_counts);
+    explicit flush_counts(std::string level_name);
+    flush_counts(std::string level_name, std::map<std::string, std::size_t> child_counts);
 
     std::string_view level_name() const noexcept { return level_name_; }
 
@@ -22,22 +22,24 @@ namespace meld {
     bool empty() const { return child_counts_.empty(); }
     auto size() const { return child_counts_.size(); }
 
-    std::size_t count_for(std::string_view level_name) const
+    std::size_t count_for(std::string const& level_name) const
     {
       return child_counts_.at(level_name);
     }
 
   private:
-    std::string_view level_name_;
-    std::map<std::string_view, std::size_t> child_counts_{};
+    std::string level_name_;
+    std::map<std::string, std::size_t> child_counts_{};
   };
+
+  using flush_counts_ptr = std::shared_ptr<flush_counts const>;
 
   class level_counter {
   public:
-    level_counter(level_counter* parent = nullptr, std::string_view level_name = "(root)");
+    level_counter(level_counter* parent = nullptr, std::string level_name = {});
     ~level_counter();
 
-    level_counter make_child(std::string_view level_name);
+    level_counter make_child(std::string level_name);
     flush_counts result() const
     {
       if (empty(child_counts_)) {
@@ -50,8 +52,8 @@ namespace meld {
     void adjust(level_counter& child);
 
     level_counter* parent_;
-    std::string_view level_name_;
-    std::map<std::string_view, std::size_t> child_counts_{};
+    std::string level_name_;
+    std::map<std::string, std::size_t> child_counts_{};
   };
 }
 

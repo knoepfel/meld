@@ -21,7 +21,7 @@ namespace meld {
     static const_ptr base_ptr();
 
     using hash_type = std::size_t;
-    const_ptr make_child(std::size_t new_level_number, std::string const& level_name) const;
+    const_ptr make_child(std::size_t new_level_number, std::string level_name) const;
     std::string const& level_name() const noexcept;
     std::size_t depth() const noexcept;
     const_ptr parent(std::string const& level_name) const;
@@ -41,7 +41,7 @@ namespace meld {
 
   private:
     level_id();
-    explicit level_id(const_ptr parent, std::size_t i, std::string const& level_name);
+    explicit level_id(const_ptr parent, std::size_t i, std::string level_name);
     const_ptr parent_{nullptr};
     std::size_t number_{-1ull};
     std::string level_name_{"job"};

@@ -98,7 +98,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
       return nullptr;
     }
     auto const& id = *it++;
-    auto store = cached_stores.get_store(id, stage::process);
+    auto store = cached_stores.get_store(id);
 
     if (id->level_name() == "run") {
       store->add_product<std::time_t>("time", std::time(nullptr));
@@ -119,7 +119,8 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     .filtered_by()
     .concurrency(unlimited)
     .react_to("squared_number")
-    .output("added_data");
+    .output("added_data")
+    .over("run");
 
   g.declare_transform(scale).concurrency(unlimited).react_to("added_data").output("result");
   g.declare_monitor(print_result).concurrency(unlimited).react_to("result", "strtime");

@@ -38,7 +38,8 @@ namespace meld {
   flush_counts level_hierarchy::complete(level_id_ptr const& id)
   {
     ++levels_.at(id->level_hash()).count;
-    return counters_.extract(id->hash()).mapped()->result();
+    auto counter = counters_.extract(id->hash());
+    return counter.mapped()->result();
   }
 
   std::size_t level_hierarchy::count_for(std::string const& level_name) const
@@ -61,6 +62,7 @@ namespace meld {
     if (empty(levels_)) {
       return {};
     }
+
     auto const b = levels_.begin();
     std::list<std::pair<std::size_t, level_entry>> ordered_levels{*b};
     for (auto it = next(b), e = levels_.end(); it != e; ++it) {

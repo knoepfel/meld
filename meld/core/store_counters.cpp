@@ -46,26 +46,36 @@ namespace meld {
   void store_counter::set_flush_value(product_store_const_ptr const& store,
                                       std::size_t const original_message_id)
   {
-    auto const& id = *store->id();
     if (not store->contains_product("[flush]")) {
       return;
     }
 
-    auto const& counts = store->get_product<flush_counts>("[flush]");
-    stop_after_ = counts.count_for(id.parent()->level_name());
+#ifdef __cpp_lib_atomic_shared_ptr
+    flush_counts_ = store->get_product<flush_counts_ptr>("[flush]");
+#else
+    atomic_store(&flush_counts_, store->get_product<flush_counts_ptr>("[flush]"));
+#endif
     original_message_id_ = original_message_id;
   }
 
   void store_counter::increment() noexcept { ++count_; }
 
-  bool store_counter::is_flush(level_id const* id) noexcept
+  bool store_counter::is_flush() const
   {
-    if (id) {
-      spdlog::info(
-        " ===> Checking {}: Count {}  Stop after {}", id->to_string(), count_, stop_after_);
+#ifdef __cpp_lib_atomic_shared_ptr
+    auto flush_counts = flush_counts_.load();
+#else
+    auto flush_counts = atomic_load(&flush_counts_);
+#endif
+    if (not flush_counts) {
+      return false;
     }
-    auto stop_after = stop_after_.load();
-    return count_.compare_exchange_strong(stop_after, -2u);
+
+    if (flush_counts->size() != 1ull) {
+      throw std::runtime_error("Can't handle a flush with more than one nested level.");
+    }
+
+    return count_ == flush_counts->begin()->second;
   }
 
   unsigned int store_counter::original_message_id() const noexcept { return original_message_id_; }

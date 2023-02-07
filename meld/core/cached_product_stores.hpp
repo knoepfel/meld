@@ -12,7 +12,7 @@ namespace meld {
 
   class cached_product_stores {
   public:
-    product_store_ptr get_store(level_id_ptr id, stage processing_stage = stage::process)
+    product_store_ptr get_store(level_id_ptr id)
     {
       auto it = product_stores_.find(id->hash());
       if (it != cend(product_stores_)) {
@@ -22,7 +22,8 @@ namespace meld {
         return new_store(product_store::base());
       }
       return new_store(
-        get_store(id->parent())->make_child(id->number(), "", source_name_, processing_stage));
+        get_store(id->parent())
+          ->make_child(id->number(), id->level_name(), source_name_, stage::process));
     }
 
   private:

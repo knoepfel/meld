@@ -59,7 +59,7 @@ namespace meld {
 
   multiplexer::~multiplexer()
   {
-    spdlog::info("Routed {} messages in {} microseconds ({:.3f} microseconds per mesage)",
+    spdlog::info("Routed {} messages in {} microseconds ({:.3f} microseconds per message)",
                  received_messages_,
                  execution_time_.count(),
                  execution_time_.count() / received_messages_);

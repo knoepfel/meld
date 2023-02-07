@@ -25,7 +25,8 @@ namespace meld {
     auto flush_store = store_->make_flush();
     auto flush_result = hierarchy_.complete(store_->id());
     if (not flush_result.empty()) {
-      flush_store->add_product("[flush]", std::move(flush_result));
+      flush_store->add_product("[flush]",
+                               std::make_shared<flush_counts const>(std::move(flush_result)));
     }
     pending_stores_.push(move(flush_store));
   }
@@ -77,6 +78,8 @@ namespace meld {
     spdlog::info("Number of worker threads: {}",
                  concurrency::max_allowed_parallelism::active_value());
   }
+
+  framework_graph::~framework_graph() { drain(); }
 
   void framework_graph::execute(std::string const& dot_file_name)
   {

@@ -54,7 +54,7 @@ namespace meld {
     tbb::flow::broadcast_node<message>& to_output_;
     std::atomic<std::size_t>& counter_;
     std::atomic<std::size_t> calls_{};
-    std::map<std::string_view, std::size_t> child_counts_;
+    std::map<std::string, std::size_t> child_counts_;
     std::size_t const original_message_id_{counter_};
   };
 
