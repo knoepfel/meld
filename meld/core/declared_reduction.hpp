@@ -222,51 +222,49 @@ namespace meld {
       output_{move(output)},
       reduction_interval_{move(reduction_interval)},
       join_{make_join_or_none(g, std::make_index_sequence<Nactual>{})},
-      reduction_{
-        g,
-        concurrency,
-        [this, ft = std::move(f)](messages_t<Nactual> const& messages, auto& outputs) {
-          // N.B. The assumption is that a reduction will *never* need to cache
-          //      the product store it creates.  Any flush messages *do not* need
-          //      to be propagated to downstream nodes.
-          auto const& msg = most_derived(messages);
-          auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
+      reduction_{g,
+                 concurrency,
+                 [this, ft = std::move(f)](messages_t<Nactual> const& messages, auto& outputs) {
+                   // N.B. The assumption is that a reduction will *never* need to cache
+                   //      the product store it creates.  Any flush messages *do not* need
+                   //      to be propagated to downstream nodes.
+                   auto const& msg = most_derived(messages);
+                   auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
 
-          if (not store->is_flush() and not store->id()->parent(reduction_interval_)) {
-            return;
-          }
+                   if (not store->is_flush() and not store->id()->parent(reduction_interval_)) {
+                     return;
+                   }
 
-          if (store->is_flush()) {
-            if (store->id()->level_name() != reduction_interval_) {
-              return;
-            }
-            // Make sure downstream nodes get the flush.
-            // FIXME: Need to find a way to support flushes at a level higher than the reduction interval.
-            get<0>(outputs).try_put(msg);
-          }
+                   if (store->is_flush()) {
+                     // Downstream nodes always get the flush.
+                     get<0>(outputs).try_put(msg);
+                     if (store->id()->level_name() != reduction_interval_) {
+                       return;
+                     }
+                   }
 
-          counter_accessor ca;
-          auto const& id = store->is_flush() ? store->id() : store->id()->parent();
-          auto& counter = counter_for(id->hash(), ca);
-          if (store->is_flush()) {
-            counter.set_flush_value(store, original_message_id);
-          }
-          else {
-            // FIXME: Check re. depth?
-            call(ft, messages, std::make_index_sequence<N>{});
-            counter.increment();
-          }
-          ca.release();
+                   counter_accessor ca;
+                   auto const& id_for_counter =
+                     store->is_flush() ? store->id() : store->id()->parent(reduction_interval_);
+                   auto& counter = counter_for(id_for_counter->hash(), ca);
+                   if (store->is_flush()) {
+                     counter.set_flush_value(store, original_message_id);
+                   }
+                   else {
+                     call(ft, messages, std::make_index_sequence<N>{});
+                     counter.increment(store->id()->level_name());
+                   }
+                   ca.release();
 
-          const_counter_accessor cca;
-          bool const has_counter = counter_for(id->hash(), cca);
-          if (has_counter && cca->second->is_flush()) {
-            auto parent = store->make_continuation(id, this->name());
-            commit_(*parent);
-            get<0>(outputs).try_put({parent, counter.original_message_id()});
-            erase_counter(cca);
-          }
-        }}
+                   const_counter_accessor cca;
+                   bool const has_counter = counter_for(id_for_counter->hash(), cca);
+                   if (has_counter && cca->second->is_flush()) {
+                     auto parent = store->make_continuation(id_for_counter, this->name());
+                     commit_(*parent);
+                     get<0>(outputs).try_put({parent, counter.original_message_id()});
+                     erase_counter(cca);
+                   }
+                 }}
     {
       make_edge(join_, reduction_);
     }
@@ -293,7 +291,7 @@ namespace meld {
     template <std::size_t... Is>
     void call(function_t const& ft, messages_t<Nactual> const& messages, std::index_sequence<Is...>)
     {
-      auto const& parent_id = *most_derived(messages).store->id()->parent();
+      auto const& parent_id = *most_derived(messages).store->id()->parent(reduction_interval_);
       // FIXME: Not the safest approach!
       auto it = results_.find(parent_id);
       if (it == results_.end()) {

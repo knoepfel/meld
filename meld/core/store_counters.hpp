@@ -7,6 +7,7 @@
 #include "meld/model/product_store.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
+#include "oneapi/tbb/concurrent_unordered_map.h"
 
 #include <atomic>
 #include <memory>
@@ -43,14 +44,17 @@ namespace meld {
   // =========================================================================
 
   class store_counter {
+    // FIXME: Should change key to std::size_t to capture level_id::level_hash() value.
+    using counts_t = tbb::concurrent_unordered_map<std::string, std::atomic<std::size_t>>;
+
   public:
     void set_flush_value(product_store_const_ptr const& ptr, std::size_t original_message_id);
-    void increment() noexcept;
+    void increment(std::string const& level_name);
     bool is_flush() const;
     unsigned int original_message_id() const noexcept;
 
   private:
-    std::atomic<std::size_t> count_{};
+    counts_t counts_{};
 #ifdef __cpp_lib_atomic_shared_ptr
     std::atomic<flush_counts_ptr> flush_counts_{nullptr};
 #else

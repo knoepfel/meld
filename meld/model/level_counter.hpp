@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <map>
+#include <optional>
 
 namespace meld {
   class flush_counts {
@@ -22,9 +23,12 @@ namespace meld {
     bool empty() const { return child_counts_.empty(); }
     auto size() const { return child_counts_.size(); }
 
-    std::size_t count_for(std::string const& level_name) const
+    std::optional<std::size_t> count_for(std::string const& level_name) const
     {
-      return child_counts_.at(level_name);
+      if (auto it = child_counts_.find(level_name); it != child_counts_.end()) {
+        return it->second;
+      }
+      return std::nullopt;
     }
 
   private:

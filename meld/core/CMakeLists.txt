@@ -38,6 +38,7 @@ target_link_libraries(meld_core_int
   meld::graph
   meld::model
   meld::utilities
+  Boost::json
   TBB::tbb)
 
 add_library(meld::core ALIAS meld_core_int)

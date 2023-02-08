@@ -58,7 +58,7 @@ namespace meld {
     original_message_id_ = original_message_id;
   }
 
-  void store_counter::increment() noexcept { ++count_; }
+  void store_counter::increment(std::string const& level_name) { ++counts_[level_name]; }
 
   bool store_counter::is_flush() const
   {
@@ -71,11 +71,13 @@ namespace meld {
       return false;
     }
 
-    if (flush_counts->size() != 1ull) {
-      throw std::runtime_error("Can't handle a flush with more than one nested level.");
+    for (auto const& [name, count] : counts_) {
+      auto maybe_count = flush_counts->count_for(name);
+      if (!maybe_count or count != *maybe_count) {
+        return false;
+      }
     }
-
-    return count_ == flush_counts->begin()->second;
+    return true;
   }
 
   unsigned int store_counter::original_message_id() const noexcept { return original_message_id_; }
