@@ -18,7 +18,6 @@
 #include "meld/core/framework_graph.hpp"
 #include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
-#include "meld/utilities/debug.hpp"
 #include "test/products_for_output.hpp"
 
 #include "catch2/catch.hpp"
@@ -37,22 +36,20 @@ namespace {
       products new_products;
       new_products.add<unsigned>("num", i);
       // TODO: maybe support pair-wise/zip functionality
-      g.make_child(i, "", std::move(new_products));
+      g.make_child(i, "lower", std::move(new_products));
     }
   }
 
-  struct data_for_rms {
-    unsigned int total;
-    unsigned int number;
-  };
-
-  struct threadsafe_data {
+  struct counter {
     std::atomic<unsigned int> total;
-    std::atomic<unsigned int> number;
-    unsigned int send() const { return total.load(); }
+    auto send() const { return total.load(); }
   };
 
-  void add(threadsafe_data& redata, unsigned number) { redata.total += number; }
+  void add(counter& count, unsigned number)
+  {
+    // spdlog::info("Adding {}", number);
+    count.total += number;
+  }
 
   void check_sum(handle<unsigned int> const sum)
   {
@@ -85,12 +82,9 @@ TEST_CASE("Splitting the processing", "[graph]")
     auto const& id = *it++;
 
     auto store = cached_stores.get_store(id);
-    debug("Starting ", id->to_string());
-
-    if (store->id()->depth() == 0ull) {
-      return store;
+    if (store->id()->level_name() == "event") {
+      store->add_product<unsigned>("max_number", 10u * (id->number() + 1));
     }
-    store->add_product<unsigned>("max_number", 10u * (id->number() + 1));
     return store;
   }};
 
@@ -99,11 +93,15 @@ TEST_CASE("Splitting the processing", "[graph]")
     .filtered_by()
     .react_to("max_number")
     .provides({"num"});
-  g.declare_reduction(add).concurrency(unlimited).react_to("num").output("sum").over("(root)");
+  g.declare_reduction(add).concurrency(unlimited).react_to("num").output("sum").over("event");
   g.declare_monitor(check_sum).concurrency(unlimited).react_to("sum");
   g.make<test::products_for_output>()
     .declare_output(&test::products_for_output::save)
     .concurrency(serial);
 
   g.execute("splitter_t.gv");
+
+  CHECK(g.execution_counts("split") == index_limit);
+  CHECK(g.execution_counts("add") == 30);
+  CHECK(g.execution_counts("check_sum") == index_limit);
 }

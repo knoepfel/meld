@@ -44,7 +44,7 @@ namespace meld {
     head_ports_t head_ports_;
     bool debug_;
     std::atomic<std::size_t> received_messages_{};
-    std::chrono::duration<float, std::chrono::microseconds::period> execution_time_;
+    std::chrono::duration<float, std::chrono::microseconds::period> execution_time_{};
   };
 
 }

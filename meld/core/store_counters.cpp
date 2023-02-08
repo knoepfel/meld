@@ -60,8 +60,11 @@ namespace meld {
 
   void store_counter::increment(std::string const& level_name) { ++counts_[level_name]; }
 
-  bool store_counter::is_flush() const
+  bool store_counter::is_flush()
   {
+    if (!ready_to_flush_) {
+      return false;
+    }
 #ifdef __cpp_lib_atomic_shared_ptr
     auto flush_counts = flush_counts_.load();
 #else
@@ -77,7 +80,8 @@ namespace meld {
         return false;
       }
     }
-    return true;
+    // Flush only once!
+    return ready_to_flush_.exchange(false);
   }
 
   unsigned int store_counter::original_message_id() const noexcept { return original_message_id_; }

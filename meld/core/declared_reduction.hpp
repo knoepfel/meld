@@ -258,6 +258,7 @@ namespace meld {
 
                    const_counter_accessor cca;
                    bool const has_counter = counter_for(id_for_counter->hash(), cca);
+
                    if (has_counter && cca->second->is_flush()) {
                      auto parent = store->make_continuation(id_for_counter, this->name());
                      commit_(*parent);
@@ -302,8 +303,11 @@ namespace meld {
                                         std::make_index_sequence<std::tuple_size_v<InitTuple>>{})})
             .first;
       }
+      ++calls_;
       return std::invoke(ft, *it->second, std::get<Is>(input_).retrieve(messages)...);
     }
+
+    std::size_t num_calls() const final { return calls_.load(); }
 
     template <size_t... Is>
     auto initialized_object(InitTuple&& tuple, std::index_sequence<Is...>) const
@@ -336,6 +340,7 @@ namespace meld {
     join_or_none_t<Nactual> join_;
     tbb::flow::multifunction_node<messages_t<Nactual>, messages_t<1>> reduction_;
     tbb::concurrent_unordered_map<level_id, std::unique_ptr<R>> results_;
+    std::atomic<std::size_t> calls_;
   };
 }
 

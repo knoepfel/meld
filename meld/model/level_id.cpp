@@ -50,6 +50,9 @@ namespace meld {
     depth_{parent_->depth_ + 1},
     hash_{hash_numbers(parent_->hash_, number_)}
   {
+    // if (empty(level_name_)) {
+    //   throw std::runtime_error("Cannot create a level ID with no level name");
+    // }
   }
 
   level_id const& level_id::base() { return *base_ptr(); }

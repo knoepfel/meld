@@ -27,6 +27,8 @@ namespace meld {
                     message_id,
                     store->is_flush());
     }
+    auto start_time = steady_clock::now();
+
     if (store->is_flush()) {
       for (auto const& head_port : head_ports_) {
         head_port.port->try_put(msg);
@@ -34,7 +36,6 @@ namespace meld {
       return {};
     }
 
-    auto start_time = steady_clock::now();
     for (auto const& head_port : head_ports_) {
       auto store_to_send = store->store_for_product(head_port.product_name);
       if (not store_to_send) {
@@ -59,9 +60,9 @@ namespace meld {
 
   multiplexer::~multiplexer()
   {
-    spdlog::info("Routed {} messages in {} microseconds ({:.3f} microseconds per message)",
-                 received_messages_,
-                 execution_time_.count(),
-                 execution_time_.count() / received_messages_);
+    spdlog::debug("Routed {} messages in {} microseconds ({:.3f} microseconds per message)",
+                  received_messages_,
+                  execution_time_.count(),
+                  execution_time_.count() / received_messages_);
   }
 }

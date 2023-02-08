@@ -3,20 +3,11 @@
 #include "fmt/format.h"
 #include "spdlog/spdlog.h"
 
-#include <list>
 #include <ostream>
 
 namespace {
   std::string const unnamed{"(unnamed)"};
   std::string const& maybe_name(std::string const& name) { return empty(name) ? unnamed : name; }
-  std::string indent(std::size_t num)
-  {
-    std::string prefix;
-    while (num-- != 0) {
-      prefix.append("  ");
-    }
-    return prefix;
-  }
 }
 
 namespace meld {
@@ -25,7 +16,7 @@ namespace meld {
   {
     if (!levels_.contains(id->level_hash())) {
       auto const parent_hash = id->has_parent() ? id->parent()->level_hash() : -1ull;
-      levels_[id->level_hash()] = {id->level_name(), parent_hash, id->depth()};
+      levels_[id->level_hash()] = {id->level_name(), parent_hash};
     }
 
     level_counter* parent_counter = nullptr;
@@ -50,37 +41,50 @@ namespace meld {
     return it != cend(levels_) ? it->second.count : 0;
   }
 
-  void level_hierarchy::print() const
+  void level_hierarchy::print() const { spdlog::info("{}", graph_layout()); }
+
+  std::string level_hierarchy::pretty_recurse(std::map<std::string, hash_name_pairs> const& tree,
+                                              std::string const& name,
+                                              std::string indent) const
   {
-    for (auto const& str : graph_layout()) {
-      spdlog::info(str);
+    auto it = tree.find(name);
+    if (it == cend(tree)) {
+      return {};
     }
+
+    std::string result;
+    std::size_t const n = it->second.size();
+    for (std::size_t i = 0; auto const& [child_name, child_hash] : it->second) {
+      bool const at_end = ++i == n;
+      auto child_prefix = !at_end ? indent + " ├ " : indent + " └ ";
+      auto const& entry = levels_.at(child_hash);
+      result += "\n" + indent + " │ ";
+      result += fmt::format("\n{}{}: {}", child_prefix, maybe_name(child_name), entry.count);
+
+      indent += at_end ? "   " : " │ ";
+      result += pretty_recurse(tree, child_name, indent);
+    }
+    return result;
   }
 
-  std::vector<std::string> level_hierarchy::graph_layout() const
+  std::string level_hierarchy::graph_layout() const
   {
     if (empty(levels_)) {
       return {};
     }
 
-    auto const b = levels_.begin();
-    std::list<std::pair<std::size_t, level_entry>> ordered_levels{*b};
-    for (auto it = next(b), e = levels_.end(); it != e; ++it) {
-      auto parent_it =
-        find_if(begin(ordered_levels), end(ordered_levels), [&it](auto const& ordered_level) {
-          return it->second.parent_hash == ordered_level.first;
-        });
-
-      auto position = parent_it != end(ordered_levels) ? next(parent_it) : begin(ordered_levels);
-      ordered_levels.insert(position, *it);
+    std::map<std::string, std::vector<hash_name_pair>> tree;
+    for (auto const& [level_hash, level_entry] : levels_) {
+      auto parent_hash = level_entry.parent_hash;
+      if (parent_hash == -1ull) {
+        continue;
+      }
+      tree[levels_.at(parent_hash).name].emplace_back(level_entry.name, level_hash);
     }
 
-    std::vector<std::string> result;
-    result.reserve(size(ordered_levels));
-    for (auto const& [_, entry] : ordered_levels) {
-      result.push_back(
-        fmt::format("{}{}: {}", indent(entry.depth), maybe_name(entry.name), entry.count));
-    }
-    return result;
+    auto const initial_indent = "  ";
+    return fmt::format("\nProcessed levels:\n\n{}job{}\n",
+                       initial_indent,
+                       pretty_recurse(tree, "job", initial_indent));
   }
 }

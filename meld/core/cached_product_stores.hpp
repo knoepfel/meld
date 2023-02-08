@@ -12,7 +12,7 @@ namespace meld {
 
   class cached_product_stores {
   public:
-    product_store_ptr get_store(level_id_ptr id)
+    product_store_ptr get_store(level_id_ptr id = level_id::base_ptr())
     {
       auto it = product_stores_.find(id->hash());
       if (it != cend(product_stores_)) {

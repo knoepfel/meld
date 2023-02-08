@@ -11,7 +11,7 @@ TEST_CASE("Cached product stores", "[data model]")
   cached_product_stores stores{};
   SECTION("Root store")
   {
-    auto store = stores.get_store(level_id::base_ptr());
+    auto store = stores.get_store();
     REQUIRE(store);
     CHECK(store->id() == level_id::base_ptr());
   }

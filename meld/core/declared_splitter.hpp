@@ -53,7 +53,6 @@ namespace meld {
     multiplexer& multiplexer_;
     tbb::flow::broadcast_node<message>& to_output_;
     std::atomic<std::size_t>& counter_;
-    std::atomic<std::size_t> calls_{};
     std::map<std::string, std::size_t> child_counts_;
     std::size_t const original_message_id_{counter_};
   };
@@ -283,8 +282,11 @@ namespace meld {
               messages_t<Nactual> const& messages,
               std::index_sequence<Is...>)
     {
+      ++calls_;
       return std::invoke(ft, g, std::get<Is>(input_).retrieve(messages)...);
     }
+
+    std::size_t num_calls() const final { return calls_.load(); }
 
     InputArgs input_;
     std::array<std::string, Nactual> product_names_;
@@ -295,6 +297,7 @@ namespace meld {
     tbb::flow::broadcast_node<message> to_output_;
     tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr> stores_;
     std::atomic<std::size_t> counter_{}; // Is this sufficient?  Probably not.
+    std::atomic<std::size_t> calls_{};
   };
 }
 

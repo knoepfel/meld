@@ -81,6 +81,27 @@ namespace meld {
 
   framework_graph::~framework_graph() { drain(); }
 
+  std::size_t framework_graph::execution_counts(std::string const& node_name) const
+  {
+    // FIXME: Yuck!
+    if (auto it = filters_.find(node_name); it != filters_.end()) {
+      return it->second->num_calls();
+    }
+    if (auto it = monitors_.find(node_name); it != monitors_.end()) {
+      return it->second->num_calls();
+    }
+    if (auto it = reductions_.find(node_name); it != reductions_.end()) {
+      return it->second->num_calls();
+    }
+    if (auto it = splitters_.find(node_name); it != splitters_.end()) {
+      return it->second->num_calls();
+    }
+    if (auto it = transforms_.find(node_name); it != transforms_.end()) {
+      return it->second->num_calls();
+    }
+    return 0u;
+  }
+
   void framework_graph::execute(std::string const& dot_file_name)
   {
     finalize(dot_file_name);

@@ -23,8 +23,7 @@ namespace meld {
   {
     ++child_counts_[new_level_name];
     ++counter_;
-    ++calls_;
-    message const msg{parent_->make_child(i, node_name_, new_level_name, std::move(new_products)),
+    message const msg{parent_->make_child(i, new_level_name, node_name_, std::move(new_products)),
                       counter_};
     to_output_.try_put(msg);
     multiplexer_.try_put(msg);
@@ -33,9 +32,12 @@ namespace meld {
   message generator::flush_message()
   {
     auto const message_id = ++counter_;
-    auto flush_store = parent_->make_child(calls_, node_name_, "flush", stage::flush);
-    flush_store->add_product("[flush]",
-                             flush_counts{parent_->id()->level_name(), move(child_counts_)});
+    auto flush_store = parent_->make_flush();
+    if (not child_counts_.empty()) {
+      flush_store->add_product(
+        "[flush]",
+        std::make_shared<flush_counts const>(parent_->id()->level_name(), move(child_counts_)));
+    }
     return {move(flush_store), message_id, original_message_id_};
   }
 

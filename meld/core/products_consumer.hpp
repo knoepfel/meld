@@ -26,6 +26,7 @@ namespace meld {
     tbb::flow::receiver<message>& port(std::string const& product_name);
     virtual std::vector<tbb::flow::receiver<message>*> ports() = 0;
     virtual std::span<std::string const, std::dynamic_extent> input() const = 0;
+    virtual std::size_t num_calls() const = 0;
 
   private:
     virtual tbb::flow::receiver<message>& port_for(std::string const& product_name) = 0;

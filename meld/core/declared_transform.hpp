@@ -294,8 +294,11 @@ namespace meld {
     template <std::size_t... Is>
     auto call(function_t const& ft, messages_t<Nactual> const& messages, std::index_sequence<Is...>)
     {
+      ++calls_;
       return std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);
     }
+
+    std::size_t num_calls() const final { return calls_.load(); }
 
     std::array<std::string, Nactual> product_names_;
     InputArgs input_;
@@ -303,6 +306,7 @@ namespace meld {
     join_or_none_t<Nactual> join_;
     tbb::flow::multifunction_node<messages_t<Nactual>, messages_t<2u>> transform_;
     stores_t stores_;
+    std::atomic<std::size_t> calls_;
   };
 
 }

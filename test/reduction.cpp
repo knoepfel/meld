@@ -100,4 +100,11 @@ TEST_CASE("Different levels of reduction", "[graph]")
     .input(react_to("other_job_sum"), use(20u));
 
   g.execute();
+
+  CHECK(g.execution_counts("run_add") == index_limit * number_limit);
+  CHECK(g.execution_counts("job_add") == index_limit);
+  CHECK(g.execution_counts("other_job_add") == index_limit * number_limit);
+  CHECK(g.execution_counts("verify_run_sum") == index_limit);
+  CHECK(g.execution_counts("verify_job_sum") == 1);
+  CHECK(g.execution_counts("verify_other_job_sum") == 1);
 }

@@ -50,7 +50,7 @@ namespace meld {
   public:
     void set_flush_value(product_store_const_ptr const& ptr, std::size_t original_message_id);
     void increment(std::string const& level_name);
-    bool is_flush() const;
+    bool is_flush();
     unsigned int original_message_id() const noexcept;
 
   private:
@@ -61,6 +61,7 @@ namespace meld {
     flush_counts_ptr flush_counts_{nullptr};
 #endif
     unsigned int original_message_id_{}; // Necessary for matching inputs to downstream join nodes.
+    std::atomic<bool> ready_to_flush_{true};
   };
 
   class count_stores {

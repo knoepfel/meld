@@ -17,19 +17,6 @@ using namespace meld::concurrency;
 using namespace oneapi::tbb;
 
 namespace {
-  using sink_node_base = flow::function_node<message, flow::continue_msg>;
-  class sink_node : public sink_node_base {
-  public:
-    template <typename FT>
-    sink_node(tbb::flow::graph& g, std::size_t concurrency, FT ft) :
-      sink_node_base{g, concurrency, [f = std::move(ft)](message const& msg) -> flow::continue_msg {
-                       f(msg.store);
-                       return {};
-                     }}
-    {
-    }
-  };
-
   class source {
   public:
     explicit source(unsigned const max_n) : max_{max_n} {}

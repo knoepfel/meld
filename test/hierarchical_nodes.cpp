@@ -130,4 +130,10 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     .filtered_by();
 
   g.execute("hierarchical_nodes_t.gv");
+
+  CHECK(g.execution_counts("square") == index_limit * number_limit);
+  CHECK(g.execution_counts("add") == index_limit * number_limit);
+  CHECK(g.execution_counts("get_the_time") == index_limit);
+  CHECK(g.execution_counts("scale") == index_limit);
+  CHECK(g.execution_counts("print_result") == index_limit);
 }

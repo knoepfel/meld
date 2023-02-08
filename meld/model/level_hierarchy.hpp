@@ -22,12 +22,17 @@ namespace meld {
     void print() const;
 
   private:
-    std::vector<std::string> graph_layout() const;
+    std::string graph_layout() const;
+
+    using hash_name_pair = std::pair<std::string, std::size_t>;
+    using hash_name_pairs = std::vector<hash_name_pair>;
+    std::string pretty_recurse(std::map<std::string, hash_name_pairs> const& tree,
+                               std::string const& parent_name,
+                               std::string indent = {}) const;
 
     struct level_entry {
       std::string name;
       std::size_t parent_hash;
-      std::size_t depth;
       std::size_t count;
     };
 

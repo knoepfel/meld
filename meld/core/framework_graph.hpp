@@ -55,6 +55,8 @@ namespace meld {
 
     void execute(std::string const& dot_file_name = {});
 
+    std::size_t execution_counts(std::string const& node_name) const;
+
     graph_proxy<void_tag> proxy(configuration const& config)
     {
       return {config,
