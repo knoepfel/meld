@@ -19,6 +19,11 @@ namespace {
     return i ^ (j + 0x9e3779b9 + (i << 6) + (i >> 2));
   }
 
+  constexpr std::size_t hash_numbers(std::size_t i, std::size_t j, std::size_t k)
+  {
+    return hash_numbers(hash_numbers(i, j), k);
+  }
+
   std::vector<std::size_t> all_numbers(meld::level_id const& id)
   {
     if (!id.has_parent()) {
@@ -48,7 +53,7 @@ namespace meld {
     level_name_{move(level_name)},
     level_hash_{hash_numbers(parent_->level_hash_, string_hasher(level_name_))},
     depth_{parent_->depth_ + 1},
-    hash_{hash_numbers(parent_->hash_, number_)}
+    hash_{hash_numbers(parent_->hash_, number_, level_hash_)}
   {
     // if (empty(level_name_)) {
     //   throw std::runtime_error("Cannot create a level ID with no level name");

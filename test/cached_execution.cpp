@@ -84,5 +84,5 @@ TEST_CASE("Cached function calls", "[data model]")
   CHECK(g.execution_counts("B1") >= n_runs * n_subruns);
   CHECK(g.execution_counts("B2") >= n_runs * n_subruns);
 
-  CHECK(g.execution_counts("C") >= n_runs * n_subruns * n_events);
+  CHECK(g.execution_counts("C") == n_runs * n_subruns * n_events);
 }

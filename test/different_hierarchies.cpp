@@ -1,24 +1,29 @@
 // =======================================================================================
 // This test executes the following graph
 //
-//            Multiplexer
-//            /        \
-//           /          \
-//      job_add(*)     run_add(^)
-//          |             |\
-//          |             | \
-//          |             |  \
-//   verify_job_sum       |   \
-//                        |    \
-//             verify_run_sum   \
-//                               \
-//                           two_layer_job_add(*)
-//                                |
-//                                |
-//                         verify_two_layer_job_sum
+//        Multiplexer
+//        |         |
+//    job_add(*) run_add(^)
+//        |         |
+//        |     verify_run_sum
+//        |
+//   verify_job_sum
 //
 // where the asterisk (*) indicates a reduction step over the full job, and the caret (^)
 // represents a reduction step over each run.
+//
+// The hierarchy tested is:
+//
+//    job
+//     │
+//     ├ trigger primitive
+//     │
+//     └ run
+//        │
+//        └ event
+//
+// As the run_add node performs reductions only over "runs", any "trigger primitive"
+// stores are excluded from the reduction result.
 // =======================================================================================
 
 #include "meld/core/cached_product_stores.hpp"
@@ -43,22 +48,28 @@ namespace {
     auto send() const { return number.load(); }
   };
 
-  void add(counter& result, unsigned int number) { result.number += number; }
+  void add(counter& result, meld::handle<unsigned int> number) { result.number += number; }
   void verify(unsigned int sum, unsigned expected) { CHECK(sum == expected); }
 }
 
-TEST_CASE("Different levels of reduction", "[graph]")
+TEST_CASE("Different hierarchies used with reduction", "[graph]")
 {
+  // job -> run -> event levels
   constexpr auto index_limit = 2u;
   constexpr auto number_limit = 5u;
   std::vector<level_id_ptr> levels;
-  levels.reserve(1 + index_limit * (number_limit + 1u));
   auto job_id = levels.emplace_back(level_id::base_ptr());
   for (unsigned i = 0u; i != index_limit; ++i) {
     auto run_id = levels.emplace_back(job_id->make_child(i, "run"));
     for (unsigned j = 0u; j != number_limit; ++j) {
       levels.push_back(run_id->make_child(j, "event"));
     }
+  }
+
+  // job -> trigger primitive levels
+  constexpr auto primitive_limit = 10u;
+  for (unsigned i = 0u; i != primitive_limit; ++i) {
+    levels.push_back(job_id->make_child(i, "trigger primitive"));
   }
 
   auto it = cbegin(levels);
@@ -71,7 +82,8 @@ TEST_CASE("Different levels of reduction", "[graph]")
     auto const& id = *it++;
 
     auto store = cached_stores.get_store(id);
-    if (id->level_name() == "event") {
+    // Insert a "number" for either events or trigger primitives
+    if (id->level_name() == "event" or id->level_name() == "trigger primitive") {
       store->add_product<unsigned>("number", id->number());
     }
     return store;
@@ -87,28 +99,18 @@ TEST_CASE("Different levels of reduction", "[graph]")
     .react_to("number")
     .output("job_sum")
     .over("job");
-  g.declare_reduction("two_layer_job_add", add, 0)
-    .concurrency(unlimited)
-    .react_to("run_sum")
-    .output("two_layer_job_sum")
-    .over("job");
 
   g.declare_monitor("verify_run_sum", verify)
     .concurrency(unlimited)
     .input(react_to("run_sum"), use(10u));
-  g.declare_monitor("verify_two_layer_job_sum", verify)
-    .concurrency(unlimited)
-    .input(react_to("two_layer_job_sum"), use(20u));
   g.declare_monitor("verify_job_sum", verify)
     .concurrency(unlimited)
-    .input(react_to("job_sum"), use(20u));
+    .input(react_to("job_sum"), use(20u + 45u)); // 20u from events, 45u from trigger primitives
 
   g.execute();
 
   CHECK(g.execution_counts("run_add") == index_limit * number_limit);
-  CHECK(g.execution_counts("job_add") == index_limit * number_limit);
-  CHECK(g.execution_counts("two_layer_job_add") == index_limit);
+  CHECK(g.execution_counts("job_add") == index_limit * number_limit + primitive_limit);
   CHECK(g.execution_counts("verify_run_sum") == index_limit);
-  CHECK(g.execution_counts("verify_two_layer_job_sum") == 1);
   CHECK(g.execution_counts("verify_job_sum") == 1);
 }
