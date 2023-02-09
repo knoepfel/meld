@@ -2,7 +2,8 @@
 #define test_products_for_output_hpp
 
 #include "meld/model/product_store.hpp"
-#include "meld/utilities/debug.hpp"
+
+#include "spdlog/spdlog.h"
 
 #include <sstream>
 
@@ -15,7 +16,7 @@ namespace meld::test {
       for (auto const& [product_name, _] : store) {
         oss << " -> Product name: " << product_name << '\n';
       }
-      debug(oss.str());
+      spdlog::debug(oss.str());
     }
   };
 

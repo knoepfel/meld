@@ -2,7 +2,6 @@
 #define meld_graph_serial_node_hpp
 
 #include "meld/graph/serializer_node.hpp"
-#include "meld/utilities/debug.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/flow_graph.h"

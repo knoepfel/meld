@@ -1,16 +1,16 @@
-#include "meld/graph/make_edges.hpp"
 #include "meld/graph/serial_node.hpp"
-#include "meld/utilities/debug.hpp"
 #include "meld/utilities/thread_counter.hpp"
 
 #include "catch2/catch.hpp"
 #include "oneapi/tbb/flow_graph.h"
+#include "spdlog/spdlog.h"
 
 #include <atomic>
 #include <string>
 
 using namespace meld;
 using namespace oneapi::tbb;
+using namespace spdlog;
 
 TEST_CASE("Serialize functions based on resource", "[multithreading]")
 {
@@ -31,7 +31,7 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
   serial_node<unsigned int, 1> node1{
     g, serialized_resources.get("ROOT"), [&root_counter](unsigned int const i) {
       thread_counter c{root_counter};
-      debug("Processing from node 1 ", i);
+      debug("Processing from node 1 {}", i);
       return i;
     }};
 
@@ -40,14 +40,14 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
                                      [&root_counter, &genie_counter](unsigned int const i) {
                                        thread_counter c1{root_counter};
                                        thread_counter c2{genie_counter};
-                                       debug("Processing from node 2 ", i);
+                                       debug("Processing from node 2 {}", i);
                                        return i;
                                      }};
 
   serial_node<unsigned int, 1> node3{
     g, serialized_resources.get("GENIE"), [&genie_counter](unsigned int const i) {
       thread_counter c{genie_counter};
-      debug("Processing from node 3 ", i);
+      debug("Processing from node 3 {}", i);
       return i;
     }};
 
@@ -57,7 +57,7 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
   auto receiving_node_for = [](tbb::flow::graph& g, std::string const& label) {
     return flow::function_node<unsigned int, unsigned int>{
       g, flow::unlimited, [&label](unsigned int const i) {
-        debug("Processed ", label, " task ", i);
+        debug("Processed {} task {}", label, i);
         return i;
       }};
   };
@@ -67,11 +67,15 @@ TEST_CASE("Serialize functions based on resource", "[multithreading]")
   auto receiving_node_3 = receiving_node_for(g, "GENIE");
   auto receiving_node_4 = receiving_node_for(g, "unlimited");
 
-  nodes(src)->nodes(node1, node2, node3, node4);
-  nodes(node1)->nodes(receiving_node_1);
-  nodes(node2)->nodes(receiving_node_2);
-  nodes(node3)->nodes(receiving_node_3);
-  nodes(node4)->nodes(receiving_node_4);
+  make_edge(src, node1);
+  make_edge(src, node2);
+  make_edge(src, node3);
+  make_edge(src, node4);
+
+  make_edge(node1, receiving_node_1);
+  make_edge(node2, receiving_node_2);
+  make_edge(node3, receiving_node_3);
+  make_edge(node4, receiving_node_4);
 
   serialized_resources.activate();
   src.activate();
@@ -98,7 +102,7 @@ TEST_CASE("Serialize functions in split/merge graph", "[multithreading]")
     return serial_node<unsigned int, 1>{
       g, root_resource, [&root_counter, label](unsigned int const i) {
         thread_counter c{root_counter};
-        debug("Processing from node ", label, ' ', i);
+        debug("Processing from node {} {}", label, i);
         return i;
       }};
   };
@@ -107,7 +111,10 @@ TEST_CASE("Serialize functions in split/merge graph", "[multithreading]")
   auto node2 = serial_node_for(g, 2);
   auto node3 = serial_node_for(g, 3);
 
-  nodes(src)->nodes(node1, node2)->nodes(node3);
+  make_edge(src, node1);
+  make_edge(src, node2);
+  make_edge(node1, node3);
+  make_edge(node2, node3);
 
   serialized_resources.activate();
   src.activate();

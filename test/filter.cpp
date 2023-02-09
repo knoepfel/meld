@@ -2,10 +2,8 @@
 #include "meld/core/filter/result_collector.hpp"
 #include "meld/core/framework_graph.hpp"
 #include "meld/core/message.hpp"
-#include "meld/graph/make_edges.hpp"
 #include "meld/model/level_hierarchy.hpp"
 #include "meld/model/product_store.hpp"
-#include "meld/utilities/debug.hpp"
 
 #include "catch2/catch.hpp"
 #include "oneapi/tbb/concurrent_hash_map.h"

@@ -1,6 +1,5 @@
 #include "meld/core/framework_graph.hpp"
 #include "meld/model/product_store.hpp"
-#include "meld/utilities/debug.hpp"
 
 #include "catch2/catch.hpp"
 

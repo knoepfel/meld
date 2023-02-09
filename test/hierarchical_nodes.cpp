@@ -21,10 +21,10 @@
 #include "meld/model/level_hierarchy.hpp"
 #include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
-#include "meld/utilities/debug.hpp"
 #include "test/products_for_output.hpp"
 
 #include "catch2/catch.hpp"
+#include "spdlog/spdlog.h"
 
 #include <atomic>
 #include <cmath>

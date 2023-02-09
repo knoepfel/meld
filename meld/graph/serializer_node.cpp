@@ -1,5 +1,4 @@
 #include "meld/graph/serializer_node.hpp"
-#include "meld/utilities/debug.hpp"
 
 namespace meld {
   serializers::serializers(tbb::flow::graph& g) : graph_{g} {}

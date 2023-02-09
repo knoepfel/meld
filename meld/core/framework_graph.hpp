@@ -13,7 +13,7 @@
 #include "meld/core/multiplexer.hpp"
 #include "meld/model/level_hierarchy.hpp"
 #include "meld/model/product_store.hpp"
-#include "meld/utilities/usage.hpp"
+#include "meld/utilities/resource_usage.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
 #include "oneapi/tbb/info.h"
@@ -151,7 +151,7 @@ namespace meld {
               registration_errors_};
     }
 
-    usage graph_usage{};
+    resource_usage graph_resource_usage_{};
     concurrency::max_allowed_parallelism parallelism_limit_;
     tbb::flow::graph graph_{};
     level_hierarchy hierarchy_{};

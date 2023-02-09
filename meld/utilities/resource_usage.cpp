@@ -1,4 +1,4 @@
-#include "meld/utilities/usage.hpp"
+#include "meld/utilities/resource_usage.hpp"
 
 #include "spdlog/spdlog.h"
 
@@ -17,7 +17,8 @@ namespace {
     double elapsed_time;
     double max_rss;
   };
-  metrics get_usage() noexcept
+
+  metrics get_rusage() noexcept
   {
     rusage used;
     getrusage(RUSAGE_SELF, &used);
@@ -27,13 +28,14 @@ namespace {
 }
 
 namespace meld {
-  usage::usage() noexcept : begin_wall_{steady_clock::now()}, begin_cpu_{get_usage().elapsed_time}
+  resource_usage::resource_usage() noexcept :
+    begin_wall_{steady_clock::now()}, begin_cpu_{get_rusage().elapsed_time}
   {
   }
 
-  usage::~usage()
+  resource_usage::~resource_usage()
   {
-    auto const [elapsed_time, max_rss] = get_usage();
+    auto const [elapsed_time, max_rss] = get_rusage();
     auto const end_wall = steady_clock::now();
     auto const cpu_time = elapsed_time - begin_cpu_;
     auto const real_time = duration_cast<nanoseconds>(end_wall - begin_wall_).count() / 1e9;
