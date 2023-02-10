@@ -65,12 +65,6 @@ namespace meld::detail {
     return will_use<T>{std::move(label.name)};
   }
 
-  template <typename T>
-  auto select_input(specified_value<T> t)
-  {
-    return uses_value<T>{std::move(t.value)};
-  }
-
   template <typename InputTypes, typename InputArgs, std::size_t... Is>
   auto form_input_arguments_impl(InputArgs args, std::index_sequence<Is...>)
   {

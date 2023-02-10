@@ -2,8 +2,9 @@ add_library(meld_model SHARED
   level_counter.cpp
   level_hierarchy.cpp
   level_id.cpp
-  products.cpp
+  product_matcher.cpp
   product_store.cpp
+  products.cpp
 )
 target_include_directories(meld_model PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(meld_model

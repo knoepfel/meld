@@ -74,77 +74,23 @@ namespace meld {
 
   // =====================================================================================
 
-  template <is_splitter_like FT>
-  class incomplete_splitter : public common_node_options<incomplete_splitter<FT>> {
-    using common_node_options_t = common_node_options<incomplete_splitter<FT>>;
+  template <is_splitter_like FT, typename InputArgs>
+  class partial_splitter {
+    static constexpr std::size_t N = std::tuple_size_v<InputArgs>;
     using function_t = FT;
-    using input_parameter_types = skip_first_type<parameter_types<FT>>; // Skip generator object
-    template <std::size_t Nactual, typename InputArgs>
-    class splitter_requires_provides;
-    template <std::size_t Nactual, typename InputArgs>
+
     class complete_splitter;
 
   public:
-    static constexpr auto N = std::tuple_size_v<input_parameter_types>;
-
-    incomplete_splitter(registrar<declared_splitters> reg,
-                        configuration const* config,
-                        std::string name,
-                        tbb::flow::graph& g,
-                        function_t f) :
-      common_node_options_t{config},
-      name_{std::move(name)},
-      graph_{g},
-      ft_{std::move(f)},
-      reg_{std::move(reg)}
-    {
-    }
-
-    template <typename... Args>
-    auto input(std::tuple<Args...> input_args)
-    {
-      static_assert(N == sizeof...(Args),
-                    "The number of function parameters is not the same as the number of specified "
-                    "input arguments.");
-      auto processed_input_args =
-        detail::form_input_arguments<input_parameter_types>(std::move(input_args));
-      auto product_names = detail::port_names(processed_input_args);
-      return splitter_requires_provides<size(product_names), decltype(processed_input_args)>{
-        std::move(reg_),
-        std::move(name_),
-        common_node_options_t::concurrency(),
-        common_node_options_t::release_preceding_filters(),
-        common_node_options_t::release_store_names(),
-        graph_,
-        std::move(ft_),
-        std::move(processed_input_args),
-        std::move(product_names)};
-    }
-
-    using common_node_options_t::input;
-
-  private:
-    std::string name_;
-    tbb::flow::graph& graph_;
-    function_t ft_;
-    registrar<declared_splitters> reg_;
-  };
-
-  // =====================================================================================
-
-  template <is_splitter_like FT>
-  template <std::size_t Nactual, typename InputArgs>
-  class incomplete_splitter<FT>::splitter_requires_provides {
-  public:
-    splitter_requires_provides(registrar<declared_splitters> reg,
-                               std::string name,
-                               std::size_t concurrency,
-                               std::vector<std::string> preceding_filters,
-                               std::vector<std::string> receive_stores,
-                               tbb::flow::graph& g,
-                               function_t&& f,
-                               InputArgs input_args,
-                               std::array<std::string, Nactual> product_names) :
+    partial_splitter(registrar<declared_splitters> reg,
+                     std::string name,
+                     std::size_t concurrency,
+                     std::vector<std::string> preceding_filters,
+                     std::vector<std::string> receive_stores,
+                     tbb::flow::graph& g,
+                     function_t&& f,
+                     InputArgs input_args,
+                     std::array<std::string, N> product_names) :
       name_{std::move(name)},
       concurrency_{concurrency},
       preceding_filters_{std::move(preceding_filters)},
@@ -157,19 +103,18 @@ namespace meld {
     {
     }
 
-    auto& provides(std::vector<std::string> output_product_names)
+    auto& into(std::vector<std::string> output_product_names)
     {
       reg_.set([this, outputs = std::move(output_product_names)] {
-        return std::make_unique<complete_splitter<Nactual, InputArgs>>(
-          std::move(name_),
-          concurrency_,
-          std::move(preceding_filters_),
-          std::move(receive_stores_),
-          graph_,
-          std::move(ft_),
-          std::move(input_args_),
-          std::move(product_names_),
-          std::move(outputs));
+        return std::make_unique<complete_splitter>(std::move(name_),
+                                                   concurrency_,
+                                                   std::move(preceding_filters_),
+                                                   std::move(receive_stores_),
+                                                   graph_,
+                                                   std::move(ft_),
+                                                   std::move(input_args_),
+                                                   std::move(product_names_),
+                                                   std::move(outputs));
       });
       return *this;
     }
@@ -182,15 +127,14 @@ namespace meld {
     tbb::flow::graph& graph_;
     function_t ft_;
     InputArgs input_args_;
-    std::array<std::string, Nactual> product_names_;
+    std::array<std::string, N> product_names_;
     registrar<declared_splitters> reg_;
   };
 
   // =====================================================================================
 
-  template <is_splitter_like FT>
-  template <std::size_t Nactual, typename InputArgs>
-  class incomplete_splitter<FT>::complete_splitter :
+  template <is_splitter_like FT, typename InputArgs>
+  class partial_splitter<FT, InputArgs>::complete_splitter :
     public declared_splitter,
     public detect_flush_flag {
     using stores_t = tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr>;
@@ -205,18 +149,18 @@ namespace meld {
                       tbb::flow::graph& g,
                       function_t&& f,
                       InputArgs input,
-                      std::array<std::string, Nactual> product_names,
+                      std::array<std::string, N> product_names,
                       std::vector<std::string> provided_products) :
       declared_splitter{std::move(name), std::move(preceding_filters), std::move(receive_stores)},
       input_{std::move(input)},
       product_names_{std::move(product_names)},
       provided_{std::move(provided_products)},
       multiplexer_{g},
-      join_{make_join_or_none(g, std::make_index_sequence<Nactual>{})},
+      join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       splitter_{
         g,
         concurrency,
-        [this, ft = std::move(f)](messages_t<Nactual> const& messages) -> tbb::flow::continue_msg {
+        [this, ft = std::move(f)](messages_t<N> const& messages) -> tbb::flow::continue_msg {
           auto const& msg = most_derived(messages);
           auto const& store = msg.store;
           if (store->is_flush()) {
@@ -257,12 +201,9 @@ namespace meld {
   private:
     tbb::flow::receiver<message>& port_for(std::string const& product_name) override
     {
-      return receiver_for<Nactual>(join_, product_names_, product_name);
+      return receiver_for<N>(join_, product_names_, product_name);
     }
-    std::vector<tbb::flow::receiver<message>*> ports() override
-    {
-      return input_ports<Nactual>(join_);
-    }
+    std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
     tbb::flow::sender<message>& to_output() override { return to_output_; }
 
@@ -280,7 +221,7 @@ namespace meld {
     template <std::size_t... Is>
     void call(function_t const& ft,
               generator& g,
-              messages_t<Nactual> const& messages,
+              messages_t<N> const& messages,
               std::index_sequence<Is...>)
     {
       ++calls_;
@@ -290,11 +231,11 @@ namespace meld {
     std::size_t num_calls() const final { return calls_.load(); }
 
     InputArgs input_;
-    std::array<std::string, Nactual> product_names_;
+    std::array<std::string, N> product_names_;
     std::vector<std::string> provided_;
     multiplexer multiplexer_;
-    join_or_none_t<Nactual> join_;
-    tbb::flow::function_node<messages_t<Nactual>> splitter_;
+    join_or_none_t<N> join_;
+    tbb::flow::function_node<messages_t<N>> splitter_;
     tbb::flow::broadcast_node<message> to_output_;
     tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr> stores_;
     std::atomic<std::size_t> counter_{}; // Is this sufficient?  Probably not.

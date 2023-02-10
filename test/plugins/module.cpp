@@ -1,6 +1,8 @@
 #include "meld/module.hpp"
 #include "test/plugins/add.hpp"
 
+#include <cassert>
+
 using namespace meld;
 using namespace meld::concurrency;
 
@@ -8,6 +10,8 @@ using namespace meld::concurrency;
 
 DEFINE_MODULE(m)
 {
-  m.declare_transform(test::add).concurrency(unlimited).react_to("i", "j").output("sum");
-  m.declare_monitor(test::verify).concurrency(unlimited).input(react_to("sum"), use(0));
+  m.with(test::add).using_concurrency(unlimited).transform("i", "j").to("sum");
+  m.with("verify", [](int actual) { assert(actual == 0); })
+    .using_concurrency(unlimited)
+    .monitor("sum");
 }

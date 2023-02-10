@@ -7,6 +7,12 @@
 namespace meld {
   struct void_tag {};
 
+  template <typename FT>
+  auto delegate(std::shared_ptr<void_tag>&, FT f) // Used for lambda closures
+  {
+    return std::function{f};
+  }
+
   template <typename R, typename... Args>
   auto delegate(std::shared_ptr<void_tag>&, R (*f)(Args...))
   {

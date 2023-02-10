@@ -23,11 +23,6 @@ namespace meld {
     std::string name;
   };
 
-  template <typename T>
-  struct specified_value {
-    T value;
-  };
-
   // =====================================================================================
 
   template <typename T>
@@ -35,12 +30,6 @@ namespace meld {
 
   template <typename T, std::size_t I>
   constexpr bool does_expect_message<expects_message<T, I>> = true;
-
-  template <typename T>
-  constexpr bool does_specify_value = false;
-
-  template <typename T>
-  constexpr bool does_specify_value<specified_value<T>> = true;
 }
 
 #endif /* meld_core_input_arguments_hpp */

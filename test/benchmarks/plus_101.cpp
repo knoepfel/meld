@@ -7,4 +7,4 @@ namespace {
   int plus_101(int i) noexcept { return i + 101; }
 }
 
-DEFINE_MODULE(m) { m.declare_transform(plus_101).concurrency(unlimited).react_to("a").output("c"); }
+DEFINE_MODULE(m) { m.with(plus_101).using_concurrency(unlimited).transform("a").to("c"); }

@@ -65,6 +65,7 @@ namespace meld {
     if (!ready_to_flush_) {
       return false;
     }
+
 #ifdef __cpp_lib_atomic_shared_ptr
     auto flush_counts = flush_counts_.load();
 #else
@@ -74,12 +75,19 @@ namespace meld {
       return false;
     }
 
+    // The 'counts_' data member can be empty if the flush_counts member has been filled
+    // but none of the children stores have been processed.
+    if (counts_.empty() and !flush_counts->empty()) {
+      return false;
+    }
+
     for (auto const& [name, count] : counts_) {
       auto maybe_count = flush_counts->count_for(name);
       if (!maybe_count or count != *maybe_count) {
         return false;
       }
     }
+
     // Flush only once!
     return ready_to_flush_.exchange(false);
   }

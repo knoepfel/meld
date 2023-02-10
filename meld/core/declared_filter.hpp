@@ -52,65 +52,10 @@ namespace meld {
 
   // Registering concrete filters
 
-  template <typename FT>
-  class incomplete_filter : public common_node_options<incomplete_filter<FT>> {
-    using common_node_options_t = common_node_options<incomplete_filter<FT>>;
+  template <typename FT, typename InputArgs>
+  class complete_filter : public declared_filter, public detect_flush_flag {
+    static constexpr auto N = std::tuple_size_v<InputArgs>;
     using function_t = FT;
-    using input_parameter_types = parameter_types<FT>;
-    template <std::size_t Nactual, typename InputArgs>
-    class complete_filter;
-
-  public:
-    static constexpr auto N = number_parameters<FT>;
-
-    incomplete_filter(registrar<declared_filters> reg,
-                      configuration const* config,
-                      std::string name,
-                      tbb::flow::graph& g,
-                      function_t f) :
-      common_node_options_t{config},
-      name_{std::move(name)},
-      graph_{g},
-      ft_{std::move(f)},
-      reg_{std::move(reg)}
-    {
-    }
-
-    template <typename... Args>
-    incomplete_filter& input(std::tuple<Args...> input_args)
-    {
-      static_assert(N == sizeof...(Args),
-                    "The number of function parameters is not the same as the number of specified "
-                    "input arguments.");
-      auto processed_input_args =
-        detail::form_input_arguments<input_parameter_types>(std::move(input_args));
-      reg_.set([this, inputs = std::move(processed_input_args)] {
-        auto product_names = detail::port_names(inputs);
-        return std::make_unique<complete_filter<size(product_names), decltype(inputs)>>(
-          std::move(name_),
-          common_node_options_t::concurrency(),
-          common_node_options_t::release_preceding_filters(),
-          common_node_options_t::release_store_names(),
-          graph_,
-          std::move(ft_),
-          std::move(inputs),
-          std::move(product_names));
-      });
-      return *this;
-    }
-
-    using common_node_options_t::input;
-
-  private:
-    std::string name_;
-    tbb::flow::graph& graph_;
-    function_t ft_;
-    registrar<declared_filters> reg_;
-  };
-
-  template <typename FT>
-  template <std::size_t Nactual, typename InputArgs>
-  class incomplete_filter<FT>::complete_filter : public declared_filter, public detect_flush_flag {
     using results_t = tbb::concurrent_hash_map<level_id::hash_type, filter_result>;
     using accessor = results_t::accessor;
     using const_accessor = results_t::const_accessor;
@@ -123,38 +68,37 @@ namespace meld {
                     tbb::flow::graph& g,
                     function_t&& f,
                     InputArgs input,
-                    std::array<std::string, Nactual> product_names) :
+                    std::array<std::string, N> product_names) :
       declared_filter{std::move(name), std::move(preceding_filters), std::move(receive_stores)},
       product_names_{std::move(product_names)},
       input_{std::move(input)},
-      join_{make_join_or_none(g, std::make_index_sequence<Nactual>{})},
-      filter_{g,
-              concurrency,
-              [this, ft = std::move(f)](messages_t<Nactual> const& messages) -> filter_result {
-                auto const& msg = most_derived(messages);
-                auto const& [store, message_id] = std::tie(msg.store, msg.id);
-                filter_result result{};
-                if (store->is_flush()) {
-                  flag_accessor ca;
-                  flag_for(store->id()->hash(), ca).flush_received(message_id);
-                }
-                else if (const_accessor a; results_.find(a, store->id()->hash())) {
-                  result = {message_id, a->second.result};
-                }
-                else if (accessor a; results_.insert(a, store->id()->hash())) {
-                  bool const rc = call(ft, messages, std::make_index_sequence<N>{});
-                  result = a->second = {message_id, rc};
-                  flag_accessor ca;
-                  flag_for(store->id()->hash(), ca).mark_as_processed();
-                }
+      join_{make_join_or_none(g, std::make_index_sequence<N>{})},
+      filter_{
+        g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages) -> filter_result {
+          auto const& msg = most_derived(messages);
+          auto const& [store, message_id] = std::tie(msg.store, msg.id);
+          filter_result result{};
+          if (store->is_flush()) {
+            flag_accessor ca;
+            flag_for(store->id()->hash(), ca).flush_received(message_id);
+          }
+          else if (const_accessor a; results_.find(a, store->id()->hash())) {
+            result = {message_id, a->second.result};
+          }
+          else if (accessor a; results_.insert(a, store->id()->hash())) {
+            bool const rc = call(ft, messages, std::make_index_sequence<N>{});
+            result = a->second = {message_id, rc};
+            flag_accessor ca;
+            flag_for(store->id()->hash(), ca).mark_as_processed();
+          }
 
-                auto const id_hash = store->id()->hash();
-                if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_flush()) {
-                  results_.erase(id_hash);
-                  erase_flag(ca);
-                }
-                return result;
-              }}
+          auto const id_hash = store->id()->hash();
+          if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_flush()) {
+            results_.erase(id_hash);
+            erase_flag(ca);
+          }
+          return result;
+        }}
     {
       make_edge(join_, filter_);
     }
@@ -172,10 +116,7 @@ namespace meld {
       return receiver_for<N>(join_, product_names_, product_name);
     }
 
-    std::vector<tbb::flow::receiver<message>*> ports() override
-    {
-      return input_ports<Nactual>(join_);
-    }
+    std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
     tbb::flow::sender<filter_result>& sender() override { return filter_; }
     std::span<std::string const, std::dynamic_extent> input() const override
@@ -184,7 +125,7 @@ namespace meld {
     }
 
     template <std::size_t... Is>
-    bool call(function_t const& ft, messages_t<Nactual> const& messages, std::index_sequence<Is...>)
+    bool call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
     {
       ++calls_;
       return std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);
@@ -192,10 +133,10 @@ namespace meld {
 
     std::size_t num_calls() const final { return calls_.load(); }
 
-    std::array<std::string, Nactual> product_names_;
+    std::array<std::string, N> product_names_;
     InputArgs input_;
-    join_or_none_t<Nactual> join_;
-    tbb::flow::function_node<messages_t<Nactual>, filter_result> filter_;
+    join_or_none_t<N> join_;
+    tbb::flow::function_node<messages_t<N>, filter_result> filter_;
     results_t results_;
     std::atomic<std::size_t> calls_;
   };

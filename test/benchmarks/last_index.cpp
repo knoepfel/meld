@@ -10,8 +10,8 @@ namespace {
 
 DEFINE_MODULE(m, config)
 {
-  m.declare_transform(last_index)
-    .concurrency(unlimited)
-    .react_to("id")
-    .output(config.get<std::string>("product_name", "a"));
+  m.with(last_index)
+    .using_concurrency(unlimited)
+    .transform("id")
+    .to(config.get<std::string>("product_name", "a"));
 }

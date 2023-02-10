@@ -13,7 +13,7 @@ namespace meld {
                              product_store_ptr store) :
     hierarchy_{hierarchy},
     pending_stores_{pending_stores},
-    store_{std::move(store)},
+    store_{store},
     depth_{store_->id()->depth()}
   {
     hierarchy_.update(store_->id());
@@ -66,7 +66,7 @@ namespace meld {
              shutdown_ = true;
              drain();
            }
-           else {
+           else if (not store->is_flush()) {
              accept(std::move(store));
            }
            return send(pending_store());
@@ -84,19 +84,19 @@ namespace meld {
   std::size_t framework_graph::execution_counts(std::string const& node_name) const
   {
     // FIXME: Yuck!
-    if (auto it = filters_.find(node_name); it != filters_.end()) {
+    if (auto it = nodes_.filters_.find(node_name); it != nodes_.filters_.end()) {
       return it->second->num_calls();
     }
-    if (auto it = monitors_.find(node_name); it != monitors_.end()) {
+    if (auto it = nodes_.monitors_.find(node_name); it != nodes_.monitors_.end()) {
       return it->second->num_calls();
     }
-    if (auto it = reductions_.find(node_name); it != reductions_.end()) {
+    if (auto it = nodes_.reductions_.find(node_name); it != nodes_.reductions_.end()) {
       return it->second->num_calls();
     }
-    if (auto it = splitters_.find(node_name); it != splitters_.end()) {
+    if (auto it = nodes_.splitters_.find(node_name); it != nodes_.splitters_.end()) {
       return it->second->num_calls();
     }
-    if (auto it = transforms_.find(node_name); it != transforms_.end()) {
+    if (auto it = nodes_.transforms_.find(node_name); it != nodes_.transforms_.end()) {
       return it->second->num_calls();
     }
     return 0u;
@@ -153,22 +153,25 @@ namespace meld {
       throw std::runtime_error(error_msg);
     }
 
-    filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, filters_));
-    filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, monitors_));
-    filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, outputs_));
-    filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, reductions_));
-    filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, splitters_));
-    filter_collectors_.merge(internal_edges_for_filters(graph_, filters_, transforms_));
+    filter_collectors_.merge(internal_edges_for_filters(graph_, nodes_.filters_, nodes_.filters_));
+    filter_collectors_.merge(internal_edges_for_filters(graph_, nodes_.filters_, nodes_.monitors_));
+    filter_collectors_.merge(internal_edges_for_filters(graph_, nodes_.filters_, nodes_.outputs_));
+    filter_collectors_.merge(
+      internal_edges_for_filters(graph_, nodes_.filters_, nodes_.reductions_));
+    filter_collectors_.merge(
+      internal_edges_for_filters(graph_, nodes_.filters_, nodes_.splitters_));
+    filter_collectors_.merge(
+      internal_edges_for_filters(graph_, nodes_.filters_, nodes_.transforms_));
 
-    edge_maker make_edges{dot_file_name, outputs_, transforms_, reductions_};
+    edge_maker make_edges{dot_file_name, nodes_.outputs_, nodes_.transforms_, nodes_.reductions_};
     make_edges(src_,
                multiplexer_,
                filter_collectors_,
-               consumers{filters_, {.shape = "box"}},
-               consumers{monitors_, {.shape = "ellipse"}},
-               consumers{reductions_, {.arrowtail = "dot", .shape = "ellipse"}},
-               consumers{splitters_, {.shape = "trapezium"}},
-               consumers{transforms_, {.shape = "ellipse"}});
+               consumers{nodes_.filters_, {.shape = "box"}},
+               consumers{nodes_.monitors_, {.shape = "ellipse"}},
+               consumers{nodes_.reductions_, {.arrowtail = "dot", .shape = "ellipse"}},
+               consumers{nodes_.splitters_, {.shape = "trapezium"}},
+               consumers{nodes_.transforms_, {.shape = "ellipse"}});
   }
 
   void framework_graph::accept(product_store_ptr store)
@@ -183,8 +186,9 @@ namespace meld {
 
   void framework_graph::drain()
   {
-    while (not empty(levels_))
+    while (not empty(levels_)) {
       levels_.pop();
+    }
   }
 
   message framework_graph::send(product_store_ptr store)

@@ -37,8 +37,7 @@ namespace meld {
                            concurrency,
                            [serialized_resources = std::move(serializers), function = std::move(f)](
                              detail::join_tuple<Input, N> const& tup) mutable {
-                             // To quiet the case where the serializers sequence is empty.
-                             (void)serialized_resources;
+                             (void)serialized_resources; // To silence unused warning when N == 0
                              auto input = std::get<0>(tup);
                              function(input);
                              (std::get<I>(serialized_resources).try_put(1), ...);

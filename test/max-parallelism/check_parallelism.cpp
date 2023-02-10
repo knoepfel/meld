@@ -33,14 +33,15 @@ namespace {
   private:
     bool executed_{false};
   };
-
-  void verify_expected(std::size_t actual, std::size_t expected) { assert(actual == expected); }
 }
 
 // Framework glue
 DEFINE_SOURCE(send_parallelism)
 DEFINE_MODULE(m, config)
 {
-  m.declare_monitor(verify_expected)
-    .input(react_to("max_parallelism"), use(config.get<std::size_t>("expected_parallelism")));
+  m.with("verify_expected",
+         [expected = config.get<std::size_t>("expected_parallelism")](std::size_t actual) {
+           assert(actual == expected);
+         })
+    .monitor("max_parallelism");
 }

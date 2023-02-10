@@ -6,7 +6,7 @@ add_library(run_meld SHARED
   version.cpp)
 target_link_libraries(run_meld PRIVATE Boost::json meld::core)
 
-# We'll use C++17's filesystem insteead of Boost's
+# We'll use C++17's filesystem instead of Boost's
 target_compile_definitions(run_meld PRIVATE BOOST_DLL_USE_STD_FS)
 
 add_executable(meld meld.cpp)

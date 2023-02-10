@@ -29,6 +29,7 @@ int main()
     ++i;
     return store;
   }};
-  g.declare_transform(pass_on).concurrency(unlimited).react_to("number").output("different");
+
+  g.with(pass_on).using_concurrency(unlimited).transform("number").to("different");
   g.execute();
 }

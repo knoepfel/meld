@@ -14,6 +14,10 @@ namespace meld {
   template <typename T>
   concept not_void = !std::same_as<T, void>;
 
+  template <typename T>
+  concept sendable = std::move_constructible<T> ||
+    requires(T& t) { {send(t)} -> std::move_constructible; };
+
   template <typename T, std::size_t N>
   concept at_least_n_input_parameters = number_parameters<T> >= N;
 
@@ -30,6 +34,11 @@ namespace meld {
   concept first_input_parameter_is_non_const_lvalue_reference =
     at_least_one_input_parameter<T> &&
     is_non_const_lvalue_reference<parameter_type<0, T>>::value;
+
+  template <typename T>
+  concept first_input_parameter_is_sendable =
+    at_least_one_input_parameter<T> &&
+    sendable<parameter_type<0, T>>;
 
   template <typename T, typename R>
   concept returns = std::same_as<return_type<T>, R>;
@@ -51,6 +60,7 @@ namespace meld {
   concept is_reduction_like =
     at_least_two_input_parameters<T> &&
     first_input_parameter_is_non_const_lvalue_reference<T> &&
+    first_input_parameter_is_sendable<T> &&
     returns<T, void>; // <= May change if data products can be created per reduction step.
 
   template <typename T>

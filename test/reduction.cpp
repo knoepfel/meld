@@ -38,13 +38,7 @@ using namespace meld;
 using namespace meld::concurrency;
 
 namespace {
-  struct counter {
-    std::atomic<unsigned int> number;
-    auto send() const { return number.load(); }
-  };
-
-  void add(counter& result, unsigned int number) { result.number += number; }
-  void verify(unsigned int sum, unsigned expected) { CHECK(sum == expected); }
+  void add(std::atomic<unsigned int>& counter, unsigned int number) { counter += number; }
 }
 
 TEST_CASE("Different levels of reduction", "[graph]")
@@ -77,31 +71,31 @@ TEST_CASE("Different levels of reduction", "[graph]")
     return store;
   }};
 
-  g.declare_reduction("run_add", add, 0)
+  g.declare_reduction("run_add", add, 0u)
     .concurrency(unlimited)
     .react_to("number")
     .output("run_sum")
     .over("run");
-  g.declare_reduction("job_add", add, 0)
+  g.declare_reduction("job_add", add, 0u)
     .concurrency(unlimited)
     .react_to("number")
     .output("job_sum")
     .over("job");
-  g.declare_reduction("two_layer_job_add", add, 0)
+  g.declare_reduction("two_layer_job_add", add, 0u)
     .concurrency(unlimited)
     .react_to("run_sum")
     .output("two_layer_job_sum")
     .over("job");
 
-  g.declare_monitor("verify_run_sum", verify)
-    .concurrency(unlimited)
-    .input(react_to("run_sum"), use(10u));
-  g.declare_monitor("verify_two_layer_job_sum", verify)
-    .concurrency(unlimited)
-    .input(react_to("two_layer_job_sum"), use(20u));
-  g.declare_monitor("verify_job_sum", verify)
-    .concurrency(unlimited)
-    .input(react_to("job_sum"), use(20u));
+  g.with("verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); })
+    .using_concurrency(unlimited)
+    .monitor("run_sum");
+  g.with("verify_two_layer_job_sum", [](unsigned int actual) { CHECK(actual == 20u); })
+    .using_concurrency(unlimited)
+    .monitor("two_layer_job_sum");
+  g.with("verify_job_sum", [](unsigned int actual) { CHECK(actual == 20u); })
+    .using_concurrency(unlimited)
+    .monitor("job_sum");
 
   g.execute();
 

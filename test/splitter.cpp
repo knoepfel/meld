@@ -40,16 +40,7 @@ namespace {
     }
   }
 
-  struct counter {
-    std::atomic<unsigned int> total;
-    auto send() const { return total.load(); }
-  };
-
-  void add(counter& count, unsigned number)
-  {
-    // spdlog::info("Adding {}", number);
-    count.total += number;
-  }
+  void add(std::atomic<unsigned int>& counter, unsigned number) { counter += number; }
 
   void check_sum(handle<unsigned int> const sum)
   {
@@ -88,13 +79,9 @@ TEST_CASE("Splitting the processing", "[graph]")
     return store;
   }};
 
-  g.declare_splitter(split)
-    .concurrency(unlimited)
-    .filtered_by()
-    .react_to("max_number")
-    .provides({"num"});
+  g.with(split).using_concurrency(unlimited).filtered_by().split("max_number").into({"num"});
   g.declare_reduction(add).concurrency(unlimited).react_to("num").output("sum").over("event");
-  g.declare_monitor(check_sum).concurrency(unlimited).react_to("sum");
+  g.with(check_sum).using_concurrency(unlimited).monitor("sum");
   g.make<test::products_for_output>()
     .declare_output(&test::products_for_output::save)
     .concurrency(serial);

@@ -9,6 +9,7 @@
 #include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/products_consumer.hpp"
+#include "meld/core/reduction/send.hpp"
 #include "meld/core/registrar.hpp"
 #include "meld/core/store_counters.hpp"
 #include "meld/model/handle.hpp"
@@ -34,7 +35,6 @@
 #include <utility>
 
 namespace meld {
-
   class declared_reduction : public products_consumer {
   public:
     declared_reduction(std::string name,
@@ -319,16 +319,14 @@ namespace meld {
     void commit_(product_store& store)
     {
       auto& result = results_.at(*store.id());
-      if constexpr (requires { result->send(); }) {
-        store.add_product(output()[0], result->send());
+      if constexpr (requires { send(*result); }) {
+        store.add_product(output()[0], send(*result));
       }
       else {
-        store.add_product(output()[0], std::move(result));
+        store.add_product(output()[0], std::move(*result));
       }
       // Reclaim some memory; it would be better to erase the entire entry from the map,
       // but that is not thread-safe.
-
-      // N.B. Calling reset() is safe even if std::move(result) has been called.
       result.reset();
     }
 

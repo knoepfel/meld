@@ -1,6 +1,7 @@
 #include "meld/model/level_id.hpp"
 
 #include "boost/algorithm/string.hpp"
+#include "boost/functional/hash.hpp"
 #include "fmt/ranges.h"
 
 #include <algorithm>
@@ -14,12 +15,13 @@
 namespace {
 
   std::hash<std::string> const string_hasher{};
-  constexpr std::size_t hash_numbers(std::size_t i, std::size_t j)
+  std::size_t hash_numbers(std::size_t i, std::size_t j)
   {
-    return i ^ (j + 0x9e3779b9 + (i << 6) + (i >> 2));
+    boost::hash_combine(i, j);
+    return i;
   }
 
-  constexpr std::size_t hash_numbers(std::size_t i, std::size_t j, std::size_t k)
+  std::size_t hash_numbers(std::size_t i, std::size_t j, std::size_t k)
   {
     return hash_numbers(hash_numbers(i, j), k);
   }
@@ -45,8 +47,6 @@ namespace meld {
 
   level_id::level_id() : level_hash_{string_hasher(level_name_)} {}
 
-  // Hash algorithm pilfered from
-  // https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector#comment126511630_27216842
   level_id::level_id(const_ptr parent, std::size_t i, std::string level_name) :
     parent_{std::move(parent)},
     number_{i},

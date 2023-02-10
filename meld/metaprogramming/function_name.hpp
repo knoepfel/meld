@@ -7,11 +7,11 @@
 // What's all this about?  To simplify function registration for users, I want it to be
 // possible for users to type something like (e.g.):
 //
-//   m.declare_transform(my_transform).input(...).output(...)
+//   m.with(my_transform).transform(...).to(...)
 //
 // instead of the more verbose:
 //
-//   m.declare_transform(my_transform, "my_transform").input(...).output(...)
+//   m.with("my_transform", my_transform).transform(...).to(...)
 //
 // For the former case, the framework should be able to deduce that the name of the
 // function is 'my_transform'.  Broadly speaking, this requires static reflection, which

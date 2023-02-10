@@ -39,7 +39,7 @@ namespace meld {
 
     struct no_join : no_join_base_t {
       no_join(tbb::flow::graph& g, MessageHasher) :
-        no_join_base_t{g, tbb::flow::unlimited, [](message const& msg) { return std::tuple{msg}; }}
+        no_join_base_t{g, tbb::flow::unlimited, [](message msg) { return std::tuple{std::move(msg)}; }}
       {
       }
     };
@@ -61,12 +61,10 @@ namespace meld {
       return {&join};
     }
     else {
-      return [&join]<std::size_t... Is>(std::index_sequence<Is...>)
-        ->std::vector<tbb::flow::receiver<message>*>
-      {
+      return [&join]<std::size_t... Is>(
+               std::index_sequence<Is...>) -> std::vector<tbb::flow::receiver<message>*> {
         return {&input_port<Is>(join)...};
-      }
-      (std::make_index_sequence<N>{});
+      }(std::make_index_sequence<N>{});
     }
   }
 

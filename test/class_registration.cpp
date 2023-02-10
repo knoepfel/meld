@@ -62,42 +62,42 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   auto glueball = g.make<A>();
   SECTION("No framework")
   {
-    glueball.declare_transform(&A::no_framework)
-      .concurrency(unlimited)
-      .input(product_names)
-      .output(oproduct_names);
+    glueball.with(&A::no_framework)
+      .using_concurrency(unlimited)
+      .transform(product_names)
+      .to(oproduct_names);
   }
   SECTION("No framework, all references")
   {
-    glueball.declare_transform(&A::no_framework_all_refs)
-      .concurrency(unlimited)
-      .input(product_names)
-      .output(oproduct_names);
+    glueball.with(&A::no_framework_all_refs)
+      .using_concurrency(unlimited)
+      .transform(product_names)
+      .to(oproduct_names);
   }
   SECTION("No framework, all pointers")
   {
-    glueball.declare_transform(&A::no_framework_all_ptrs)
-      .concurrency(unlimited)
-      .input(product_names)
-      .output(oproduct_names);
+    glueball.with(&A::no_framework_all_ptrs)
+      .using_concurrency(unlimited)
+      .transform(product_names)
+      .to(oproduct_names);
   }
   SECTION("One framework argument")
   {
-    glueball.declare_transform(&A::one_framework_arg)
-      .concurrency(unlimited)
-      .input(product_names)
-      .output(oproduct_names);
+    glueball.with(&A::one_framework_arg)
+      .using_concurrency(unlimited)
+      .transform(product_names)
+      .to(oproduct_names);
   }
   SECTION("All framework arguments")
   {
-    glueball.declare_transform(&A::all_framework_args)
-      .concurrency(unlimited)
-      .input(product_names)
-      .output(oproduct_names);
+    glueball.with(&A::all_framework_args)
+      .using_concurrency(unlimited)
+      .transform(product_names)
+      .to(oproduct_names);
   }
 
   // The following is invoked for *each* section above
-  g.declare_monitor(verify_results).concurrency(unlimited).input(product_names);
+  g.with(verify_results).using_concurrency(unlimited).monitor(product_names);
 
   g.execute("class_component_t.gv");
 }

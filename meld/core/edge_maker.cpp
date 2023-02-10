@@ -1,13 +1,12 @@
 #include "meld/core/edge_maker.hpp"
 
+#include <iomanip>
+
 namespace {
   std::string const default_fontsize{"12"};
 
 #define DOT_ATTRIBUTE(name)                                                                        \
-  inline std::string name(std::string const& str)                                                  \
-  {                                                                                                \
-    return #name "=" + str;                                                                        \
-  }
+  inline std::string name(std::string const& str) { return #name "=" + str; }
 
   DOT_ATTRIBUTE(arrowtail)
   DOT_ATTRIBUTE(color)
@@ -30,6 +29,8 @@ namespace {
   }
 }
 
+using std::quoted;
+
 namespace meld {
   void edge_maker::dot_prolog(std::ostream& os)
   {
@@ -50,14 +51,15 @@ namespace meld {
                                         std::string const& node_name,
                                         std::string const& node_shape)
   {
-    os << "  " << node_name << attributes_str(shape(node_shape)) << ";\n";
+    os << "  " << quoted(node_name) << attributes_str(shape(node_shape)) << ";\n";
   }
 
   void edge_maker::dot_filter_edge(std::ostream& os,
                                    std::string const& source_node,
                                    std::string const& target_node)
   {
-    os << "  " << source_node << " -> " << target_node << attributes_str(color("red")) << ";\n";
+    os << "  " << quoted(source_node) << " -> " << quoted(target_node)
+       << attributes_str(color("red")) << ";\n";
   }
 
   void edge_maker::dot_multiplexing_edge(std::ostream& os,
@@ -65,7 +67,7 @@ namespace meld {
                                          std::string const& target_node,
                                          dot::attributes attrs)
   {
-    os << "  " << source_node << " -> " << target_node
+    os << "  " << quoted(source_node) << " -> " << quoted(target_node)
        << attributes_str(
             color("blue"), style("dashed"), label(attrs.label), fontsize(default_fontsize))
        << ";\n";
@@ -76,7 +78,7 @@ namespace meld {
                                    std::string const& target_node,
                                    dot::attributes attrs)
   {
-    os << "  " << source_node << ":s -> " << target_node
+    os << "  " << quoted(source_node) << ":s -> " << quoted(target_node)
        << attributes_str(
             dir("both"), arrowtail(attrs.arrowtail), label(attrs.label), fontsize(default_fontsize))
        << ";\n";
@@ -87,7 +89,7 @@ namespace meld {
                                    std::string const& target_node,
                                    dot::attributes attrs)
   {
-    os << "  " << source_node << " -> " << target_node
+    os << "  " << quoted(source_node) << " -> " << quoted(target_node)
        << attributes_str(dir("both"), color("gray"), arrowtail(attrs.arrowtail)) << ";\n";
   }
 }

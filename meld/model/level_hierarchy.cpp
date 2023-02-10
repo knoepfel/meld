@@ -12,7 +12,7 @@ namespace {
 
 namespace meld {
 
-  void level_hierarchy::update(level_id_ptr const& id)
+  void level_hierarchy::update(level_id_ptr const id)
   {
     if (!levels_.contains(id->level_hash())) {
       auto const parent_hash = id->has_parent() ? id->parent()->level_hash() : -1ull;
@@ -21,12 +21,14 @@ namespace meld {
 
     level_counter* parent_counter = nullptr;
     if (auto parent = id->parent()) {
-      parent_counter = counters_.at(parent->hash()).get();
+      auto it = counters_.find(parent->hash());
+      assert(it != counters_.cend());
+      parent_counter = it->second.get();
     }
     counters_[id->hash()] = std::make_shared<level_counter>(parent_counter, id->level_name());
   }
 
-  flush_counts level_hierarchy::complete(level_id_ptr const& id)
+  flush_counts level_hierarchy::complete(level_id_ptr const id)
   {
     ++levels_.at(id->level_hash()).count;
     auto counter = counters_.extract(id->hash());

@@ -9,7 +9,5 @@ namespace {
 
 DEFINE_MODULE(m, config)
 {
-  m.declare_monitor(read_index)
-    .concurrency(unlimited)
-    .react_to(config.get<std::string>("product_name"));
+  m.with(read_index).using_concurrency(unlimited).monitor(config.get<std::string>("product_name"));
 }

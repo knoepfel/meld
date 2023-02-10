@@ -2,15 +2,14 @@
 #define meld_core_framework_graph_hpp
 
 #include "meld/configuration.hpp"
-#include "meld/core/declared_filter.hpp"
 #include "meld/core/declared_reduction.hpp"
 #include "meld/core/declared_splitter.hpp"
-#include "meld/core/declared_transform.hpp"
 #include "meld/core/filter/result_collector.hpp"
 #include "meld/core/glue.hpp"
 #include "meld/core/graph_proxy.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/multiplexer.hpp"
+#include "meld/core/node_catalog.hpp"
 #include "meld/model/level_hierarchy.hpp"
 #include "meld/model/product_store.hpp"
 #include "meld/utilities/resource_usage.hpp"
@@ -59,15 +58,7 @@ namespace meld {
 
     graph_proxy<void_tag> proxy(configuration const& config)
     {
-      return {config,
-              graph_,
-              filters_,
-              monitors_,
-              outputs_,
-              reductions_,
-              splitters_,
-              transforms_,
-              registration_errors_};
+      return {config, graph_, nodes_, registration_errors_};
     }
 
     // Framework function registrations
@@ -75,19 +66,9 @@ namespace meld {
     // N.B. declare_output() is not directly accessible through framework_graph.  Is this
     //      right?
 
-    template <typename... Args>
-    auto declare_filter(std::string name, bool (*f)(Args...))
-    {
-      return proxy().declare_filter(std::move(name), f);
-    }
-    auto declare_filter(auto f) { return declare_filter(function_name(f), f); }
+    auto with(std::string name, auto f) { return proxy().with(std::move(name), f); }
 
-    template <typename... Args>
-    auto declare_monitor(std::string name, void (*f)(Args...))
-    {
-      return proxy().declare_monitor(std::move(name), f);
-    }
-    auto declare_monitor(auto f) { return declare_monitor(function_name(f), f); }
+    auto with(auto f) { return with(function_name(f), f); }
 
     template <typename R, typename... Args, typename... InitArgs>
     auto declare_reduction(std::string name, void (*f)(R&, Args...), InitArgs&&... init_args)
@@ -100,32 +81,11 @@ namespace meld {
       return declare_reduction(function_name(f), f, std::forward<InitArgs>(init_args)...);
     }
 
-    template <typename... Args>
-    auto declare_splitter(std::string name, void (*f)(Args...))
-    {
-      return proxy().declare_splitter(std::move(name), f);
-    }
-    auto declare_splitter(auto f) { return declare_splitter(function_name(f), f); }
-
-    template <typename R, typename... Args>
-    auto declare_transform(std::string name, R (*f)(Args...))
-    {
-      return proxy().declare_transform(std::move(name), f);
-    }
-    auto declare_transform(auto f) { return declare_transform(function_name(f), f); }
-
     template <typename T, typename... Args>
     glue<T> make(Args&&... args)
     {
-      return {graph_,
-              filters_,
-              monitors_,
-              outputs_,
-              reductions_,
-              splitters_,
-              transforms_,
-              std::make_shared<T>(std::forward<Args>(args)...),
-              registration_errors_};
+      return {
+        graph_, nodes_, std::make_shared<T>(std::forward<Args>(args)...), registration_errors_};
     }
 
   private:
@@ -138,29 +98,13 @@ namespace meld {
     std::size_t original_message_id(product_store_ptr const& store);
     product_store_ptr pending_store();
 
-    glue<void_tag> proxy()
-    {
-      return {graph_,
-              filters_,
-              monitors_,
-              outputs_,
-              reductions_,
-              splitters_,
-              transforms_,
-              nullptr,
-              registration_errors_};
-    }
+    glue<void_tag> proxy() { return {graph_, nodes_, nullptr, registration_errors_}; }
 
     resource_usage graph_resource_usage_{};
     concurrency::max_allowed_parallelism parallelism_limit_;
     tbb::flow::graph graph_{};
     level_hierarchy hierarchy_{};
-    declared_filters filters_{};
-    declared_monitors monitors_{};
-    declared_outputs outputs_{};
-    declared_reductions reductions_{};
-    declared_splitters splitters_{};
-    declared_transforms transforms_{};
+    node_catalog nodes_{};
     std::vector<std::string> registration_errors_{};
     std::map<std::string, result_collector> filter_collectors_{};
     tbb::flow::input_node<message> src_;

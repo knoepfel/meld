@@ -7,12 +7,12 @@
 // statement.  For example:
 //
 //   g.make<MyTransform>()
-//     .declare_transform("name", &MyTransform::transform)
-//     .concurrency(n)
+//     .with("name", &MyTransform::transform)
+//     .using_concurrency(n)
 //     .filtered_by(...)
-//     .input(...)
-//     .output(...);
-//                 ^ Registration happens at the completion of the full statement.
+//     .transform(...)
+//     .to(...);
+//             ^ Registration happens at the completion of the full statement.
 //
 // This is achieved by creating a class registrar class object (internally during any of
 // the declare* calls), which is then passed along through each successive function call
@@ -23,7 +23,7 @@
 // Timing
 // ======
 //
-//    "Hurry.  Careful timing will we will need."  -Yoda (Star Wars, Episode III)
+//    "Hurry.  Careful timing we will need."  -Yoda (Star Wars, Episode III)
 //
 // In order for this system to work correctly, any intermediate objects created during the
 // function-call chain above should contain the registrar object as its *last* data

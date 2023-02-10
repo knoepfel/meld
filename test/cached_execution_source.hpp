@@ -17,7 +17,7 @@
 namespace test {
   inline constexpr std::size_t n_runs{1};
   inline constexpr std::size_t n_subruns{2u};
-  inline constexpr std::size_t n_events{5u};
+  inline constexpr std::size_t n_events{5000u};
 
   class cached_execution_source {
   public:
@@ -52,7 +52,7 @@ namespace test {
       if (current_ == end(levels_)) {
         return nullptr;
       }
-      auto const& id = *current_++;
+      auto const id = *current_++;
 
       auto store = cached_stores_.get_store(id);
       if (id->level_name() == "run") {

@@ -14,8 +14,8 @@ namespace meld {
 
   class level_hierarchy {
   public:
-    void update(level_id_ptr const& id);
-    flush_counts complete(level_id_ptr const& id);
+    void update(level_id_ptr id);
+    flush_counts complete(level_id_ptr id);
 
     std::size_t count_for(std::string const& level_name) const;
 

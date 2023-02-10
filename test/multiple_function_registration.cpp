@@ -37,8 +37,6 @@ namespace {
       return sqrt_sum_numbers(summed_numbers, offset);
     }
   };
-
-  void verify_result(double result, double expected) { CHECK(result == expected); }
 }
 
 TEST_CASE("Call multiple functions", "[programming model]")
@@ -50,38 +48,32 @@ TEST_CASE("Call multiple functions", "[programming model]")
 
   SECTION("All free functions")
   {
-    g.declare_transform(square_numbers)
-      .concurrency(unlimited)
-      .react_to("numbers")
-      .output("squared_numbers");
-    g.declare_transform(sum_numbers)
-      .concurrency(unlimited)
-      .react_to("squared_numbers")
-      .output("summed_numbers");
-    g.declare_transform(sqrt_sum_numbers)
-      .concurrency(unlimited)
-      .react_to("summed_numbers", "offset")
-      .output("result");
+    g.with(square_numbers).using_concurrency(unlimited).transform("numbers").to("squared_numbers");
+    g.with(sum_numbers)
+      .using_concurrency(unlimited)
+      .transform("squared_numbers")
+      .to("summed_numbers");
+    g.with(sqrt_sum_numbers)
+      .using_concurrency(unlimited)
+      .transform("summed_numbers", "offset")
+      .to("result");
   }
 
   SECTION("Transforms, one from a class")
   {
-    g.declare_transform(square_numbers)
-      .concurrency(unlimited)
-      .react_to("numbers")
-      .output("squared_numbers");
-    g.declare_transform(sum_numbers)
-      .concurrency(unlimited)
-      .react_to("squared_numbers")
-      .output("summed_numbers");
+    g.with(square_numbers).using_concurrency(unlimited).transform("numbers").to("squared_numbers");
+    g.with(sum_numbers)
+      .using_concurrency(unlimited)
+      .transform("squared_numbers")
+      .to("summed_numbers");
     g.make<A>()
-      .declare_transform(&A::sqrt_sum)
-      .concurrency(unlimited)
-      .react_to("summed_numbers", "offset")
-      .output("result");
+      .with(&A::sqrt_sum)
+      .using_concurrency(unlimited)
+      .transform("summed_numbers", "offset")
+      .to("result");
   }
 
   // The following is invoked for *each* section above
-  g.declare_monitor(verify_result).input(react_to("result"), use(6.));
+  g.with("verify_result", [](double actual) { assert(actual == 6.); }).monitor("result");
   g.execute();
 }

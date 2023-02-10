@@ -34,7 +34,7 @@ namespace {
 DEFINE_MODULE(m, config)
 {
   m.make<fibonacci_numbers>(config.get<int>("max_number"))
-    .declare_filter(&fibonacci_numbers::accept)
-    .concurrency(unlimited)
-    .react_to(config.get<std::string>("product_name"));
+    .with(&fibonacci_numbers::accept)
+    .using_concurrency(unlimited)
+    .filter(config.get<std::string>("product_name"));
 }
