@@ -40,11 +40,9 @@ namespace {
     {
       nodes_.reserve(n); // N.B. TBB uses the address of the nodes, so an emplace_back w/o
                          // a reserve will invalidate anything that's already cached.
-      std::size_t mod_i = 0;
       for (auto& module : modules_) {
         auto& node = nodes_.emplace_back(
           g, flow::serial, [&module, ft](unsigned int i) { return (module.*ft)(i); });
-        ++mod_i;
         make_edge(buffer_, node);
         make_edge(node, broadcast_);
       }

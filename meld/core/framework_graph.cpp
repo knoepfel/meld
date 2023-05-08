@@ -13,7 +13,7 @@ namespace meld {
                              product_store_ptr store) :
     hierarchy_{hierarchy},
     pending_stores_{pending_stores},
-    store_{move(store)},
+    store_{std::move(store)},
     depth_{store_->id()->depth()}
   {
     hierarchy_.update(store_->id());
@@ -28,7 +28,7 @@ namespace meld {
       flush_store->add_product("[flush]",
                                std::make_shared<flush_counts const>(std::move(flush_result)));
     }
-    pending_stores_.push(move(flush_store));
+    pending_stores_.push(std::move(flush_store));
   }
 
   std::size_t level_sentry::depth() const noexcept { return depth_; }
@@ -48,7 +48,7 @@ namespace meld {
                                    int const max_parallelism) :
     parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
     src_{graph_,
-         [this, read_next_store = move(next_store)](tbb::flow_control& fc) mutable -> message {
+         [this, read_next_store = std::move(next_store)](tbb::flow_control& fc) mutable -> message {
            if (auto store = pending_store()) {
              return send(store);
            }
@@ -67,7 +67,7 @@ namespace meld {
              drain();
            }
            else {
-             accept(move(store));
+             accept(std::move(store));
            }
            return send(pending_store());
          }},
@@ -178,7 +178,7 @@ namespace meld {
     while (not empty(levels_) and new_depth <= levels_.top().depth()) {
       levels_.pop();
     }
-    levels_.emplace(hierarchy_, pending_stores_, move(store));
+    levels_.emplace(hierarchy_, pending_stores_, std::move(store));
   }
 
   void framework_graph::drain()

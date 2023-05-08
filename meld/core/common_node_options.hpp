@@ -39,7 +39,7 @@ namespace meld {
     T& when_in(std::vector<std::string> store_names)
     {
       if (!store_names_) {
-        store_names_ = move(store_names);
+        store_names_ = std::move(store_names);
       }
       return self();
     }
@@ -60,7 +60,7 @@ namespace meld {
     T& filtered_by(std::vector<std::string> preceding_filters)
     {
       if (!preceding_filters_) {
-        preceding_filters_ = move(preceding_filters);
+        preceding_filters_ = std::move(preceding_filters);
       }
       return self();
     }
@@ -99,12 +99,12 @@ namespace meld {
 
     std::vector<std::string> release_store_names()
     {
-      return move(store_names_).value_or(std::vector<std::string>{});
+      return std::move(store_names_).value_or(std::vector<std::string>{});
     }
 
     std::vector<std::string> release_preceding_filters()
     {
-      return move(preceding_filters_).value_or(std::vector<std::string>{});
+      return std::move(preceding_filters_).value_or(std::vector<std::string>{});
     }
     std::size_t concurrency() const noexcept { return concurrency_.value_or(concurrency::serial); }
 

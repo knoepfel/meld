@@ -66,7 +66,7 @@ namespace meld {
                        tbb::flow::graph& g,
                        function_t f) :
       common_node_options_t{config},
-      name_{move(name)},
+      name_{std::move(name)},
       graph_{g},
       ft_{std::move(f)},
       reg_{std::move(reg)}
@@ -80,18 +80,18 @@ namespace meld {
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
       auto processed_input_args =
-        detail::form_input_arguments<input_parameter_types>(move(input_args));
-      reg_.set([this, inputs = move(processed_input_args)] {
+        detail::form_input_arguments<input_parameter_types>(std::move(input_args));
+      reg_.set([this, inputs = std::move(processed_input_args)] {
         auto product_names = detail::port_names(inputs);
         return std::make_unique<complete_monitor<size(product_names), decltype(inputs)>>(
-          move(name_),
+          std::move(name_),
           common_node_options_t::concurrency(),
           common_node_options_t::release_preceding_filters(),
           common_node_options_t::release_store_names(),
           graph_,
-          move(ft_),
-          move(inputs),
-          move(product_names));
+          std::move(ft_),
+          std::move(inputs),
+          std::move(product_names));
       });
       return *this;
     }
@@ -122,9 +122,9 @@ namespace meld {
                      function_t&& f,
                      InputArgs input,
                      std::array<std::string, Nactual> product_names) :
-      declared_monitor{move(name), move(preceding_filters), move(receive_stores)},
-      product_names_{move(product_names)},
-      input_{move(input)},
+      declared_monitor{std::move(name), std::move(preceding_filters), std::move(receive_stores)},
+      product_names_{std::move(product_names)},
+      input_{std::move(input)},
       join_{make_join_or_none(g, std::make_index_sequence<Nactual>{})},
       monitor_{g,
                concurrency,

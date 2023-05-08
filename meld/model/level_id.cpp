@@ -48,9 +48,9 @@ namespace meld {
   // Hash algorithm pilfered from
   // https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector#comment126511630_27216842
   level_id::level_id(const_ptr parent, std::size_t i, std::string level_name) :
-    parent_{move(parent)},
+    parent_{std::move(parent)},
     number_{i},
-    level_name_{move(level_name)},
+    level_name_{std::move(level_name)},
     level_hash_{hash_numbers(parent_->level_hash_, string_hasher(level_name_))},
     depth_{parent_->depth_ + 1},
     hash_{hash_numbers(parent_->hash_, number_, level_hash_)}
@@ -73,7 +73,8 @@ namespace meld {
   level_id_ptr level_id::make_child(std::size_t const new_level_number,
                                     std::string new_level_name) const
   {
-    return level_id_ptr{new level_id{shared_from_this(), new_level_number, move(new_level_name)}};
+    return level_id_ptr{
+      new level_id{shared_from_this(), new_level_number, std::move(new_level_name)}};
   }
 
   bool level_id::has_parent() const noexcept { return static_cast<bool>(parent_); }
@@ -121,7 +122,7 @@ namespace meld {
     std::transform(begin(strs), end(strs), back_inserter(nums), [](auto const& str) {
       return std::stoull(str);
     });
-    return id_for(move(nums));
+    return id_for(std::move(nums));
   }
 
   level_id_ptr operator"" _id(char const* c_str, std::size_t) { return id_for(c_str); }

@@ -91,11 +91,9 @@ namespace meld {
               std::tuple<Ts...> const& ts,
               std::array<std::string, sizeof...(Ts)> const& names)
   {
-    [&store, &names ]<std::size_t... Is>(auto const& ts, std::index_sequence<Is...>)
-    {
+    [&store, &names]<std::size_t... Is>(auto const& ts, std::index_sequence<Is...>) {
       (store.add_product(names[Is], std::get<Is>(ts)), ...);
-    }
-    (ts, std::index_sequence_for<Ts...>{});
+    }(ts, std::index_sequence_for<Ts...>{});
   }
 
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b);
@@ -135,7 +133,7 @@ namespace meld {
   template <typename T>
   void product_store::add_product(std::string const& key, std::shared_ptr<product<T>>&& t)
   {
-    products_.add(key, move(t));
+    products_.add(key, std::move(t));
   }
 
   // template <typename T>

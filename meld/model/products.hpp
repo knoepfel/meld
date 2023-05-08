@@ -43,7 +43,7 @@ namespace meld {
     template <typename T>
     void add(std::string const& product_name, std::shared_ptr<product<T>>&& t)
     {
-      products_.emplace(product_name, move(t));
+      products_.emplace(product_name, std::move(t));
     }
 
     template <typename T>

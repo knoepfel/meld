@@ -51,9 +51,9 @@ namespace meld {
                    tbb::flow::graph& g,
                    detail::output_function_t&& f) :
       common_node_options_t{config},
-      name_{move(name)},
+      name_{std::move(name)},
       graph_{g},
-      ft_{move(f)},
+      ft_{std::move(f)},
       reg_{std::move(reg)}
     {
       reg_.set([this] { return create(); });
@@ -62,11 +62,11 @@ namespace meld {
   private:
     declared_output_ptr create()
     {
-      return std::make_unique<declared_output>(move(name_),
+      return std::make_unique<declared_output>(std::move(name_),
                                                common_node_options_t::concurrency(),
                                                common_node_options_t::release_preceding_filters(),
                                                graph_,
-                                               move(ft_));
+                                               std::move(ft_));
     }
 
     std::string name_;

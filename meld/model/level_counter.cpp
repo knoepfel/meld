@@ -2,16 +2,16 @@
 
 namespace meld {
 
-  flush_counts::flush_counts(std::string level_name) : level_name_{move(level_name)} {}
+  flush_counts::flush_counts(std::string level_name) : level_name_{std::move(level_name)} {}
 
   flush_counts::flush_counts(std::string level_name,
                              std::map<std::string, std::size_t> child_counts) :
-    level_name_{move(level_name)}, child_counts_{move(child_counts)}
+    level_name_{std::move(level_name)}, child_counts_{std::move(child_counts)}
   {
   }
 
   level_counter::level_counter(level_counter* parent, std::string level_name) :
-    parent_{parent}, level_name_{move(level_name)}
+    parent_{parent}, level_name_{std::move(level_name)}
   {
   }
 
@@ -24,7 +24,7 @@ namespace meld {
 
   level_counter level_counter::make_child(std::string level_name)
   {
-    return {this, move(level_name)};
+    return {this, std::move(level_name)};
   }
 
   void level_counter::adjust(level_counter& child)

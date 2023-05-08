@@ -257,7 +257,7 @@ namespace meld {
       }
     }
 
-    multi.finalize(move(head_ports));
+    multi.finalize(std::move(head_ports));
   }
 }
 

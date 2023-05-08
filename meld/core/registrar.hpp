@@ -74,13 +74,13 @@ namespace meld {
     registrar(registrar&&) = default;
     registrar& operator=(registrar&&) = default;
 
-    void set(Creator creator) { creator_ = move(creator); }
+    void set(Creator creator) { creator_ = std::move(creator); }
     ~registrar() noexcept(false)
     {
       if (creator_) {
         auto ptr = creator_();
         auto name = ptr->name();
-        auto [_, inserted] = nodes_.try_emplace(name, move(ptr));
+        auto [_, inserted] = nodes_.try_emplace(name, std::move(ptr));
         if (not inserted) {
           errors_.push_back(fmt::format("Node with name '{}' already exists", name));
         }

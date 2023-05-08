@@ -8,7 +8,7 @@
 namespace meld {
 
   product_store::product_store(level_id_ptr id, std::string_view source, stage processing_stage) :
-    id_{move(id)}, source_{source}, stage_{processing_stage}
+    id_{std::move(id)}, source_{source}, stage_{processing_stage}
   {
   }
 
@@ -75,7 +75,7 @@ namespace meld {
 
   product_store_ptr product_store::make_continuation(level_id_ptr id, std::string_view source) const
   {
-    return product_store_ptr{new product_store{move(id), source, stage::process}};
+    return product_store_ptr{new product_store{std::move(id), source, stage::process}};
   }
 
   product_store_ptr product_store::make_child(std::size_t new_level_number,

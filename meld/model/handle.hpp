@@ -38,11 +38,11 @@ namespace meld {
     }
 
     explicit handle(std::variant<const_pointer, err_t> maybe_product, level_id const& id) :
-      rep_{move(maybe_product)}, id_{&id}
+      rep_{std::move(maybe_product)}, id_{&id}
     {
     }
 
-    explicit handle(std::string err_msg, level_id const& id) : rep_{move(err_msg)}, id_{&id} {}
+    explicit handle(std::string err_msg, level_id const& id) : rep_{std::move(err_msg)}, id_{&id} {}
 
     const_pointer operator->() const
     {

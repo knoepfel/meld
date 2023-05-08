@@ -73,9 +73,9 @@ namespace meld {
                          InitTuple initializer) :
       common_node_options_t{config},
       reg_{std::move(reg)},
-      name_{move(name)},
+      name_{std::move(name)},
       graph_{g},
-      ft_{move(f)},
+      ft_{std::move(f)},
       initializer_{std::move(initializer)}
     {
     }
@@ -87,19 +87,19 @@ namespace meld {
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
       auto processed_input_args =
-        detail::form_input_arguments<input_parameter_types>(move(input_args));
+        detail::form_input_arguments<input_parameter_types>(std::move(input_args));
       auto product_names = detail::port_names(processed_input_args);
       return reduction_requires_output<size(product_names), decltype(processed_input_args)>{
         std::move(reg_),
-        move(name_),
+        std::move(name_),
         common_node_options_t::concurrency(),
         common_node_options_t::release_preceding_filters(),
         common_node_options_t::release_store_names(),
         graph_,
-        move(ft_),
+        std::move(ft_),
         std::move(initializer_),
-        move(processed_input_args),
-        move(product_names)};
+        std::move(processed_input_args),
+        std::move(product_names)};
     }
 
   private:
@@ -128,15 +128,15 @@ namespace meld {
                               InitTuple initializer,
                               InputArgs input_args,
                               std::array<std::string, Nactual> product_names) :
-      name_{move(name)},
-      preceding_filters_{move(preceding_filters)},
-      receive_stores_{move(receive_stores)},
+      name_{std::move(name)},
+      preceding_filters_{std::move(preceding_filters)},
+      receive_stores_{std::move(receive_stores)},
       concurrency_{concurrency},
       graph_{g},
-      ft_{move(f)},
+      ft_{std::move(f)},
       initializer_{std::move(initializer)},
-      input_args_{move(input_args)},
-      product_names_{move(product_names)},
+      input_args_{std::move(input_args)},
+      product_names_{std::move(product_names)},
       reg_{std::move(reg)}
     {
     }
@@ -148,23 +148,23 @@ namespace meld {
         M == Msize,
         "The number of function parameters is not the same as the number of returned output "
         "objects.");
-      reg_.set([this, outputs = move(output_keys)] {
+      reg_.set([this, outputs = std::move(output_keys)] {
         if (empty(reduction_interval_)) {
           throw std::runtime_error(
             "The reduction range must be specified using the 'over(...)' syntax.");
         }
         return std::make_unique<complete_reduction<Nactual, M, InputArgs>>(
-          move(name_),
+          std::move(name_),
           concurrency_,
-          move(preceding_filters_),
-          move(receive_stores_),
+          std::move(preceding_filters_),
+          std::move(receive_stores_),
           graph_,
-          move(ft_),
+          std::move(ft_),
           std::move(initializer_),
-          move(input_args_),
-          move(product_names_),
-          move(outputs),
-          move(reduction_interval_));
+          std::move(input_args_),
+          std::move(product_names_),
+          std::move(outputs),
+          std::move(reduction_interval_));
       });
       return *this;
     }
@@ -215,12 +215,12 @@ namespace meld {
                        std::array<std::string, Nactual> product_names,
                        std::array<std::string, M> output,
                        std::string reduction_interval) :
-      declared_reduction{move(name), move(preceding_filters), move(release_stores)},
+      declared_reduction{std::move(name), std::move(preceding_filters), std::move(release_stores)},
       initializer_{std::move(initializer)},
-      product_names_{move(product_names)},
-      input_{move(input)},
-      output_{move(output)},
-      reduction_interval_{move(reduction_interval)},
+      product_names_{std::move(product_names)},
+      input_{std::move(input)},
+      output_{std::move(output)},
+      reduction_interval_{std::move(reduction_interval)},
       join_{make_join_or_none(g, std::make_index_sequence<Nactual>{})},
       reduction_{g,
                  concurrency,
@@ -323,12 +323,12 @@ namespace meld {
         store.add_product(output()[0], result->send());
       }
       else {
-        store.add_product(output()[0], move(result));
+        store.add_product(output()[0], std::move(result));
       }
       // Reclaim some memory; it would be better to erase the entire entry from the map,
       // but that is not thread-safe.
 
-      // N.B. Calling reset() is safe even if move(result) has been called.
+      // N.B. Calling reset() is safe even if std::move(result) has been called.
       result.reset();
     }
 

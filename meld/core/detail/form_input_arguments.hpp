@@ -84,7 +84,8 @@ namespace meld::detail {
   auto form_input_arguments(InputArgs args)
   {
     constexpr auto N = std::tuple_size_v<InputArgs>;
-    return detail::form_input_arguments_impl<InputTypes>(move(args), std::make_index_sequence<N>{});
+    return detail::form_input_arguments_impl<InputTypes>(std::move(args),
+                                                         std::make_index_sequence<N>{});
   }
 }
 

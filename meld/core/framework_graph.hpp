@@ -78,21 +78,21 @@ namespace meld {
     template <typename... Args>
     auto declare_filter(std::string name, bool (*f)(Args...))
     {
-      return proxy().declare_filter(move(name), f);
+      return proxy().declare_filter(std::move(name), f);
     }
     auto declare_filter(auto f) { return declare_filter(function_name(f), f); }
 
     template <typename... Args>
     auto declare_monitor(std::string name, void (*f)(Args...))
     {
-      return proxy().declare_monitor(move(name), f);
+      return proxy().declare_monitor(std::move(name), f);
     }
     auto declare_monitor(auto f) { return declare_monitor(function_name(f), f); }
 
     template <typename R, typename... Args, typename... InitArgs>
     auto declare_reduction(std::string name, void (*f)(R&, Args...), InitArgs&&... init_args)
     {
-      return proxy().declare_reduction(move(name), f, std::forward<InitArgs>(init_args)...);
+      return proxy().declare_reduction(std::move(name), f, std::forward<InitArgs>(init_args)...);
     }
     template <typename R, typename... Args, typename... InitArgs>
     auto declare_reduction(void (*f)(R&, Args...), InitArgs&&... init_args)
@@ -103,14 +103,14 @@ namespace meld {
     template <typename... Args>
     auto declare_splitter(std::string name, void (*f)(Args...))
     {
-      return proxy().declare_splitter(move(name), f);
+      return proxy().declare_splitter(std::move(name), f);
     }
     auto declare_splitter(auto f) { return declare_splitter(function_name(f), f); }
 
     template <typename R, typename... Args>
     auto declare_transform(std::string name, R (*f)(Args...))
     {
-      return proxy().declare_transform(move(name), f);
+      return proxy().declare_transform(std::move(name), f);
     }
     auto declare_transform(auto f) { return declare_transform(function_name(f), f); }
 

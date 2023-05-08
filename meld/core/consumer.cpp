@@ -4,9 +4,9 @@ namespace meld {
   consumer::consumer(std::string name,
                      std::vector<std::string> preceding_filters,
                      std::vector<std::string> receive_stores) :
-    name_{move(name)},
-    preceding_filters_{move(preceding_filters)},
-    receive_stores_{move(receive_stores)}
+    name_{std::move(name)},
+    preceding_filters_{std::move(preceding_filters)},
+    receive_stores_{std::move(receive_stores)}
   {
   }
 

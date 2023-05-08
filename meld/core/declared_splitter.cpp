@@ -34,17 +34,17 @@ namespace meld {
     auto const message_id = ++counter_;
     auto flush_store = parent_->make_flush();
     if (not child_counts_.empty()) {
-      flush_store->add_product(
-        "[flush]",
-        std::make_shared<flush_counts const>(parent_->id()->level_name(), move(child_counts_)));
+      flush_store->add_product("[flush]",
+                               std::make_shared<flush_counts const>(parent_->id()->level_name(),
+                                                                    std::move(child_counts_)));
     }
-    return {move(flush_store), message_id, original_message_id_};
+    return {std::move(flush_store), message_id, original_message_id_};
   }
 
   declared_splitter::declared_splitter(std::string name,
                                        std::vector<std::string> preceding_filters,
                                        std::vector<std::string> receive_stores) :
-    products_consumer{move(name), move(preceding_filters), move(receive_stores)}
+    products_consumer{std::move(name), std::move(preceding_filters), std::move(receive_stores)}
   {
   }
 
