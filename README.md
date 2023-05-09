@@ -1,25 +1,23 @@
 # Meld
-Exploratory work to meet DUNE's processing needs.
 
-### Development notes
+A project for exploring how to meet DUNE's framework needs.
 
-#### Usability
+## Motivation
 
-- [ ] Descriptions for available nodes (with possible lazy evaluation of configuration queries)
+Existing data-processing frameworks for HEP experiments are largely based on
+collider-physics concepts, which may be based on rigid, event-based data hierarchies.
+These data organizations are not always helpful for neutrino experiments, which must
+sometimes work around such restrictions by manually splitting apart events into constructs
+that are better suited for neutrino physics.
 
-#### To develop
+The purpose of Meld is to explore more flexible data organizations by treating a
+frameworks job as:
 
-- [ ] Function registration without function names
-  - [x] Implement basic facility
-  - [ ] Figure out how to handle reductions
-  - [ ] Implement tests that mandate an explicit name if the same function is registered twice
-- [ ] Add `react_to(...)` and `produces(...)` blurbs for all inputs/outputs that are products?
-  - [ ] What about `react_to_many`?  Is there a `react_to_many`?
-- [ ] Replicated modules
-  - [x] Implement basic facility
-  - [ ] Incorporate as part of `framework_graph`
-- [ ] Convert `serial_node` to work with `framework_graph`
-- [ ] Product-lookup policies
-- [ ] Error-detection for nodes with unassigned input ports (it this possible?)
-- [ ] Creating paths (subgraphs)
-- [ ] Backwards compatibility of existing art modules
+1. A graph of data-product sequences connected by...
+2. User-defined functions that serve as operations to...
+3. Framework-provided higher-order functions.
+
+Each of these aspects is discussed below:
+
+- [Data-centric graph processing](https://github.com/knoepfel/meld/wiki/Data-centric-graph-processing)
+- [Higher-order functions](https://github.com/knoepfel/meld/wiki/Higher-order-functions)
