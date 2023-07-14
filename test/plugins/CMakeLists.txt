@@ -2,6 +2,8 @@ find_package(HDF5 REQUIRED)
 find_package(h5cpp REQUIRED)
 find_package(ZLIB REQUIRED)
 
+jsonnet_so_workaround()
+
 add_library(module MODULE module.cpp)
 target_link_libraries(module PRIVATE Boost::json meld::module)
 

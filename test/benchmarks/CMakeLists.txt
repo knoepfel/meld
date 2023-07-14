@@ -1,3 +1,5 @@
+jsonnet_so_workaround()
+
 add_library(benchmarks_source MODULE benchmarks_source.cpp)
 target_link_libraries(benchmarks_source PRIVATE meld::model Boost::json)
 

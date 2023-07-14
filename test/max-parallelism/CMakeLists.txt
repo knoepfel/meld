@@ -1,3 +1,5 @@
+jsonnet_so_workaround()
+
 add_library(check_parallelism MODULE check_parallelism.cpp)
 target_link_libraries(check_parallelism PRIVATE Boost::json meld::core)
 
