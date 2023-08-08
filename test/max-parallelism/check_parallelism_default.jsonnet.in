@@ -5,7 +5,7 @@
   modules: {
     verify: {
       plugin: 'check_parallelism',
-      expected_parallelism: 12,
+      expected_parallelism: @NPROC@,
     },
   },
 }
