@@ -2,6 +2,7 @@
 
 #include "fmt/format.h"
 
+#include <cassert>
 #include <regex>
 
 namespace {

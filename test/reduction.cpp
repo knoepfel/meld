@@ -1,24 +1,26 @@
 // =======================================================================================
-// This test executes the following graph
-//
-//            Multiplexer
-//            /        \
-//           /          \
-//      job_add(*)     run_add(^)
-//          |             |\
-//          |             | \
-//          |             |  \
-//   verify_job_sum       |   \
-//                        |    \
-//             verify_run_sum   \
-//                               \
-//                           two_layer_job_add(*)
-//                                |
-//                                |
-//                         verify_two_layer_job_sum
-//
-// where the asterisk (*) indicates a reduction step over the full job, and the caret (^)
-// represents a reduction step over each run.
+/*
+   This test executes the following graph
+
+              Multiplexer
+              /        \
+             /          \
+        job_add(*)     run_add(^)
+            |             |\
+            |             | \
+            |             |  \
+     verify_job_sum       |   \
+                          |    \
+               verify_run_sum   \
+                                 \
+                             two_layer_job_add(*)
+                                  |
+                                  |
+                           verify_two_layer_job_sum
+
+   where the asterisk (*) indicates a reduction step over the full job, and the caret (^)
+   represents a reduction step over each run.
+*/
 // =======================================================================================
 
 #include "meld/core/cached_product_stores.hpp"
