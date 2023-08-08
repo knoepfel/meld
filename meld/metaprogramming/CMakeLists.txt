@@ -8,6 +8,6 @@ add_library(meld_metaprogramming_int INTERFACE)
 target_include_directories(meld_metaprogramming_int INTERFACE
    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"
    "$<INSTALL_INTERFACE:include>")
-target_link_libraries(meld_metaprogramming_int INTERFACE meld_metaprogramming)
+target_link_libraries(meld_metaprogramming_int INTERFACE Boost::stacktrace_addr2line meld_metaprogramming)
 
 add_library(meld::metaprogramming ALIAS meld_metaprogramming_int)
