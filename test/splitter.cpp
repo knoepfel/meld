@@ -30,13 +30,24 @@ using namespace meld;
 using namespace meld::concurrency;
 
 namespace {
+  class splitter {
+  public:
+    explicit splitter(unsigned int max_number) : max_{max_number} {}
+    bool predicate(unsigned int i) const { return i != max_; }
+    auto unfold(unsigned int i) const { return std::make_pair(i + 1, i); };
+
+  private:
+    unsigned int max_;
+  };
+
   void split(generator& g, unsigned max_number)
   {
-    for (std::size_t i = 0; i != max_number; ++i) {
-      products new_products;
-      new_products.add<unsigned>("num", i);
-      // TODO: maybe support pair-wise/zip functionality
-      g.make_child(i, "lower", std::move(new_products));
+    splitter const p{max_number};
+    std::size_t i = 0;
+    while (p.predicate(i)) {
+      auto [next, products] = p.unfold(i);
+      g.accept(i, std::move(products));
+      i = next;
     }
   }
 
@@ -79,7 +90,14 @@ TEST_CASE("Splitting the processing", "[graph]")
     return store;
   }};
 
-  g.with(split).using_concurrency(unlimited).filtered_by().split("max_number").into({"num"});
+  g.with(split)
+    .using_concurrency(unlimited)
+    .filtered_by()
+    .split("max_number")
+    .into("num")
+    .within_domain("lower");
+  // g.with<splitter>(&splitter::predicate, &splitter::unfold).split("max_number").into("num");
+  // g.with(p, f).using_concurrency(unlimited).split("max_number").into("num");
   g.declare_reduction(add).concurrency(unlimited).react_to("num").output("sum").over("event");
   g.with(check_sum).using_concurrency(unlimited).monitor("sum");
   g.make<test::products_for_output>()

@@ -4,6 +4,8 @@
 #include "meld/model/level_id.hpp"
 #include "meld/model/products.hpp"
 
+#include "boost/core/demangle.hpp"
+
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -75,7 +77,7 @@ namespace meld {
 
   private:
     std::variant<const_pointer, err_t> rep_{"Cannot dereference empty handle of type '" +
-                                            demangle_symbol(typeid(T)) + "'."};
+                                            boost::core::demangle(typeid(T).name()) + "'."};
     level_id const* id_;
   };
 

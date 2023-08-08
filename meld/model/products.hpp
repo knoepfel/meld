@@ -2,7 +2,8 @@
 #define meld_model_products_hpp
 
 #include "meld/model/level_id.hpp"
-#include "meld/utilities/demangle_symbol.hpp"
+
+#include "boost/core/demangle.hpp"
 #include "spdlog/spdlog.h"
 
 #include <iostream>
@@ -68,8 +69,9 @@ namespace meld {
       if (std::strcmp(typeid(T).name(), available_product->type().name()) == 0) {
         return &reinterpret_cast<product<T> const*>(available_product)->obj;
       }
-      return "Cannot get product '" + product_name + "' with type '" + demangle_symbol(typeid(T)) +
-             "' -- must specify type '" + demangle_symbol(available_product->type().name()) + "'.";
+      return "Cannot get product '" + product_name + "' with type '" +
+             boost::core::demangle(typeid(T).name()) + "' -- must specify type '" +
+             boost::core::demangle(available_product->type().name()) + "'.";
     }
 
     bool contains(std::string const& product_name) const;

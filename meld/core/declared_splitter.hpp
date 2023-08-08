@@ -41,15 +41,30 @@ namespace meld {
   public:
     explicit generator(product_store_const_ptr const& parent,
                        std::string const& node_name,
+                       std::vector<std::string> const& provided_products,
+                       std::string const& new_level_name,
                        multiplexer& m,
                        tbb::flow::broadcast_node<message>& to_output,
                        std::atomic<std::size_t>& counter);
-    void make_child(std::size_t i, std::string const& new_level_name, products new_products = {});
     message flush_message();
+    template <typename... Ts>
+    void accept(unsigned int level_number, Ts&&... new_products)
+    {
+      auto add_products = [this]<std::size_t... Is>(std::index_sequence<Is...>, auto&&... prods) {
+        products result;
+        (result.add(provided_[Is], std::forward<decltype(prods)>(prods)), ...);
+        return result;
+      };
+      make_child(level_number,
+                 add_products(std::index_sequence_for<Ts...>{}, std::forward<Ts>(new_products)...));
+    }
 
   private:
+    void make_child(std::size_t i, products new_products);
     product_store_ptr parent_;
     std::string const& node_name_;
+    std::vector<std::string> const& provided_;
+    std::string const& new_level_name_;
     multiplexer& multiplexer_;
     tbb::flow::broadcast_node<message>& to_output_;
     std::atomic<std::size_t>& counter_;
@@ -105,7 +120,18 @@ namespace meld {
 
     auto& into(std::vector<std::string> output_product_names)
     {
-      reg_.set([this, outputs = std::move(output_product_names)] {
+      outputs_ = std::move(output_product_names);
+      return *this;
+    }
+
+    auto& into(std::convertible_to<std::string> auto&&... ts)
+    {
+      return into(std::vector<std::string>{ts...});
+    }
+
+    auto& within_domain(std::string new_level_name)
+    {
+      reg_.set([this, new_level = std::move(new_level_name)] {
         return std::make_unique<complete_splitter>(std::move(name_),
                                                    concurrency_,
                                                    std::move(preceding_filters_),
@@ -114,7 +140,8 @@ namespace meld {
                                                    std::move(ft_),
                                                    std::move(input_args_),
                                                    std::move(product_names_),
-                                                   std::move(outputs));
+                                                   std::move(outputs_),
+                                                   std::move(new_level));
       });
       return *this;
     }
@@ -128,6 +155,7 @@ namespace meld {
     function_t ft_;
     InputArgs input_args_;
     std::array<std::string, N> product_names_;
+    std::vector<std::string> outputs_;
     registrar<declared_splitters> reg_;
   };
 
@@ -150,11 +178,13 @@ namespace meld {
                       function_t&& f,
                       InputArgs input,
                       std::array<std::string, N> product_names,
-                      std::vector<std::string> provided_products) :
+                      std::vector<std::string> provided_products,
+                      std::string new_level_name) :
       declared_splitter{std::move(name), std::move(preceding_filters), std::move(receive_stores)},
       input_{std::move(input)},
       product_names_{std::move(product_names)},
       provided_{std::move(provided_products)},
+      new_level_name_{std::move(new_level_name)},
       multiplexer_{g},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
       splitter_{
@@ -168,7 +198,13 @@ namespace meld {
             flag_for(store->id()->hash(), ca).flush_received(msg.id);
           }
           else if (accessor a; stores_.insert(a, store->id()->hash())) {
-            generator g{msg.store, this->name(), multiplexer_, to_output_, counter_};
+            generator g{msg.store,
+                        this->name(),
+                        provided_,
+                        new_level_name_,
+                        multiplexer_,
+                        to_output_,
+                        counter_};
             call(ft, g, messages, std::make_index_sequence<N>{});
             multiplexer_.try_put(g.flush_message());
 
@@ -233,6 +269,7 @@ namespace meld {
     InputArgs input_;
     std::array<std::string, N> product_names_;
     std::vector<std::string> provided_;
+    std::string new_level_name_;
     multiplexer multiplexer_;
     join_or_none_t<N> join_;
     tbb::flow::function_node<messages_t<N>> splitter_;
