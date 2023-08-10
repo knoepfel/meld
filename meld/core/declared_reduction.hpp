@@ -56,7 +56,8 @@ namespace meld {
   class incomplete_reduction : public common_node_options<incomplete_reduction<FT, InitTuple>> {
     using common_node_options_t = common_node_options<incomplete_reduction<FT, InitTuple>>;
     using function_t = FT;
-    using input_parameter_types = skip_first_type<parameter_types<FT>>; // Skip reduction object
+    using input_parameter_types =
+      skip_first_type<function_parameter_types<FT>>; // Skip reduction object
     template <std::size_t Nactual, typename InputArgs>
     class reduction_requires_output;
     template <std::size_t Nactual, std::size_t M, typename InputArgs>
@@ -201,7 +202,7 @@ namespace meld {
   class incomplete_reduction<FT, InitTuple>::complete_reduction :
     public declared_reduction,
     public count_stores {
-    using R = std::decay_t<std::tuple_element_t<0, parameter_types<FT>>>;
+    using R = std::decay_t<std::tuple_element_t<0, function_parameter_types<FT>>>;
 
   public:
     complete_reduction(std::string name,

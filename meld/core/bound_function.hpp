@@ -20,7 +20,7 @@ namespace meld {
   template <typename T, typename FT>
   class bound_function : public node_options<bound_function<T, FT>> {
     using node_options_t = node_options<bound_function<T, FT>>;
-    using input_parameter_types = parameter_types<FT>;
+    using input_parameter_types = function_parameter_types<FT>;
 
   public:
     static constexpr auto N = number_parameters<FT>;

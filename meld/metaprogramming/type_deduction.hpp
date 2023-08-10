@@ -1,6 +1,7 @@
 #ifndef meld_metaprogramming_type_deduction_hpp
 #define meld_metaprogramming_type_deduction_hpp
 
+#include "meld/metaprogramming/detail/ctor_reflect_types.hpp"
 #include "meld/metaprogramming/detail/number_output_objects.hpp"
 #include "meld/metaprogramming/detail/number_parameters.hpp"
 #include "meld/metaprogramming/detail/parameter_types.hpp"
@@ -13,10 +14,13 @@ namespace meld {
   using return_type = decltype(detail::return_type_impl(std::declval<T>()));
 
   template <typename T>
-  using parameter_types = decltype(detail::parameter_types_impl(std::declval<T>()));
+  using function_parameter_types = decltype(detail::parameter_types_impl(std::declval<T>()));
 
   template <std::size_t I, typename T>
-  using parameter_type = std::tuple_element_t<I, parameter_types<T>>;
+  using function_parameter_type = std::tuple_element_t<I, function_parameter_types<T>>;
+
+  template <typename T>
+  using constructor_parameter_types = typename refl::as_tuple<T>;
 
   template <typename T>
   constexpr std::size_t number_parameters = detail::number_parameters_impl<T>;
@@ -36,7 +40,7 @@ namespace meld {
 
   template <typename T, typename... Args>
   struct check_parameters {
-    using input_parameters = parameter_types<T>;
+    using input_parameters = function_parameter_types<T>;
     static_assert(std::tuple_size<input_parameters>{} >= sizeof...(Args));
 
     template <std::size_t... Is>

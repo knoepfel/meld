@@ -33,12 +33,12 @@ namespace meld {
   template <typename T>
   concept first_input_parameter_is_non_const_lvalue_reference =
     at_least_one_input_parameter<T> &&
-    is_non_const_lvalue_reference<parameter_type<0, T>>::value;
+    is_non_const_lvalue_reference<function_parameter_type<0, T>>::value;
 
   template <typename T>
   concept first_input_parameter_is_sendable =
     at_least_one_input_parameter<T> &&
-    sendable<parameter_type<0, T>>;
+    sendable<function_parameter_type<0, T>>;
 
   template <typename T, typename R>
   concept returns = std::same_as<return_type<T>, R>;
