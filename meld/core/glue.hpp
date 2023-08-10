@@ -3,6 +3,7 @@
 
 #include "meld/core/bound_function.hpp"
 #include "meld/core/concepts.hpp"
+#include "meld/core/double_bound_function.hpp"
 #include "meld/core/node_catalog.hpp"
 #include "meld/core/registrar.hpp"
 #include "meld/metaprogramming/delegate.hpp"
@@ -64,6 +65,32 @@ namespace meld {
     tbb::flow::graph& graph_;
     node_catalog& nodes_;
     std::shared_ptr<T> bound_obj_;
+    std::vector<std::string>& errors_;
+  };
+
+  template <typename T>
+  class splitter_glue {
+  public:
+    splitter_glue(tbb::flow::graph& g, node_catalog& nodes, std::vector<std::string>& errors) :
+      graph_{g}, nodes_{nodes}, errors_{errors}
+    {
+    }
+
+    auto declare_unfold(auto predicate, auto unfold)
+    {
+      return double_bound_function<T, decltype(predicate), decltype(unfold)>{
+        nullptr,
+        detail::stripped_name(boost::core::demangle(typeid(T).name())),
+        predicate,
+        unfold,
+        graph_,
+        nodes_,
+        errors_};
+    }
+
+  private:
+    tbb::flow::graph& graph_;
+    node_catalog& nodes_;
     std::vector<std::string>& errors_;
   };
 }

@@ -33,23 +33,13 @@ namespace {
   class splitter {
   public:
     explicit splitter(unsigned int max_number) : max_{max_number} {}
+    unsigned int initial_value() const { return 0; }
     bool predicate(unsigned int i) const { return i != max_; }
     auto unfold(unsigned int i) const { return std::make_pair(i + 1, i); };
 
   private:
     unsigned int max_;
   };
-
-  void split(generator& g, unsigned max_number)
-  {
-    splitter const p{max_number};
-    std::size_t i = 0;
-    while (p.predicate(i)) {
-      auto [next, products] = p.unfold(i);
-      g.accept(i, std::move(products));
-      i = next;
-    }
-  }
 
   void add(std::atomic<unsigned int>& counter, unsigned number) { counter += number; }
 
@@ -90,14 +80,12 @@ TEST_CASE("Splitting the processing", "[graph]")
     return store;
   }};
 
-  g.with(split)
+  g.with<splitter>(&splitter::predicate, &splitter::unfold)
     .using_concurrency(unlimited)
     .filtered_by()
     .split("max_number")
     .into("num")
     .within_domain("lower");
-  // g.with<splitter>(&splitter::predicate, &splitter::unfold).split("max_number").into("num");
-  // g.with(p, f).using_concurrency(unlimited).split("max_number").into("num");
   g.declare_reduction(add).concurrency(unlimited).react_to("num").output("sum").over("event");
   g.with(check_sum).using_concurrency(unlimited).monitor("sum");
   g.make<test::products_for_output>()
@@ -106,7 +94,7 @@ TEST_CASE("Splitting the processing", "[graph]")
 
   g.execute("splitter_t.gv");
 
-  CHECK(g.execution_counts("split") == index_limit);
+  CHECK(g.execution_counts("splitter") == index_limit);
   CHECK(g.execution_counts("add") == 30);
   CHECK(g.execution_counts("check_sum") == index_limit);
 }

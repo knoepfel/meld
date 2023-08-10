@@ -101,31 +101,6 @@ namespace meld {
     }
 
     template <typename... InputArgs>
-    auto split(std::tuple<InputArgs...> input_args)
-      requires is_splitter_like<FT>
-    {
-      static_assert(N == sizeof...(InputArgs) + 1,
-                    "The number of function parameters is not the same as the number of specified "
-                    "input arguments.");
-      using all_but_first = skip_first_type<input_parameter_types>;
-      auto processed_input_args =
-        detail::form_input_arguments<all_but_first>(std::move(input_args));
-      auto product_names = detail::port_names(processed_input_args);
-      auto function_closure = delegate(obj_, ft_);
-
-      return partial_splitter<decltype(function_closure), decltype(processed_input_args)>{
-        nodes_.register_splitter(errors_),
-        std::move(name_),
-        node_options_t::concurrency(),
-        node_options_t::release_preceding_filters(),
-        std::vector<std::string>{},
-        graph_,
-        std::move(function_closure),
-        std::move(processed_input_args),
-        std::move(product_names)};
-    }
-
-    template <typename... InputArgs>
     auto transform(std::tuple<InputArgs...> input_args)
       requires is_transform_like<FT>
     {
@@ -156,11 +131,6 @@ namespace meld {
     auto monitor(std::convertible_to<std::string> auto... input_args)
     {
       return monitor(std::make_tuple(react_to(std::forward<decltype(input_args)>(input_args))...));
-    }
-
-    auto split(std::convertible_to<std::string> auto... input_args)
-    {
-      return split(std::make_tuple(react_to(std::forward<decltype(input_args)>(input_args))...));
     }
 
     auto transform(std::convertible_to<std::string> auto... input_args)

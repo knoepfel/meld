@@ -89,10 +89,9 @@ namespace meld {
 
   // =====================================================================================
 
-  template <is_splitter_like FT, typename InputArgs>
+  template <typename Object, typename Predicate, typename Unfold, typename InputArgs>
   class partial_splitter {
     static constexpr std::size_t N = std::tuple_size_v<InputArgs>;
-    using function_t = FT;
 
     class complete_splitter;
 
@@ -103,7 +102,8 @@ namespace meld {
                      std::vector<std::string> preceding_filters,
                      std::vector<std::string> receive_stores,
                      tbb::flow::graph& g,
-                     function_t&& f,
+                     Predicate&& predicate,
+                     Unfold&& unfold,
                      InputArgs input_args,
                      std::array<std::string, N> product_names) :
       name_{std::move(name)},
@@ -111,7 +111,8 @@ namespace meld {
       preceding_filters_{std::move(preceding_filters)},
       receive_stores_{std::move(receive_stores)},
       graph_{g},
-      ft_{std::move(f)},
+      predicate_{std::move(predicate)},
+      unfold_{std::move(unfold)},
       input_args_{std::move(input_args)},
       product_names_{std::move(product_names)},
       reg_{std::move(reg)}
@@ -137,7 +138,8 @@ namespace meld {
                                                    std::move(preceding_filters_),
                                                    std::move(receive_stores_),
                                                    graph_,
-                                                   std::move(ft_),
+                                                   std::move(predicate_),
+                                                   std::move(unfold_),
                                                    std::move(input_args_),
                                                    std::move(product_names_),
                                                    std::move(outputs_),
@@ -152,7 +154,8 @@ namespace meld {
     std::vector<std::string> preceding_filters_;
     std::vector<std::string> receive_stores_;
     tbb::flow::graph& graph_;
-    function_t ft_;
+    Predicate predicate_;
+    Unfold unfold_;
     InputArgs input_args_;
     std::array<std::string, N> product_names_;
     std::vector<std::string> outputs_;
@@ -161,8 +164,8 @@ namespace meld {
 
   // =====================================================================================
 
-  template <is_splitter_like FT, typename InputArgs>
-  class partial_splitter<FT, InputArgs>::complete_splitter :
+  template <typename Object, typename Predicate, typename Unfold, typename InputArgs>
+  class partial_splitter<Object, Predicate, Unfold, InputArgs>::complete_splitter :
     public declared_splitter,
     public detect_flush_flag {
     using stores_t = tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr>;
@@ -175,7 +178,8 @@ namespace meld {
                       std::vector<std::string> preceding_filters,
                       std::vector<std::string> receive_stores,
                       tbb::flow::graph& g,
-                      function_t&& f,
+                      Predicate&& predicate,
+                      Unfold&& unfold,
                       InputArgs input,
                       std::array<std::string, N> product_names,
                       std::vector<std::string> provided_products,
@@ -187,38 +191,38 @@ namespace meld {
       new_level_name_{std::move(new_level_name)},
       multiplexer_{g},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
-      splitter_{
-        g,
-        concurrency,
-        [this, ft = std::move(f)](messages_t<N> const& messages) -> tbb::flow::continue_msg {
-          auto const& msg = most_derived(messages);
-          auto const& store = msg.store;
-          if (store->is_flush()) {
-            flag_accessor ca;
-            flag_for(store->id()->hash(), ca).flush_received(msg.id);
-          }
-          else if (accessor a; stores_.insert(a, store->id()->hash())) {
-            generator g{msg.store,
-                        this->name(),
-                        provided_,
-                        new_level_name_,
-                        multiplexer_,
-                        to_output_,
-                        counter_};
-            call(ft, g, messages, std::make_index_sequence<N>{});
-            multiplexer_.try_put(g.flush_message());
+      splitter_{g,
+                concurrency,
+                [this, p = std::move(predicate), ufold = std::move(unfold)](
+                  messages_t<N> const& messages) -> tbb::flow::continue_msg {
+                  auto const& msg = most_derived(messages);
+                  auto const& store = msg.store;
+                  if (store->is_flush()) {
+                    flag_accessor ca;
+                    flag_for(store->id()->hash(), ca).flush_received(msg.id);
+                  }
+                  else if (accessor a; stores_.insert(a, store->id()->hash())) {
+                    generator g{msg.store,
+                                this->name(),
+                                provided_,
+                                new_level_name_,
+                                multiplexer_,
+                                to_output_,
+                                counter_};
+                    call(p, ufold, g, messages, std::make_index_sequence<N>{});
+                    multiplexer_.try_put(g.flush_message());
 
-            flag_accessor ca;
-            flag_for(store->id()->hash(), ca).mark_as_processed();
-          }
+                    flag_accessor ca;
+                    flag_for(store->id()->hash(), ca).mark_as_processed();
+                  }
 
-          auto const id_hash = store->id()->hash();
-          if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_flush()) {
-            stores_.erase(id_hash);
-            erase_flag(ca);
-          }
-          return {};
-        }},
+                  auto const id_hash = store->id()->hash();
+                  if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_flush()) {
+                    stores_.erase(id_hash);
+                    erase_flag(ca);
+                  }
+                  return {};
+                }},
       to_output_{g}
     {
       make_edge(join_, splitter_);
@@ -227,7 +231,7 @@ namespace meld {
     ~complete_splitter()
     {
       if (stores_.size() > 0ull) {
-        spdlog::warn("Splitter {} has {} cached stores.", name(), stores_.size());
+        spdlog::warn("Unfold {} has {} cached stores.", name(), stores_.size());
       }
       for (auto const& [_, store] : stores_) {
         spdlog::debug(" => ID: ", store->id()->to_string());
@@ -255,13 +259,21 @@ namespace meld {
     }
 
     template <std::size_t... Is>
-    void call(function_t const& ft,
+    void call(Predicate const& predicate,
+              Unfold const& unfold,
               generator& g,
               messages_t<N> const& messages,
               std::index_sequence<Is...>)
     {
       ++calls_;
-      return std::invoke(ft, g, std::get<Is>(input_).retrieve(messages)...);
+      Object obj(std::get<Is>(input_).retrieve(messages)...);
+      std::size_t counter = 0;
+      auto running_value = obj.initial_value();
+      while (std::invoke(predicate, obj, running_value)) {
+        auto [next_value, products] = std::invoke(unfold, obj, running_value);
+        g.accept(counter++, std::move(products));
+        running_value = next_value;
+      }
     }
 
     std::size_t num_calls() const final { return calls_.load(); }

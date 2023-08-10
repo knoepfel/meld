@@ -38,21 +38,9 @@ function(add_catch_test BASENAME)
   endif()
 endfunction()
 
-# include(FetchContent)
-#
-# # You can configure this for your need, presumbably you want speificy a git tag here instead of a branch
-# FetchContent_Declare(sqliteOrm
-#   GIT_REPOSITORY https://github.com/fnc12/sqlite_orm
-#   GIT_TAG        origin/dev
-# )
-# FetchContent_MakeAvailable(sqliteOrm)
-
 add_unit_test(concepts LIBRARIES meld::core)
-add_unit_test(iterator)
 add_unit_test(string_literal LIBRARIES meld::utilities)
 add_unit_test(type_deduction LIBRARIES meld::metaprogramming)
-
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 
 add_catch_test(cached_execution LIBRARIES meld::core Boost::json TEST_DOT_GRAPH)
 add_catch_test(cached_product_stores LIBRARIES meld::core)

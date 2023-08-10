@@ -63,6 +63,7 @@ namespace meld {
       return reinterpret_cast<R (*&)(Args...)>(f);
     }
 
+    std::string stripped_name(std::string full_name);
     std::string stripped_name(void const* ptr);
   }
 

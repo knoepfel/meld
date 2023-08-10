@@ -3,9 +3,9 @@ add_library(meld_core SHARED
   declared_filter.cpp
   declared_monitor.cpp
   declared_output.cpp
+  declared_reduction.cpp
   declared_splitter.cpp
   declared_transform.cpp
-  declared_reduction.cpp
   edge_maker.cpp
   filter/filter_impl.cpp
   filter/result_collector.cpp

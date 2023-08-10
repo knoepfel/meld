@@ -67,8 +67,12 @@ namespace meld {
     //      right?
 
     auto with(std::string name, auto f) { return proxy().with(std::move(name), f); }
-
     auto with(auto f) { return with(function_name(f), f); }
+    template <typename T>
+    auto with(auto predicate, auto unfold)
+    {
+      return unfold_proxy<T>().declare_unfold(predicate, unfold);
+    }
 
     template <typename R, typename... Args, typename... InitArgs>
     auto declare_reduction(std::string name, void (*f)(R&, Args...), InitArgs&&... init_args)
@@ -99,6 +103,12 @@ namespace meld {
     product_store_ptr pending_store();
 
     glue<void_tag> proxy() { return {graph_, nodes_, nullptr, registration_errors_}; }
+
+    template <typename T>
+    splitter_glue<T> unfold_proxy()
+    {
+      return {graph_, nodes_, registration_errors_};
+    }
 
     resource_usage graph_resource_usage_{};
     concurrency::max_allowed_parallelism parallelism_limit_;
