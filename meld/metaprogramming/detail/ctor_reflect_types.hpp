@@ -1,6 +1,13 @@
 #ifndef meld_metaprogramming_detail_ctor_reflect_types_hpp
 #define meld_metaprogramming_detail_ctor_reflect_types_hpp
 
+#include "boost/predef.h"
+
+#if BOOST_COMP_GNUC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnon-template-friend"
+#endif
+
 #include <concepts>
 #include <tuple>
 #include <utility>
@@ -111,11 +118,8 @@ namespace refl {
 // ===========================================================================
 // End Alexandr code
 
-namespace meld {
-  template <typename T>
-  struct constructor_arguments {
-    using type = refl::as_tuple<T>;
-  };
-}
+#if BOOST_COMP_GNUC
+#pragma GCC diagnostic pop
+#endif
 
 #endif /* meld_metaprogramming_detail_ctor_reflect_types_hpp */
