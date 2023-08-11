@@ -41,7 +41,7 @@ namespace {
     unsigned int max_;
   };
 
-  using numbers_t = std::vector<int>;
+  using numbers_t = std::vector<unsigned int>;
 
   class iterate_through {
   public:
@@ -63,6 +63,7 @@ namespace {
   };
 
   void add(std::atomic<unsigned int>& counter, unsigned number) { counter += number; }
+  void add_same_numbers(std::atomic<unsigned int>& counter, unsigned number) { counter += number; }
 
   void check_sum(handle<unsigned int> const sum)
   {
@@ -72,6 +73,12 @@ namespace {
     else {
       CHECK(*sum == 190);
     }
+  }
+
+  void check_sum_same(handle<unsigned int> const sum)
+  {
+    auto const expected_sum = (sum.id().number() + 1) * 10;
+    CHECK(*sum == expected_sum);
   }
 }
 
@@ -107,13 +114,21 @@ TEST_CASE("Splitting the processing", "[graph]")
     .split("max_number")
     .into("num")
     .within_domain("lower");
+  g.declare_reduction(add).concurrency(unlimited).react_to("num").output("sum").over("event");
+  g.with(check_sum).using_concurrency(unlimited).monitor("sum");
+
   g.with<iterate_through>(&iterate_through::predicate, &iterate_through::unfold)
     .using_concurrency(unlimited)
     .split("same_numbers")
     .into("same_num")
     .within_domain("lower");
-  g.declare_reduction(add).concurrency(unlimited).react_to("num").output("sum").over("event");
-  g.with(check_sum).using_concurrency(unlimited).monitor("sum");
+  g.declare_reduction(add_same_numbers)
+    .concurrency(unlimited)
+    .react_to("same_num")
+    .output("sum_same")
+    .over("event");
+  g.with(check_sum_same).using_concurrency(unlimited).monitor("sum_same");
+
   g.make<test::products_for_output>()
     .declare_output(&test::products_for_output::save)
     .concurrency(serial);
@@ -121,7 +136,10 @@ TEST_CASE("Splitting the processing", "[graph]")
   g.execute("splitter_t.gv");
 
   CHECK(g.execution_counts("iota") == index_limit);
-  CHECK(g.execution_counts("iterate_through") == index_limit);
   CHECK(g.execution_counts("add") == 30);
   CHECK(g.execution_counts("check_sum") == index_limit);
+
+  CHECK(g.execution_counts("iterate_through") == index_limit);
+  CHECK(g.execution_counts("add_same_numbers") == 20);
+  CHECK(g.execution_counts("check_sum_same") == index_limit);
 }
