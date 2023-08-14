@@ -1,6 +1,7 @@
 #ifndef meld_model_product_store_hpp
 #define meld_model_product_store_hpp
 
+#include "meld/model/child_counter.hpp"
 #include "meld/model/fwd.hpp"
 #include "meld/model/handle.hpp"
 #include "meld/model/level_id.hpp"
@@ -17,6 +18,7 @@ namespace meld {
 
   class product_store : public std::enable_shared_from_this<product_store> {
   public:
+    ~product_store();
     static product_store_ptr base();
 
     product_store_const_ptr store_for_product(std::string const& product_name) const;
@@ -29,7 +31,7 @@ namespace meld {
     product_store_const_ptr parent(std::string const& level_name) const noexcept;
     product_store_const_ptr parent() const noexcept;
     product_store_ptr make_flush() const;
-    product_store_ptr make_continuation(std::string_view source) const;
+    product_store_ptr make_continuation(std::string_view source, products new_products = {}) const;
     product_store_ptr make_continuation(level_id_ptr id, std::string_view source) const;
     product_store_ptr make_child(std::size_t new_level_number,
                                  std::string const& new_level_name,
@@ -61,7 +63,8 @@ namespace meld {
   private:
     explicit product_store(level_id_ptr id = level_id::base_ptr(),
                            std::string_view source = {},
-                           stage processing_stage = stage::process);
+                           stage processing_stage = stage::process,
+                           products new_products = {});
     explicit product_store(product_store_const_ptr parent,
                            std::size_t new_level_number,
                            std::string const& new_level_name,
@@ -79,22 +82,6 @@ namespace meld {
     std::string_view source_;
     stage stage_;
   };
-
-  template <typename T>
-  void add_to(product_store& store, T const& t, std::array<std::string, 1u> const& name)
-  {
-    store.add_product(name[0], t);
-  }
-
-  template <typename... Ts>
-  void add_to(product_store& store,
-              std::tuple<Ts...> const& ts,
-              std::array<std::string, sizeof...(Ts)> const& names)
-  {
-    [&store, &names]<std::size_t... Is>(auto const& ts, std::index_sequence<Is...>) {
-      (store.add_product(names[Is], std::get<Is>(ts)), ...);
-    }(ts, std::index_sequence_for<Ts...>{});
-  }
 
   product_store_ptr const& more_derived(product_store_ptr const& a, product_store_ptr const& b);
 

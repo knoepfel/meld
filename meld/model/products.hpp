@@ -48,6 +48,20 @@ namespace meld {
       products_.emplace(product_name, std::move(t));
     }
 
+    template <typename Ts>
+    void add_all(std::array<std::string, 1> names, Ts&& ts)
+    {
+      add(names[0], std::forward<Ts>(ts));
+    }
+
+    template <typename... Ts>
+    void add_all(std::array<std::string, sizeof...(Ts)> names, std::tuple<Ts...> ts)
+    {
+      [this, &names]<std::size_t... Is>(auto const& ts, std::index_sequence<Is...>) {
+        (this->add(names[Is], std::get<Is>(ts)), ...);
+      }(ts, std::index_sequence_for<Ts...>{});
+    }
+
     template <typename T>
     std::variant<T const*, std::string> get(std::string const& product_name) const
     {

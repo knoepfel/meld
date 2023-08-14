@@ -7,8 +7,14 @@
 
 namespace meld {
 
-  product_store::product_store(level_id_ptr id, std::string_view source, stage processing_stage) :
-    id_{std::move(id)}, source_{source}, stage_{processing_stage}
+  product_store::product_store(level_id_ptr id,
+                               std::string_view source,
+                               stage processing_stage,
+                               products new_products) :
+    products_{std::move(new_products)},
+    id_{std::move(id)},
+    source_{source},
+    stage_{processing_stage}
   {
   }
 
@@ -36,6 +42,8 @@ namespace meld {
     stage_{processing_stage}
   {
   }
+
+  product_store::~product_store() = default;
 
   product_store_ptr product_store::base() { return product_store_ptr{new product_store}; }
 
@@ -68,9 +76,11 @@ namespace meld {
     return product_store_ptr{new product_store{id_, "[inserted]", stage::flush}};
   }
 
-  product_store_ptr product_store::make_continuation(std::string_view source) const
+  product_store_ptr product_store::make_continuation(std::string_view source,
+                                                     products new_products) const
   {
-    return product_store_ptr{new product_store{id_, source, stage::process}};
+    return product_store_ptr{
+      new product_store{id_, source, stage::process, std::move(new_products)}};
   }
 
   product_store_ptr product_store::make_continuation(level_id_ptr id, std::string_view source) const

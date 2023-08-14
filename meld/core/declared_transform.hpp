@@ -144,8 +144,10 @@ namespace meld {
           }
           else if (accessor a; needs_new(store, message_id, stay_in_graph, a)) {
             auto result = call(ft, messages, std::make_index_sequence<N>{});
-            auto new_store = store->make_continuation(this->name());
-            add_to(*new_store, result, output_);
+            products new_products;
+            new_products.add_all(output_, result);
+            auto new_store = store->make_continuation(this->name(), std::move(new_products));
+            // add_to(*new_store, output_, result);
             a->second = new_store;
 
             message const new_msg{a->second, message_id};

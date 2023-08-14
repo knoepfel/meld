@@ -229,7 +229,7 @@ namespace meld {
     std::set<std::string> remove_ports_for_products;
     for (auto const& [name, splitter] : splitters.data) {
       meld::multiplexer::head_ports_t heads;
-      for (auto const& product_name : splitter->provided_products()) {
+      for (auto const& product_name : splitter->output()) {
         // There can be multiple head nodes that require the same product.
         remove_ports_for_products.insert(product_name);
         for (auto const& port : head_ports) {

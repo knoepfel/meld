@@ -41,35 +41,21 @@ namespace meld {
   public:
     explicit generator(product_store_const_ptr const& parent,
                        std::string const& node_name,
-                       std::vector<std::string> const& provided_products,
-                       std::string const& new_level_name,
-                       multiplexer& m,
-                       tbb::flow::broadcast_node<message>& to_output,
-                       std::atomic<std::size_t>& counter);
-    message flush_message();
+                       std::string const& new_level_name);
+    product_store_const_ptr flush_store() const;
+
     template <typename... Ts>
-    void accept(unsigned int level_number, Ts&&... new_products)
+    product_store_const_ptr make_child_for(std::size_t const level_number, products new_products)
     {
-      auto add_products = [this]<std::size_t... Is>(std::index_sequence<Is...>, auto&&... prods) {
-        products result;
-        (result.add(provided_[Is], std::forward<decltype(prods)>(prods)), ...);
-        return result;
-      };
-      make_child(level_number,
-                 add_products(std::index_sequence_for<Ts...>{}, std::forward<Ts>(new_products)...));
+      return make_child(level_number, std::move(new_products));
     }
 
   private:
-    void make_child(std::size_t i, products new_products);
+    product_store_const_ptr make_child(std::size_t i, products new_products);
     product_store_ptr parent_;
     std::string const& node_name_;
-    std::vector<std::string> const& provided_;
     std::string const& new_level_name_;
-    multiplexer& multiplexer_;
-    tbb::flow::broadcast_node<message>& to_output_;
-    std::atomic<std::size_t>& counter_;
     std::map<std::string, std::size_t> child_counts_;
-    std::size_t const original_message_id_{counter_};
   };
 
   class declared_splitter : public products_consumer {
@@ -80,7 +66,7 @@ namespace meld {
     virtual ~declared_splitter();
 
     virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual std::vector<std::string> const& provided_products() const = 0;
+    virtual std::span<std::string const, std::dynamic_extent> output() const = 0;
     virtual void finalize(multiplexer::head_ports_t head_ports) = 0;
   };
 
@@ -93,6 +79,7 @@ namespace meld {
   class partial_splitter {
     static constexpr std::size_t N = std::tuple_size_v<InputArgs>;
 
+    template <std::size_t M>
     class complete_splitter;
 
   public:
@@ -119,34 +106,31 @@ namespace meld {
     {
     }
 
-    auto& into(std::vector<std::string> output_product_names)
+    template <std::size_t M>
+    auto& into(std::array<std::string, M> output_product_names)
     {
-      outputs_ = std::move(output_product_names);
+      reg_.set([this, output = std::move(output_product_names)] {
+        return std::make_unique<complete_splitter<M>>(std::move(name_),
+                                                      concurrency_,
+                                                      std::move(preceding_filters_),
+                                                      std::move(receive_stores_),
+                                                      graph_,
+                                                      std::move(predicate_),
+                                                      std::move(unfold_),
+                                                      std::move(input_args_),
+                                                      std::move(product_names_),
+                                                      std::move(output),
+                                                      std::move(new_level_name_));
+      });
       return *this;
     }
 
     auto& into(std::convertible_to<std::string> auto&&... ts)
     {
-      return into(std::vector<std::string>{ts...});
+      return into(std::array<std::string, sizeof...(ts)>{std::forward<decltype(ts)>(ts)...});
     }
 
-    auto& within_domain(std::string new_level_name)
-    {
-      reg_.set([this, new_level = std::move(new_level_name)] {
-        return std::make_unique<complete_splitter>(std::move(name_),
-                                                   concurrency_,
-                                                   std::move(preceding_filters_),
-                                                   std::move(receive_stores_),
-                                                   graph_,
-                                                   std::move(predicate_),
-                                                   std::move(unfold_),
-                                                   std::move(input_args_),
-                                                   std::move(product_names_),
-                                                   std::move(outputs_),
-                                                   std::move(new_level));
-      });
-      return *this;
-    }
+    void within_domain(std::string new_level_name) { new_level_name_ = std::move(new_level_name); }
 
   private:
     std::string name_;
@@ -158,13 +142,14 @@ namespace meld {
     Unfold unfold_;
     InputArgs input_args_;
     std::array<std::string, N> product_names_;
-    std::vector<std::string> outputs_;
+    std::string new_level_name_;
     registrar<declared_splitters> reg_;
   };
 
   // =====================================================================================
 
   template <typename Object, typename Predicate, typename Unfold, typename InputArgs>
+  template <std::size_t M>
   class partial_splitter<Object, Predicate, Unfold, InputArgs>::complete_splitter :
     public declared_splitter,
     public detect_flush_flag {
@@ -182,12 +167,12 @@ namespace meld {
                       Unfold&& unfold,
                       InputArgs input,
                       std::array<std::string, N> product_names,
-                      std::vector<std::string> provided_products,
+                      std::array<std::string, M> output_products,
                       std::string new_level_name) :
       declared_splitter{std::move(name), std::move(preceding_filters), std::move(receive_stores)},
-      input_{std::move(input)},
       product_names_{std::move(product_names)},
-      provided_{std::move(provided_products)},
+      input_{std::move(input)},
+      output_{std::move(output_products)},
       new_level_name_{std::move(new_level_name)},
       multiplexer_{g},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
@@ -202,16 +187,10 @@ namespace meld {
                     flag_for(store->id()->hash(), ca).flush_received(msg.id);
                   }
                   else if (accessor a; stores_.insert(a, store->id()->hash())) {
-                    generator g{msg.store,
-                                this->name(),
-                                provided_,
-                                new_level_name_,
-                                multiplexer_,
-                                to_output_,
-                                counter_};
+                    std::size_t const original_message_id{msg_counter_};
+                    generator g{msg.store, this->name(), new_level_name_};
                     call(p, ufold, g, messages, std::make_index_sequence<N>{});
-                    multiplexer_.try_put(g.flush_message());
-
+                    multiplexer_.try_put({g.flush_store(), ++msg_counter_, original_message_id});
                     flag_accessor ca;
                     flag_for(store->id()->hash(), ca).mark_as_processed();
                   }
@@ -251,7 +230,7 @@ namespace meld {
     {
       return product_names_;
     }
-    std::vector<std::string> const& provided_products() const override { return provided_; }
+    std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
 
     void finalize(multiplexer::head_ports_t head_ports) override
     {
@@ -270,24 +249,28 @@ namespace meld {
       std::size_t counter = 0;
       auto running_value = obj.initial_value();
       while (std::invoke(predicate, obj, running_value)) {
-        auto [next_value, products] = std::invoke(unfold, obj, running_value);
-        g.accept(counter++, std::move(products));
+        auto [next_value, prods] = std::invoke(unfold, obj, running_value);
+        products new_products;
+        new_products.add_all(output_, prods);
+        message const msg{g.make_child_for(counter++, std::move(new_products)), ++msg_counter_};
+        to_output_.try_put(msg);
+        multiplexer_.try_put(msg);
         running_value = next_value;
       }
     }
 
     std::size_t num_calls() const final { return calls_.load(); }
 
-    InputArgs input_;
     std::array<std::string, N> product_names_;
-    std::vector<std::string> provided_;
+    InputArgs input_;
+    std::array<std::string, M> output_;
     std::string new_level_name_;
     multiplexer multiplexer_;
     join_or_none_t<N> join_;
     tbb::flow::function_node<messages_t<N>> splitter_;
     tbb::flow::broadcast_node<message> to_output_;
     tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr> stores_;
-    std::atomic<std::size_t> counter_{}; // Is this sufficient?  Probably not.
+    std::atomic<std::size_t> msg_counter_{}; // Is this sufficient?  Probably not.
     std::atomic<std::size_t> calls_{};
   };
 }

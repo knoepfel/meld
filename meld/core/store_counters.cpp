@@ -11,14 +11,14 @@ namespace meld {
     original_message_id_ = original_message_id;
   }
 
-  bool store_flag::is_flush(level_id const* id) noexcept
+  bool store_flag::is_flush(level_id const* /*id*/) noexcept
   {
-    if (id) {
-      spdlog::info(" ===> Checking {}: Processed {}  Flush received {}",
-                   id->to_string(),
-                   processed_,
-                   flush_received_);
-    }
+    // if (id) {
+    //   spdlog::info(" ===> Checking {}: Processed {}  Flush received {}",
+    //                id->to_string(),
+    //                processed_,
+    //                flush_received_);
+    // }
     return processed_ and flush_received_;
   }
 
