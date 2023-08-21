@@ -29,17 +29,30 @@
 
 namespace meld {
 
+  class message_sender {
+  public:
+    explicit message_sender(multiplexer& mplexer);
+
+    void send(product_store_ptr store);
+    message make_message(product_store_ptr store);
+
+  private:
+    std::size_t original_message_id(product_store_ptr const& store);
+
+    multiplexer& multiplexer_;
+    std::map<level_id_ptr, std::size_t> original_message_ids_;
+    std::size_t calls_{};
+  };
+
   class level_sentry {
   public:
-    level_sentry(level_hierarchy& hierarchy,
-                 std::queue<product_store_ptr>& pending_stores,
-                 product_store_ptr store);
+    level_sentry(level_hierarchy& hierarchy, message_sender& sender, product_store_ptr store);
     ~level_sentry();
     std::size_t depth() const noexcept;
 
   private:
     level_hierarchy& hierarchy_;
-    std::queue<product_store_ptr>& pending_stores_;
+    message_sender& sender_;
     product_store_ptr store_;
     std::size_t depth_;
   };
@@ -98,7 +111,6 @@ namespace meld {
 
     void accept(product_store_ptr store);
     void drain();
-    message send(product_store_ptr store);
     std::size_t original_message_id(product_store_ptr const& store);
     product_store_ptr pending_store();
 
@@ -119,10 +131,9 @@ namespace meld {
     std::map<std::string, result_collector> filter_collectors_{};
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
-    std::map<level_id_ptr, std::size_t> original_message_ids_;
+    message_sender sender_{multiplexer_};
     std::queue<product_store_ptr> pending_stores_;
     std::stack<level_sentry> levels_;
-    std::size_t calls_{};
     bool shutdown_{false};
   };
 }

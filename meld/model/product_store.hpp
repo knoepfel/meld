@@ -1,7 +1,6 @@
 #ifndef meld_model_product_store_hpp
 #define meld_model_product_store_hpp
 
-#include "meld/model/child_counter.hpp"
 #include "meld/model/fwd.hpp"
 #include "meld/model/handle.hpp"
 #include "meld/model/level_id.hpp"
@@ -32,7 +31,6 @@ namespace meld {
     product_store_const_ptr parent() const noexcept;
     product_store_ptr make_flush() const;
     product_store_ptr make_continuation(std::string_view source, products new_products = {}) const;
-    product_store_ptr make_continuation(level_id_ptr id, std::string_view source) const;
     product_store_ptr make_child(std::size_t new_level_number,
                                  std::string const& new_level_name,
                                  std::string_view source,
@@ -61,7 +59,8 @@ namespace meld {
     void add_product(std::string const& key, std::shared_ptr<product<T>>&& t);
 
   private:
-    explicit product_store(level_id_ptr id = level_id::base_ptr(),
+    explicit product_store(product_store_const_ptr parent = nullptr,
+                           level_id_ptr id = level_id::base_ptr(),
                            std::string_view source = {},
                            stage processing_stage = stage::process,
                            products new_products = {});
@@ -122,13 +121,6 @@ namespace meld {
   {
     products_.add(key, std::move(t));
   }
-
-  // template <typename T>
-  // void
-  // product_store::add_product(labeled_data<T>&& ldata)
-  // {
-  //   add_product(ldata.label, std::forward<T>(ldata.data));
-  // }
 
   template <typename T>
   [[nodiscard]] handle<T> product_store::get_handle(std::string const& key) const

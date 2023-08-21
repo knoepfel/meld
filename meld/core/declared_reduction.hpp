@@ -244,9 +244,12 @@ namespace meld {
                      }
                    }
 
+                   auto const& reduction_store =
+                     store->is_flush() ? store : store->parent(reduction_interval_);
+                   assert(reduction_store);
+                   auto const& id_for_counter = reduction_store->id();
+
                    counter_accessor ca;
-                   auto const& id_for_counter =
-                     store->is_flush() ? store->id() : store->id()->parent(reduction_interval_);
                    auto& counter = counter_for(id_for_counter->hash(), ca);
                    if (store->is_flush()) {
                      counter.set_flush_value(store, original_message_id);
@@ -261,7 +264,7 @@ namespace meld {
                    bool const has_counter = counter_for(id_for_counter->hash(), cca);
 
                    if (has_counter && cca->second->is_flush()) {
-                     auto parent = store->make_continuation(id_for_counter, this->name());
+                     auto parent = reduction_store->make_continuation(this->name());
                      commit_(*parent);
                      get<0>(outputs).try_put({parent, counter.original_message_id()});
                      erase_counter(cca);

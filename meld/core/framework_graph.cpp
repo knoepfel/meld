@@ -8,16 +8,40 @@
 #include "spdlog/cfg/env.h"
 
 namespace meld {
+  message_sender::message_sender(multiplexer& mplexer) : multiplexer_{mplexer} {}
+
+  message message_sender::make_message(product_store_ptr store)
+  {
+    assert(store);
+    auto const message_id = ++calls_;
+    if (store->is_flush()) {
+      return {store, message_id, original_message_id(store)};
+    }
+    original_message_ids_.try_emplace(store->id(), message_id);
+    return {store, message_id, -1ull};
+  }
+
+  void message_sender::send(product_store_ptr store)
+  {
+    multiplexer_.try_put(make_message(std::move(store)));
+  }
+
+  std::size_t message_sender::original_message_id(product_store_ptr const& store)
+  {
+    assert(store);
+    assert(store->is_flush());
+
+    auto h = original_message_ids_.extract(store->id());
+    assert(h);
+    return h.mapped();
+  }
+
   level_sentry::level_sentry(level_hierarchy& hierarchy,
-                             std::queue<product_store_ptr>& pending_stores,
+                             message_sender& sender,
                              product_store_ptr store) :
-    hierarchy_{hierarchy},
-    pending_stores_{pending_stores},
-    store_{store},
-    depth_{store_->id()->depth()}
+    hierarchy_{hierarchy}, sender_{sender}, store_{store}, depth_{store_->id()->depth()}
   {
     hierarchy_.update(store_->id());
-    pending_stores_.push(store_);
   }
 
   level_sentry::~level_sentry()
@@ -28,7 +52,7 @@ namespace meld {
       flush_store->add_product("[flush]",
                                std::make_shared<flush_counts const>(std::move(flush_result)));
     }
-    pending_stores_.push(std::move(flush_store));
+    sender_.send(std::move(flush_store));
   }
 
   std::size_t level_sentry::depth() const noexcept { return depth_; }
@@ -50,26 +74,18 @@ namespace meld {
     src_{graph_,
          [this, read_next_store = std::move(next_store)](tbb::flow_control& fc) mutable -> message {
            if (auto store = pending_store()) {
-             return send(store);
-           }
-
-           if (shutdown_) {
-             if (auto store = pending_store()) {
-               return send(store);
-             }
-             fc.stop();
-             return {};
+             return sender_.make_message(store);
            }
 
            auto store = read_next_store();
            if (not store) {
-             shutdown_ = true;
              drain();
+             fc.stop();
+             return {};
            }
-           else if (not store->is_flush()) {
-             accept(std::move(store));
-           }
-           return send(pending_store());
+           assert(not store->is_flush());
+           accept(std::move(store));
+           return sender_.make_message(pending_store());
          }},
     multiplexer_{graph_}
   {
@@ -181,7 +197,8 @@ namespace meld {
     while (not empty(levels_) and new_depth <= levels_.top().depth()) {
       levels_.pop();
     }
-    levels_.emplace(hierarchy_, pending_stores_, std::move(store));
+    pending_stores_.push(store);
+    levels_.emplace(hierarchy_, sender_, std::move(store));
   }
 
   void framework_graph::drain()
@@ -189,27 +206,6 @@ namespace meld {
     while (not empty(levels_)) {
       levels_.pop();
     }
-  }
-
-  message framework_graph::send(product_store_ptr store)
-  {
-    assert(store);
-    auto const message_id = ++calls_;
-    if (store->is_flush()) {
-      return {store, message_id, original_message_id(store)};
-    }
-    original_message_ids_.try_emplace(store->id(), message_id);
-    return {store, message_id, -1ull};
-  }
-
-  std::size_t framework_graph::original_message_id(product_store_ptr const& store)
-  {
-    assert(store);
-    assert(store->is_flush());
-
-    auto h = original_message_ids_.extract(store->id());
-    assert(h);
-    return h.mapped();
   }
 
   product_store_ptr framework_graph::pending_store()

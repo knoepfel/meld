@@ -146,9 +146,7 @@ namespace meld {
             auto result = call(ft, messages, std::make_index_sequence<N>{});
             products new_products;
             new_products.add_all(output_, result);
-            auto new_store = store->make_continuation(this->name(), std::move(new_products));
-            // add_to(*new_store, output_, result);
-            a->second = new_store;
+            a->second = store->make_continuation(this->name(), std::move(new_products));
 
             message const new_msg{a->second, message_id};
             stay_in_graph.try_put(new_msg);
