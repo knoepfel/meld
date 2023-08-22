@@ -20,7 +20,7 @@ namespace meld {
   tbb::flow::continue_msg multiplexer::multiplex(message const& msg)
   {
     ++received_messages_;
-    auto const& [store, message_id] = std::tie(msg.store, msg.id);
+    auto const& [store, eom, message_id] = std::tie(msg.store, msg.eom, msg.id);
     if (debug_) {
       spdlog::debug("Multiplexing {} with ID {} (is flush: {})",
                     store->id()->to_string(),
@@ -51,7 +51,7 @@ namespace meld {
           continue;
         }
       }
-      head_port.port->try_put({store_to_send, message_id});
+      head_port.port->try_put({store_to_send, eom, message_id});
     }
 
     execution_time_ += duration_cast<microseconds>(steady_clock::now() - start_time);

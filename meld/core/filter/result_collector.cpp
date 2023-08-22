@@ -40,6 +40,7 @@ namespace meld {
   {
     // FIXME: This implementation is horrible!  Because there are two data structures that
     //        have to work together.
+    end_of_message_ptr eom{};
     unsigned int msg_id{};
     if (t.is_a<message>()) {
       auto const& msg = t.cast_to<message>();
@@ -56,6 +57,7 @@ namespace meld {
     else {
       auto const& result = t.cast_to<filter_result>();
       decisions_.update(result);
+      eom = result.eom;
       msg_id = result.msg_id;
     }
 
@@ -76,7 +78,7 @@ namespace meld {
         return {};
       }
       for (std::size_t i = 0ull; i != nargs_; ++i) {
-        downstream_ports_[i]->try_put({stores[i], msg_id});
+        downstream_ports_[i]->try_put({stores[i], eom, msg_id});
       }
     }
     decisions_.erase(msg_id);

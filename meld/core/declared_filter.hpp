@@ -83,11 +83,11 @@ namespace meld {
             flag_for(store->id()->hash(), ca).flush_received(message_id);
           }
           else if (const_accessor a; results_.find(a, store->id()->hash())) {
-            result = {message_id, a->second.result};
+            result = {msg.eom, message_id, a->second.result};
           }
           else if (accessor a; results_.insert(a, store->id()->hash())) {
             bool const rc = call(ft, messages, std::make_index_sequence<N>{});
-            result = a->second = {message_id, rc};
+            result = a->second = {msg.eom, message_id, rc};
             flag_accessor ca;
             flag_for(store->id()->hash(), ca).mark_as_processed();
           }

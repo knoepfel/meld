@@ -7,35 +7,9 @@
 
 #include "spdlog/cfg/env.h"
 
+#include <cassert>
+
 namespace meld {
-  message_sender::message_sender(multiplexer& mplexer) : multiplexer_{mplexer} {}
-
-  message message_sender::make_message(product_store_ptr store)
-  {
-    assert(store);
-    auto const message_id = ++calls_;
-    if (store->is_flush()) {
-      return {store, message_id, original_message_id(store)};
-    }
-    original_message_ids_.try_emplace(store->id(), message_id);
-    return {store, message_id, -1ull};
-  }
-
-  void message_sender::send(product_store_ptr store)
-  {
-    multiplexer_.try_put(make_message(std::move(store)));
-  }
-
-  std::size_t message_sender::original_message_id(product_store_ptr const& store)
-  {
-    assert(store);
-    assert(store->is_flush());
-
-    auto h = original_message_ids_.extract(store->id());
-    assert(h);
-    return h.mapped();
-  }
-
   level_sentry::level_sentry(level_hierarchy& hierarchy,
                              message_sender& sender,
                              product_store_ptr store) :
@@ -46,13 +20,13 @@ namespace meld {
 
   level_sentry::~level_sentry()
   {
-    auto flush_store = store_->make_flush();
     auto flush_result = hierarchy_.complete(store_->id());
+    auto flush_store = store_->make_flush();
     if (not flush_result.empty()) {
       flush_store->add_product("[flush]",
                                std::make_shared<flush_counts const>(std::move(flush_result)));
     }
-    sender_.send(std::move(flush_store));
+    sender_.send_flush(std::move(flush_store));
   }
 
   std::size_t level_sentry::depth() const noexcept { return depth_; }
@@ -73,10 +47,6 @@ namespace meld {
     parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
     src_{graph_,
          [this, read_next_store = std::move(next_store)](tbb::flow_control& fc) mutable -> message {
-           if (auto store = pending_store()) {
-             return sender_.make_message(store);
-           }
-
            auto store = read_next_store();
            if (not store) {
              drain();
@@ -84,8 +54,7 @@ namespace meld {
              return {};
            }
            assert(not store->is_flush());
-           accept(std::move(store));
-           return sender_.make_message(pending_store());
+           return sender_.make_message(accept(std::move(store)));
          }},
     multiplexer_{graph_}
   {
@@ -93,9 +62,12 @@ namespace meld {
     spdlog::cfg::load_env_levels();
     spdlog::info("Number of worker threads: {}",
                  concurrency::max_allowed_parallelism::active_value());
+
+    // The parent of the job message is null
+    eoms_.push(nullptr);
   }
 
-  framework_graph::~framework_graph() { drain(); }
+  framework_graph::~framework_graph() = default;
 
   std::size_t framework_graph::execution_counts(std::string const& node_name) const
   {
@@ -122,7 +94,6 @@ namespace meld {
   {
     finalize(dot_file_name);
     run();
-    hierarchy_.print();
   }
 
   void framework_graph::run()
@@ -190,31 +161,23 @@ namespace meld {
                consumers{nodes_.transforms_, {.shape = "ellipse"}});
   }
 
-  void framework_graph::accept(product_store_ptr store)
+  product_store_ptr framework_graph::accept(product_store_ptr store)
   {
     assert(store);
     auto const new_depth = store->id()->depth();
     while (not empty(levels_) and new_depth <= levels_.top().depth()) {
       levels_.pop();
+      eoms_.pop();
     }
-    pending_stores_.push(store);
-    levels_.emplace(hierarchy_, sender_, std::move(store));
+    levels_.emplace(hierarchy_, sender_, store);
+    return store;
   }
 
   void framework_graph::drain()
   {
     while (not empty(levels_)) {
       levels_.pop();
+      eoms_.pop();
     }
-  }
-
-  product_store_ptr framework_graph::pending_store()
-  {
-    if (empty(pending_stores_)) {
-      return nullptr;
-    }
-    auto result = pending_stores_.front();
-    pending_stores_.pop();
-    return result;
   }
 }

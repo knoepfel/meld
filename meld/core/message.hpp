@@ -1,6 +1,7 @@
 #ifndef meld_core_message_hpp
 #define meld_core_message_hpp
 
+#include "meld/core/fwd.hpp"
 #include "meld/model/handle.hpp"
 #include "meld/model/product_store.hpp"
 #include "meld/utilities/sized_tuple.hpp"
@@ -18,6 +19,7 @@ namespace meld {
 
   struct message {
     product_store_const_ptr store;
+    end_of_message_ptr eom;
     std::size_t id;
     std::size_t original_id{-1ull}; // Used during flush
   };
@@ -35,11 +37,12 @@ namespace meld {
   namespace detail {
     template <std::size_t N>
     using join_messages_t = tbb::flow::join_node<messages_t<N>, tbb::flow::tag_matching>;
-    using no_join_base_t = tbb::flow::function_node<message, messages_t<1ull>>;
+    using no_join_base_t =
+      tbb::flow::function_node<message, messages_t<1ull>, tbb::flow::lightweight>;
 
     struct no_join : no_join_base_t {
       no_join(tbb::flow::graph& g, MessageHasher) :
-        no_join_base_t{g, tbb::flow::unlimited, [](message msg) { return std::tuple{std::move(msg)}; }}
+        no_join_base_t{g, tbb::flow::unlimited, [](message const& msg) { return std::tuple{msg}; }}
       {
       }
     };

@@ -12,35 +12,35 @@ namespace {
 
 namespace meld {
 
-  void level_hierarchy::update(level_id_ptr const id)
+  level_hierarchy::~level_hierarchy() { print(); }
+
+  void level_hierarchy::update(level_id_ptr const id) { counters_.update(id); }
+
+  void level_hierarchy::increment_count(level_id_ptr const& id)
   {
-    if (!levels_.contains(id->level_hash())) {
-      auto const parent_hash = id->has_parent() ? id->parent()->level_hash() : -1ull;
-      levels_[id->level_hash()] = {id->level_name(), parent_hash};
+    if (auto it = levels_.find(id->level_hash()); it != levels_.cend()) {
+      ++it->second->count;
+      return;
     }
 
-    level_counter* parent_counter = nullptr;
-    if (auto parent = id->parent()) {
-      auto it = counters_.find(parent->hash());
-      assert(it != counters_.cend());
-      parent_counter = it->second.get();
-    }
-    counters_[id->hash()] = std::make_shared<level_counter>(parent_counter, id->level_name());
+    auto const parent_hash = id->has_parent() ? id->parent()->level_hash() : -1ull;
+    // Warning: It can happen that two threads get to this location at the same time.  Two
+    // guard against overwriting the value of "count", we use the returned iterator "it",
+    // which will either refer to the new node in the map, or to the already-emplaced
+    // node.  We then increment the count.
+    auto [it, _] = levels_.emplace(id->level_hash(),
+                                   std::make_shared<level_entry>(id->level_name(), parent_hash));
+    ++it->second->count;
   }
 
-  flush_counts level_hierarchy::complete(level_id_ptr const id)
-  {
-    ++levels_.at(id->level_hash()).count;
-    auto counter = counters_.extract(id->hash());
-    return counter.mapped()->result();
-  }
+  flush_counts level_hierarchy::complete(level_id_ptr const id) { return counters_.extract(id); }
 
   std::size_t level_hierarchy::count_for(std::string const& level_name) const
   {
     auto it = find_if(begin(levels_), end(levels_), [&level_name](auto const& level) {
-      return level.second.name == level_name;
+      return level.second->name == level_name;
     });
-    return it != cend(levels_) ? it->second.count : 0;
+    return it != cend(levels_) ? it->second->count.load() : 0;
   }
 
   void level_hierarchy::print() const { spdlog::info("{}", graph_layout()); }
@@ -59,7 +59,7 @@ namespace meld {
     for (std::size_t i = 0; auto const& [child_name, child_hash] : it->second) {
       bool const at_end = ++i == n;
       auto child_prefix = !at_end ? indent + " ├ " : indent + " └ ";
-      auto const& entry = levels_.at(child_hash);
+      auto const& entry = *levels_.at(child_hash);
       result += "\n" + indent + " │ ";
       result += fmt::format("\n{}{}: {}", child_prefix, maybe_name(child_name), entry.count);
 
@@ -78,12 +78,12 @@ namespace meld {
 
     std::map<std::string, std::vector<hash_name_pair>> tree;
     for (auto const& [level_hash, level_entry] : levels_) {
-      auto parent_hash = level_entry.parent_hash;
+      auto parent_hash = level_entry->parent_hash;
       if (parent_hash == -1ull) {
         continue;
       }
-      auto const& parent_name = levels_.at(parent_hash).name;
-      tree[parent_name].emplace_back(level_entry.name, level_hash);
+      auto const& parent_name = levels_.at(parent_hash)->name;
+      tree[parent_name].emplace_back(level_entry->name, level_hash);
     }
 
     auto const initial_indent = "  ";

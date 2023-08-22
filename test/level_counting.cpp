@@ -56,16 +56,19 @@ TEST_CASE("Counter multiple layers deep", "[data model]")
         h.update(event_store->id());
         ++processed_events;
 
+        h.increment_count(event_store->id());
         auto results = h.complete(event_store->id());
         CHECK(results.empty());
         check_all_processed();
       }
+      h.increment_count(subrun_store->id());
       auto results = h.complete(subrun_store->id());
       ++processed_subruns;
 
       CHECK(results.count_for("event"));
       check_all_processed();
     }
+    h.increment_count(run_store->id());
     auto results = h.complete(run_store->id());
     ++processed_runs;
 
@@ -73,6 +76,7 @@ TEST_CASE("Counter multiple layers deep", "[data model]")
     CHECK(results.count_for("subrun") == nsubruns_per_run);
     check_all_processed();
   }
+  h.increment_count(job_store->id());
   auto results = h.complete(job_store->id());
   ++processed_jobs;
 

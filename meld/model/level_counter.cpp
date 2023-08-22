@@ -1,5 +1,7 @@
 #include "meld/model/level_counter.hpp"
 
+#include <cassert>
+
 namespace meld {
 
   flush_counts::flush_counts(std::string level_name) : level_name_{std::move(level_name)} {}
@@ -39,4 +41,20 @@ namespace meld {
     }
   }
 
+  void flush_counters::update(level_id_ptr const id)
+  {
+    level_counter* parent_counter = nullptr;
+    if (auto parent = id->parent()) {
+      auto it = counters_.find(parent->hash());
+      assert(it != counters_.cend());
+      parent_counter = it->second.get();
+    }
+    counters_[id->hash()] = std::make_shared<level_counter>(parent_counter, id->level_name());
+  }
+
+  flush_counts flush_counters::extract(level_id_ptr const id)
+  {
+    auto counter = counters_.extract(id->hash());
+    return counter.mapped()->result();
+  }
 }

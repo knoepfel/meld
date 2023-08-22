@@ -266,7 +266,8 @@ namespace meld {
                    if (has_counter && cca->second->is_flush()) {
                      auto parent = reduction_store->make_continuation(this->name());
                      commit_(*parent);
-                     get<0>(outputs).try_put({parent, counter.original_message_id()});
+                     // FIXME: This msg.eom value may be wrong!
+                     get<0>(outputs).try_put({parent, msg.eom, counter.original_message_id()});
                      erase_counter(cca);
                    }
                  }}

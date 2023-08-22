@@ -47,7 +47,7 @@ namespace meld {
 
   level_id::level_id() : level_hash_{string_hasher(level_name_)} {}
 
-  level_id::level_id(const_ptr parent, std::size_t i, std::string level_name) :
+  level_id::level_id(level_id_ptr parent, std::size_t i, std::string level_name) :
     parent_{std::move(parent)},
     number_{i},
     level_name_{std::move(level_name)},

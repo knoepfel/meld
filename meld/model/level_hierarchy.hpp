@@ -4,6 +4,8 @@
 #include "meld/model/fwd.hpp"
 #include "meld/model/level_counter.hpp"
 
+#include "oneapi/tbb/concurrent_unordered_map.h"
+
 #include <concepts>
 #include <map>
 #include <set>
@@ -14,7 +16,9 @@ namespace meld {
 
   class level_hierarchy {
   public:
+    ~level_hierarchy();
     void update(level_id_ptr id);
+    void increment_count(level_id_ptr const& id);
     flush_counts complete(level_id_ptr id);
 
     std::size_t count_for(std::string const& level_name) const;
@@ -31,13 +35,17 @@ namespace meld {
                                std::string indent = {}) const;
 
     struct level_entry {
+      level_entry(std::string n, std::size_t par_hash) : name{std::move(n)}, parent_hash{par_hash}
+      {
+      }
+
       std::string name;
       std::size_t parent_hash;
-      std::size_t count;
+      std::atomic<std::size_t> count{};
     };
 
-    std::map<std::size_t, level_entry> levels_;
-    std::map<level_id::hash_type, std::shared_ptr<level_counter>> counters_;
+    tbb::concurrent_unordered_map<std::size_t, std::shared_ptr<level_entry>> levels_;
+    flush_counters counters_;
   };
 
 }

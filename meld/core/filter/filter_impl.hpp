@@ -1,6 +1,7 @@
 #ifndef meld_core_filter_filter_impl_hpp
 #define meld_core_filter_filter_impl_hpp
 
+#include "meld/core/message.hpp"
 #include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
 
@@ -12,6 +13,7 @@
 
 namespace meld {
   struct filter_result {
+    end_of_message_ptr eom;
     std::size_t msg_id;
     bool result;
   };

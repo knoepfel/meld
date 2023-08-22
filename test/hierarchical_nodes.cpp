@@ -111,7 +111,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
       store->add_product<unsigned>("number", id->number() + id->parent()->number());
     }
     return store;
-  }};
+  }, 1};
 
   g.with("get_the_time", strtime)
     .filtered_by()

@@ -17,15 +17,14 @@ namespace meld {
   class level_id : public std::enable_shared_from_this<level_id> {
   public:
     static level_id const& base();
-    using const_ptr = std::shared_ptr<level_id const>;
-    static const_ptr base_ptr();
+    static level_id_ptr base_ptr();
 
     using hash_type = std::size_t;
-    const_ptr make_child(std::size_t new_level_number, std::string level_name) const;
+    level_id_ptr make_child(std::size_t new_level_number, std::string level_name) const;
     std::string const& level_name() const noexcept;
     std::size_t depth() const noexcept;
-    const_ptr parent(std::string const& level_name) const;
-    const_ptr parent() const noexcept;
+    level_id_ptr parent(std::string const& level_name) const;
+    level_id_ptr parent() const noexcept;
     bool has_parent() const noexcept;
     std::size_t number() const;
     std::size_t hash() const noexcept;
@@ -41,8 +40,8 @@ namespace meld {
 
   private:
     level_id();
-    explicit level_id(const_ptr parent, std::size_t i, std::string level_name);
-    const_ptr parent_{nullptr};
+    explicit level_id(level_id_ptr parent, std::size_t i, std::string level_name);
+    level_id_ptr parent_{nullptr};
     std::size_t number_{-1ull};
     std::string level_name_{"job"};
     std::size_t level_hash_;
@@ -50,7 +49,6 @@ namespace meld {
     hash_type hash_{0};
   };
 
-  using level_id_ptr = level_id::const_ptr;
   level_id_ptr id_for(char const* str);
   level_id_ptr id_for(std::vector<std::size_t> nums);
   level_id_ptr operator"" _id(char const* str, std::size_t);

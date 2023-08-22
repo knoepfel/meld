@@ -7,10 +7,12 @@ add_library(meld_core SHARED
   declared_splitter.cpp
   declared_transform.cpp
   edge_maker.cpp
+  end_of_message.cpp
   filter/filter_impl.cpp
   filter/result_collector.cpp
   framework_graph.cpp
   message.cpp
+  message_sender.cpp
   multiplexer.cpp
   products_consumer.cpp
   store_counters.cpp

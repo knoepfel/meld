@@ -4,10 +4,12 @@
 #include "meld/configuration.hpp"
 #include "meld/core/declared_reduction.hpp"
 #include "meld/core/declared_splitter.hpp"
+#include "meld/core/end_of_message.hpp"
 #include "meld/core/filter/result_collector.hpp"
 #include "meld/core/glue.hpp"
 #include "meld/core/graph_proxy.hpp"
 #include "meld/core/message.hpp"
+#include "meld/core/message_sender.hpp"
 #include "meld/core/multiplexer.hpp"
 #include "meld/core/node_catalog.hpp"
 #include "meld/model/level_hierarchy.hpp"
@@ -17,7 +19,6 @@
 #include "oneapi/tbb/flow_graph.h"
 #include "oneapi/tbb/info.h"
 
-#include <cassert>
 #include <functional>
 #include <map>
 #include <queue>
@@ -28,21 +29,6 @@
 #include <vector>
 
 namespace meld {
-
-  class message_sender {
-  public:
-    explicit message_sender(multiplexer& mplexer);
-
-    void send(product_store_ptr store);
-    message make_message(product_store_ptr store);
-
-  private:
-    std::size_t original_message_id(product_store_ptr const& store);
-
-    multiplexer& multiplexer_;
-    std::map<level_id_ptr, std::size_t> original_message_ids_;
-    std::size_t calls_{};
-  };
 
   class level_sentry {
   public:
@@ -109,10 +95,9 @@ namespace meld {
     void run();
     void finalize(std::string const& dot_file_name);
 
-    void accept(product_store_ptr store);
+    product_store_ptr accept(product_store_ptr store);
     void drain();
     std::size_t original_message_id(product_store_ptr const& store);
-    product_store_ptr pending_store();
 
     glue<void_tag> proxy() { return {graph_, nodes_, nullptr, registration_errors_}; }
 
@@ -131,7 +116,8 @@ namespace meld {
     std::map<std::string, result_collector> filter_collectors_{};
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
-    message_sender sender_{multiplexer_};
+    std::stack<end_of_message_ptr> eoms_;
+    message_sender sender_{hierarchy_, multiplexer_, eoms_};
     std::queue<product_store_ptr> pending_stores_;
     std::stack<level_sentry> levels_;
     bool shutdown_{false};

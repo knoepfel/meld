@@ -9,6 +9,7 @@ namespace meld {
   class level_id;
   class product_store;
 
+  using level_id_ptr = std::shared_ptr<level_id const>;
   using product_store_const_ptr = std::shared_ptr<product_store const>;
   using product_store_ptr = std::shared_ptr<product_store>;
 

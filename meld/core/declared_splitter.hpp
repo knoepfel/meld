@@ -6,6 +6,7 @@
 #include "meld/core/concepts.hpp"
 #include "meld/core/detail/form_input_arguments.hpp"
 #include "meld/core/detail/port_names.hpp"
+#include "meld/core/end_of_message.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/multiplexer.hpp"
@@ -176,32 +177,33 @@ namespace meld {
       new_level_name_{std::move(new_level_name)},
       multiplexer_{g},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
-      splitter_{g,
-                concurrency,
-                [this, p = std::move(predicate), ufold = std::move(unfold)](
-                  messages_t<N> const& messages) -> tbb::flow::continue_msg {
-                  auto const& msg = most_derived(messages);
-                  auto const& store = msg.store;
-                  if (store->is_flush()) {
-                    flag_accessor ca;
-                    flag_for(store->id()->hash(), ca).flush_received(msg.id);
-                  }
-                  else if (accessor a; stores_.insert(a, store->id()->hash())) {
-                    std::size_t const original_message_id{msg_counter_};
-                    generator g{msg.store, this->name(), new_level_name_};
-                    call(p, ufold, g, messages, std::make_index_sequence<N>{});
-                    multiplexer_.try_put({g.flush_store(), ++msg_counter_, original_message_id});
-                    flag_accessor ca;
-                    flag_for(store->id()->hash(), ca).mark_as_processed();
-                  }
+      splitter_{
+        g,
+        concurrency,
+        [this, p = std::move(predicate), ufold = std::move(unfold)](
+          messages_t<N> const& messages) -> tbb::flow::continue_msg {
+          auto const& msg = most_derived(messages);
+          auto const& store = msg.store;
+          if (store->is_flush()) {
+            flag_accessor ca;
+            flag_for(store->id()->hash(), ca).flush_received(msg.id);
+          }
+          else if (accessor a; stores_.insert(a, store->id()->hash())) {
+            std::size_t const original_message_id{msg_counter_};
+            generator g{msg.store, this->name(), new_level_name_};
+            call(p, ufold, g, msg.eom, messages, std::make_index_sequence<N>{});
+            multiplexer_.try_put({g.flush_store(), msg.eom, ++msg_counter_, original_message_id});
+            flag_accessor ca;
+            flag_for(store->id()->hash(), ca).mark_as_processed();
+          }
 
-                  auto const id_hash = store->id()->hash();
-                  if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_flush()) {
-                    stores_.erase(id_hash);
-                    erase_flag(ca);
-                  }
-                  return {};
-                }},
+          auto const id_hash = store->id()->hash();
+          if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_flush()) {
+            stores_.erase(id_hash);
+            erase_flag(ca);
+          }
+          return {};
+        }},
       to_output_{g}
     {
       make_edge(join_, splitter_);
@@ -241,6 +243,7 @@ namespace meld {
     void call(Predicate const& predicate,
               Unfold const& unfold,
               generator& g,
+              end_of_message_ptr const& eom,
               messages_t<N> const& messages,
               std::index_sequence<Is...>)
     {
@@ -252,7 +255,8 @@ namespace meld {
         auto [next_value, prods] = std::invoke(unfold, obj, running_value);
         products new_products;
         new_products.add_all(output_, prods);
-        message const msg{g.make_child_for(counter++, std::move(new_products)), ++msg_counter_};
+        auto child = g.make_child_for(counter++, std::move(new_products));
+        message const msg{child, eom->make_child(child->id()), ++msg_counter_};
         to_output_.try_put(msg);
         multiplexer_.try_put(msg);
         running_value = next_value;

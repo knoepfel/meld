@@ -59,6 +59,15 @@ namespace meld {
     std::string level_name_;
     std::map<std::string, std::size_t> child_counts_{};
   };
+
+  class flush_counters {
+  public:
+    void update(level_id_ptr const id);
+    flush_counts extract(level_id_ptr const id);
+
+  private:
+    std::map<level_id::hash_type, std::shared_ptr<level_counter>> counters_;
+  };
 }
 
 #endif /* meld_model_level_counter_hpp */

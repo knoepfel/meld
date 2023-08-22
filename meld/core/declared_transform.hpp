@@ -134,7 +134,7 @@ namespace meld {
       transform_{
         g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages, auto& output) {
           auto const& msg = most_derived(messages);
-          auto const& [store, message_id] = std::tie(msg.store, msg.id);
+          auto const& [store, message_eom, message_id] = std::tie(msg.store, msg.eom, msg.id);
           auto& [stay_in_graph, to_output] = output;
           if (store->is_flush()) {
             flag_accessor fa;
@@ -142,13 +142,13 @@ namespace meld {
             // spdlog::debug("Transform {} sending flush message {}/{}", this->name(), message_id, msg.original_id);
             stay_in_graph.try_put(msg);
           }
-          else if (accessor a; needs_new(store, message_id, stay_in_graph, a)) {
+          else if (accessor a; needs_new(store, message_eom, message_id, stay_in_graph, a)) {
             auto result = call(ft, messages, std::make_index_sequence<N>{});
             products new_products;
             new_products.add_all(output_, result);
             a->second = store->make_continuation(this->name(), std::move(new_products));
 
-            message const new_msg{a->second, message_id};
+            message const new_msg{a->second, msg.eom, message_id};
             stay_in_graph.try_put(new_msg);
             to_output.try_put(new_msg);
             flag_accessor fa;
@@ -191,23 +191,24 @@ namespace meld {
     std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
 
     bool needs_new(product_store_const_ptr const& store,
+                   end_of_message_ptr const& eom,
                    std::size_t message_id,
                    auto& stay_in_graph,
                    accessor& a)
     {
       if (store->is_flush()) {
-        stay_in_graph.try_put({store, message_id});
+        stay_in_graph.try_put({store, eom, message_id});
         return false;
       }
 
       if (const_accessor cached; stores_.find(cached, store->id()->hash())) {
-        stay_in_graph.try_put({cached->second, message_id});
+        stay_in_graph.try_put({cached->second, eom, message_id});
         return false;
       }
 
       bool const new_insert = stores_.insert(a, store->id()->hash());
       if (!new_insert) {
-        stay_in_graph.try_put({a->second, message_id});
+        stay_in_graph.try_put({a->second, eom, message_id});
         return false;
       }
       return true;

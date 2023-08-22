@@ -14,19 +14,19 @@ TEST_CASE("Filter values", "[filtering]")
 TEST_CASE("Filter decision", "[filtering]")
 {
   decision_map decisions{2};
-  decisions.update({1, false});
+  decisions.update({nullptr, 1, false});
   {
     auto const value = decisions.value(1);
     CHECK(is_complete(value));
     CHECK(to_boolean(value) == false);
     decisions.erase(1);
   }
-  decisions.update({3, true});
+  decisions.update({nullptr, 3, true});
   {
     auto const value = decisions.value(3);
     CHECK(not is_complete(value));
   }
-  decisions.update({3, true});
+  decisions.update({nullptr, 3, true});
   {
     auto const value = decisions.value(3);
     CHECK(is_complete(value));
