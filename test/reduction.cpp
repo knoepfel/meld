@@ -25,7 +25,6 @@
 
 #include "meld/core/cached_product_stores.hpp"
 #include "meld/core/framework_graph.hpp"
-#include "meld/model/level_hierarchy.hpp"
 #include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
 

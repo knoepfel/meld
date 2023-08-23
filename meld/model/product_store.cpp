@@ -1,5 +1,4 @@
 #include "meld/model/product_store.hpp"
-#include "meld/model/level_hierarchy.hpp"
 #include "meld/model/level_id.hpp"
 
 #include <memory>

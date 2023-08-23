@@ -2,13 +2,11 @@
 #define meld_model_level_hierarchy_hpp
 
 #include "meld/model/fwd.hpp"
-#include "meld/model/level_counter.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 
-#include <concepts>
 #include <map>
-#include <set>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -17,10 +15,7 @@ namespace meld {
   class level_hierarchy {
   public:
     ~level_hierarchy();
-    void update(level_id_ptr id);
     void increment_count(level_id_ptr const& id);
-    flush_counts complete(level_id_ptr id);
-
     std::size_t count_for(std::string const& level_name) const;
 
     void print() const;
@@ -45,7 +40,6 @@ namespace meld {
     };
 
     tbb::concurrent_unordered_map<std::size_t, std::shared_ptr<level_entry>> levels_;
-    flush_counters counters_;
   };
 
 }

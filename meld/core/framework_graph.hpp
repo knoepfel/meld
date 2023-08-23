@@ -32,12 +32,12 @@ namespace meld {
 
   class level_sentry {
   public:
-    level_sentry(level_hierarchy& hierarchy, message_sender& sender, product_store_ptr store);
+    level_sentry(flush_counters& counters, message_sender& sender, product_store_ptr store);
     ~level_sentry();
     std::size_t depth() const noexcept;
 
   private:
-    level_hierarchy& hierarchy_;
+    flush_counters& counters_;
     message_sender& sender_;
     product_store_ptr store_;
     std::size_t depth_;
@@ -119,6 +119,7 @@ namespace meld {
     std::stack<end_of_message_ptr> eoms_;
     message_sender sender_{hierarchy_, multiplexer_, eoms_};
     std::queue<product_store_ptr> pending_stores_;
+    flush_counters counters_;
     std::stack<level_sentry> levels_;
     bool shutdown_{false};
   };

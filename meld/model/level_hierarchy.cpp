@@ -1,9 +1,8 @@
 #include "meld/model/level_hierarchy.hpp"
+#include "meld/model/level_id.hpp"
 
 #include "fmt/format.h"
 #include "spdlog/spdlog.h"
-
-#include <ostream>
 
 namespace {
   std::string const unnamed{"(unnamed)"};
@@ -13,8 +12,6 @@ namespace {
 namespace meld {
 
   level_hierarchy::~level_hierarchy() { print(); }
-
-  void level_hierarchy::update(level_id_ptr const id) { counters_.update(id); }
 
   void level_hierarchy::increment_count(level_id_ptr const& id)
   {
@@ -32,8 +29,6 @@ namespace meld {
                                    std::make_shared<level_entry>(id->level_name(), parent_hash));
     ++it->second->count;
   }
-
-  flush_counts level_hierarchy::complete(level_id_ptr const id) { return counters_.extract(id); }
 
   std::size_t level_hierarchy::count_for(std::string const& level_name) const
   {

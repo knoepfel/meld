@@ -34,6 +34,7 @@ TEST_CASE("Counter multiple layers deep", "[data model]")
   std::size_t processed_events{};
 
   level_hierarchy h;
+  flush_counters counters;
 
   // Notice the wholesale capture by reference--generally a lazy way of doing things.
   auto check_all_processed = [&] {
@@ -44,32 +45,32 @@ TEST_CASE("Counter multiple layers deep", "[data model]")
   };
 
   auto job_store = product_store::base();
-  h.update(job_store->id());
+  counters.update(job_store->id());
   for (std::size_t i = 0; i != nruns; ++i) {
     auto run_store = job_store->make_child(i, "run");
-    h.update(run_store->id());
+    counters.update(run_store->id());
     for (std::size_t j = 0; j != nsubruns_per_run; ++j) {
       auto subrun_store = run_store->make_child(j, "subrun");
-      h.update(subrun_store->id());
+      counters.update(subrun_store->id());
       for (std::size_t k = 0; k != nevents_per_subrun; ++k) {
         auto event_store = subrun_store->make_child(k, "event");
-        h.update(event_store->id());
+        counters.update(event_store->id());
         ++processed_events;
 
         h.increment_count(event_store->id());
-        auto results = h.complete(event_store->id());
+        auto results = counters.extract(event_store->id());
         CHECK(results.empty());
         check_all_processed();
       }
       h.increment_count(subrun_store->id());
-      auto results = h.complete(subrun_store->id());
+      auto results = counters.extract(subrun_store->id());
       ++processed_subruns;
 
       CHECK(results.count_for("event"));
       check_all_processed();
     }
     h.increment_count(run_store->id());
-    auto results = h.complete(run_store->id());
+    auto results = counters.extract(run_store->id());
     ++processed_runs;
 
     CHECK(results.count_for("event") == nevents_per_subrun * nsubruns_per_run);
@@ -77,7 +78,7 @@ TEST_CASE("Counter multiple layers deep", "[data model]")
     check_all_processed();
   }
   h.increment_count(job_store->id());
-  auto results = h.complete(job_store->id());
+  auto results = counters.extract(job_store->id());
   ++processed_jobs;
 
   CHECK(results.count_for("event") == nevents_per_subrun * nsubruns_per_run * nruns);

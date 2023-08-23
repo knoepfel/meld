@@ -18,7 +18,6 @@
 
 #include "meld/core/cached_product_stores.hpp"
 #include "meld/core/framework_graph.hpp"
-#include "meld/model/level_hierarchy.hpp"
 #include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
 #include "test/products_for_output.hpp"
@@ -111,7 +110,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
       store->add_product<unsigned>("number", id->number() + id->parent()->number());
     }
     return store;
-  }, 1};
+  }};
 
   g.with("get_the_time", strtime)
     .filtered_by()

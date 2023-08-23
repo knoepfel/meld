@@ -10,17 +10,17 @@
 #include <cassert>
 
 namespace meld {
-  level_sentry::level_sentry(level_hierarchy& hierarchy,
+  level_sentry::level_sentry(flush_counters& counters,
                              message_sender& sender,
                              product_store_ptr store) :
-    hierarchy_{hierarchy}, sender_{sender}, store_{store}, depth_{store_->id()->depth()}
+    counters_{counters}, sender_{sender}, store_{store}, depth_{store_->id()->depth()}
   {
-    hierarchy_.update(store_->id());
+    counters_.update(store_->id());
   }
 
   level_sentry::~level_sentry()
   {
-    auto flush_result = hierarchy_.complete(store_->id());
+    auto flush_result = counters_.extract(store_->id());
     auto flush_store = store_->make_flush();
     if (not flush_result.empty()) {
       flush_store->add_product("[flush]",
@@ -169,7 +169,7 @@ namespace meld {
       levels_.pop();
       eoms_.pop();
     }
-    levels_.emplace(hierarchy_, sender_, store);
+    levels_.emplace(counters_, sender_, store);
     return store;
   }
 
