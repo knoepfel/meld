@@ -63,7 +63,10 @@ namespace {
   };
 
   void add(std::atomic<unsigned int>& counter, unsigned number) { counter += number; }
-  void add_same_numbers(std::atomic<unsigned int>& counter, unsigned number) { counter += number; }
+  void add_numbers [[maybe_unused]] (std::atomic<unsigned int>& counter, unsigned number)
+  {
+    counter += number;
+  }
 
   void check_sum(handle<unsigned int> const sum)
   {
@@ -75,7 +78,7 @@ namespace {
     }
   }
 
-  void check_sum_same(handle<unsigned int> const sum)
+  void check_sum_same [[maybe_unused]] (handle<unsigned int> const sum)
   {
     auto const expected_sum = (sum.id().number() + 1) * 10;
     CHECK(*sum == expected_sum);
@@ -104,34 +107,38 @@ TEST_CASE("Splitting the processing", "[graph]")
     auto store = cached_stores.get_store(id);
     if (store->id()->level_name() == "event") {
       store->add_product<unsigned>("max_number", 10u * (id->number() + 1));
-      store->add_product<numbers_t>("same_numbers", numbers_t(10, id->number() + 1));
+      store->add_product<numbers_t>("ten_numbers", numbers_t(10, id->number() + 1));
     }
     return store;
   }};
 
   g.with<iota>(&iota::predicate, &iota::unfold)
-    .using_concurrency(unlimited)
     .split("max_number")
-    .into("num")
-    .within_domain("lower");
-  g.declare_reduction(add).concurrency(unlimited).react_to("num").output("sum").over("event");
-  g.with(check_sum).using_concurrency(unlimited).monitor("sum");
+    .into("new_number")
+    .within_domain("lower1")
+    .using_concurrency(unlimited);
+  g.declare_reduction(add)
+    .concurrency(unlimited)
+    .react_to("new_number")
+    .output("sum1")
+    .over("event");
+  g.with(check_sum).monitor("sum1").using_concurrency(unlimited);
 
   g.with<iterate_through>(&iterate_through::predicate, &iterate_through::unfold)
-    .using_concurrency(unlimited)
-    .split("same_numbers")
-    .into("same_num")
-    .within_domain("lower");
-  g.declare_reduction(add_same_numbers)
+    .split("ten_numbers")
+    .into("each_number")
+    .within_domain("lower2")
+    .using_concurrency(unlimited);
+  g.declare_reduction(add_numbers)
     .concurrency(unlimited)
-    .react_to("same_num")
-    .output("sum_same")
+    .react_to("each_number")
+    .output("sum2")
     .over("event");
-  g.with(check_sum_same).using_concurrency(unlimited).monitor("sum_same");
+  g.with(check_sum_same).monitor("sum2").using_concurrency(unlimited);
 
   g.make<test::products_for_output>()
-    .declare_output(&test::products_for_output::save)
-    .concurrency(serial);
+    .output_with(&test::products_for_output::save)
+    .using_concurrency(serial);
 
   g.execute("splitter_t.gv");
 
@@ -140,6 +147,6 @@ TEST_CASE("Splitting the processing", "[graph]")
   CHECK(g.execution_counts("check_sum") == index_limit);
 
   CHECK(g.execution_counts("iterate_through") == index_limit);
-  CHECK(g.execution_counts("add_same_numbers") == 20);
+  CHECK(g.execution_counts("add_numbers") == 20);
   CHECK(g.execution_counts("check_sum_same") == index_limit);
 }

@@ -2,10 +2,10 @@
 #define meld_core_declared_output_hpp
 
 #include "meld/concurrency.hpp"
-#include "meld/core/common_node_options.hpp"
 #include "meld/core/consumer.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
+#include "meld/core/node_options.hpp"
 #include "meld/core/registrar.hpp"
 #include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
@@ -41,8 +41,8 @@ namespace meld {
   using declared_output_ptr = std::unique_ptr<declared_output>;
   using declared_outputs = std::map<std::string, declared_output_ptr>;
 
-  class output_creator : public common_node_options<output_creator> {
-    using common_node_options_t = common_node_options<output_creator>;
+  class output_creator : public node_options<output_creator> {
+    using node_options_t = node_options<output_creator>;
 
   public:
     output_creator(registrar<declared_outputs> reg,
@@ -50,7 +50,7 @@ namespace meld {
                    std::string name,
                    tbb::flow::graph& g,
                    detail::output_function_t&& f) :
-      common_node_options_t{config},
+      node_options_t{config},
       name_{std::move(name)},
       graph_{g},
       ft_{std::move(f)},
@@ -63,8 +63,8 @@ namespace meld {
     declared_output_ptr create()
     {
       return std::make_unique<declared_output>(std::move(name_),
-                                               common_node_options_t::concurrency(),
-                                               common_node_options_t::release_preceding_filters(),
+                                               node_options_t::concurrency(),
+                                               node_options_t::release_preceding_filters(),
                                                graph_,
                                                std::move(ft_));
     }

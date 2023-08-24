@@ -48,29 +48,29 @@ TEST_CASE("Call multiple functions", "[programming model]")
 
   SECTION("All free functions")
   {
-    g.with(square_numbers).using_concurrency(unlimited).transform("numbers").to("squared_numbers");
+    g.with(square_numbers).transform("numbers").to("squared_numbers").using_concurrency(unlimited);
     g.with(sum_numbers)
-      .using_concurrency(unlimited)
       .transform("squared_numbers")
-      .to("summed_numbers");
+      .to("summed_numbers")
+      .using_concurrency(unlimited);
     g.with(sqrt_sum_numbers)
-      .using_concurrency(unlimited)
       .transform("summed_numbers", "offset")
-      .to("result");
+      .to("result")
+      .using_concurrency(unlimited);
   }
 
   SECTION("Transforms, one from a class")
   {
-    g.with(square_numbers).using_concurrency(unlimited).transform("numbers").to("squared_numbers");
+    g.with(square_numbers).transform("numbers").to("squared_numbers").using_concurrency(unlimited);
     g.with(sum_numbers)
-      .using_concurrency(unlimited)
       .transform("squared_numbers")
-      .to("summed_numbers");
+      .to("summed_numbers")
+      .using_concurrency(unlimited);
     g.make<A>()
       .with(&A::sqrt_sum)
-      .using_concurrency(unlimited)
       .transform("summed_numbers", "offset")
-      .to("result");
+      .to("result")
+      .using_concurrency(unlimited);
   }
 
   // The following is invoked for *each* section above

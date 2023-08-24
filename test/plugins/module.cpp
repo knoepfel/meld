@@ -10,8 +10,8 @@ using namespace meld::concurrency;
 
 DEFINE_MODULE(m)
 {
-  m.with(test::add).using_concurrency(unlimited).transform("i", "j").to("sum");
+  m.with(test::add).transform("i", "j").to("sum").using_concurrency(unlimited);
   m.with("verify", [](int actual) { assert(actual == 0); })
-    .using_concurrency(unlimited)
-    .monitor("sum");
+    .monitor("sum")
+    .using_concurrency(unlimited);
 }

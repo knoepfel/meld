@@ -11,7 +11,7 @@ namespace {
 DEFINE_MODULE(m, config)
 {
   m.with(last_index)
-    .using_concurrency(unlimited)
     .transform("id")
-    .to(config.get<std::string>("product_name", "a"));
+    .to(config.get<std::string>("product_name", "a"))
+    .using_concurrency(unlimited);
 }

@@ -30,6 +30,6 @@ int main()
     return store;
   }};
 
-  g.with(pass_on).using_concurrency(unlimited).transform("number").to("different");
+  g.with(pass_on).transform("number").to("different").using_concurrency(unlimited);
   g.execute();
 }

@@ -63,41 +63,41 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   SECTION("No framework")
   {
     glueball.with(&A::no_framework)
-      .using_concurrency(unlimited)
       .transform(product_names)
-      .to(oproduct_names);
+      .to(oproduct_names)
+      .using_concurrency(unlimited);
   }
   SECTION("No framework, all references")
   {
     glueball.with(&A::no_framework_all_refs)
-      .using_concurrency(unlimited)
       .transform(product_names)
-      .to(oproduct_names);
+      .to(oproduct_names)
+      .using_concurrency(unlimited);
   }
   SECTION("No framework, all pointers")
   {
     glueball.with(&A::no_framework_all_ptrs)
-      .using_concurrency(unlimited)
       .transform(product_names)
-      .to(oproduct_names);
+      .to(oproduct_names)
+      .using_concurrency(unlimited);
   }
   SECTION("One framework argument")
   {
     glueball.with(&A::one_framework_arg)
-      .using_concurrency(unlimited)
       .transform(product_names)
-      .to(oproduct_names);
+      .to(oproduct_names)
+      .using_concurrency(unlimited);
   }
   SECTION("All framework arguments")
   {
     glueball.with(&A::all_framework_args)
-      .using_concurrency(unlimited)
       .transform(product_names)
-      .to(oproduct_names);
+      .to(oproduct_names)
+      .using_concurrency(unlimited);
   }
 
   // The following is invoked for *each* section above
-  g.with(verify_results).using_concurrency(unlimited).monitor(product_names);
+  g.with(verify_results).monitor(product_names).using_concurrency(unlimited);
 
   g.execute("class_component_t.gv");
 }

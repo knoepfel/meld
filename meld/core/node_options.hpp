@@ -57,11 +57,12 @@ namespace meld {
       return std::move(preceding_filters_).value_or(std::vector<std::string>{});
     }
     std::size_t concurrency() const noexcept { return concurrency_.value_or(concurrency::serial); }
+    std::optional<std::size_t> release_concurrency() { return std::move(concurrency_); }
 
   private:
     auto& self() { return *static_cast<T*>(this); }
     std::optional<std::vector<std::string>> preceding_filters_{};
-    std::optional<size_t> concurrency_{};
+    std::optional<std::size_t> concurrency_{};
   };
 }
 

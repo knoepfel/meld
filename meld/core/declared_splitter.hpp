@@ -2,7 +2,6 @@
 #define meld_core_declared_splitter_hpp
 
 #include "meld/concurrency.hpp"
-#include "meld/core/common_node_options.hpp"
 #include "meld/core/concepts.hpp"
 #include "meld/core/detail/form_input_arguments.hpp"
 #include "meld/core/detail/port_names.hpp"
@@ -86,7 +85,7 @@ namespace meld {
   public:
     partial_splitter(registrar<declared_splitters> reg,
                      std::string name,
-                     std::size_t concurrency,
+                     std::optional<std::size_t> concurrency,
                      std::vector<std::string> preceding_filters,
                      std::vector<std::string> receive_stores,
                      tbb::flow::graph& g,
@@ -112,7 +111,7 @@ namespace meld {
     {
       reg_.set([this, output = std::move(output_product_names)] {
         return std::make_unique<complete_splitter<M>>(std::move(name_),
-                                                      concurrency_,
+                                                      concurrency_.value_or(concurrency::serial),
                                                       std::move(preceding_filters_),
                                                       std::move(receive_stores_),
                                                       graph_,
@@ -131,11 +130,23 @@ namespace meld {
       return into(std::array<std::string, sizeof...(ts)>{std::forward<decltype(ts)>(ts)...});
     }
 
-    void within_domain(std::string new_level_name) { new_level_name_ = std::move(new_level_name); }
+    auto& within_domain(std::string new_level_name)
+    {
+      new_level_name_ = std::move(new_level_name);
+      return *this;
+    }
+
+    auto& using_concurrency(std::size_t n)
+    {
+      if (!concurrency_) {
+        concurrency_ = n;
+      }
+      return *this;
+    }
 
   private:
     std::string name_;
-    std::size_t concurrency_;
+    std::optional<std::size_t> concurrency_;
     std::vector<std::string> preceding_filters_;
     std::vector<std::string> receive_stores_;
     tbb::flow::graph& graph_;

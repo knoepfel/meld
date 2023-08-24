@@ -89,14 +89,14 @@ TEST_CASE("Different levels of reduction", "[graph]")
     .over("job");
 
   g.with("verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); })
-    .using_concurrency(unlimited)
-    .monitor("run_sum");
+    .monitor("run_sum")
+    .using_concurrency(unlimited);
   g.with("verify_two_layer_job_sum", [](unsigned int actual) { CHECK(actual == 20u); })
-    .using_concurrency(unlimited)
-    .monitor("two_layer_job_sum");
+    .monitor("two_layer_job_sum")
+    .using_concurrency(unlimited);
   g.with("verify_job_sum", [](unsigned int actual) { CHECK(actual == 20u); })
-    .using_concurrency(unlimited)
-    .monitor("job_sum");
+    .monitor("job_sum")
+    .using_concurrency(unlimited);
 
   g.execute();
 

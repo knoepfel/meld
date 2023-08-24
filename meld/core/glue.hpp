@@ -39,12 +39,12 @@ namespace meld {
 
     auto with(auto f) { return with(function_name(f), f); }
 
-    auto declare_output(std::string name, is_output_like auto f)
+    auto output_with(std::string name, is_output_like auto f)
     {
       return output_creator{
         nodes_.register_output(errors_), nullptr, std::move(name), graph_, delegate(bound_obj_, f)};
     }
-    auto declare_output(auto f) { return declare_output(function_name(f), f); }
+    auto output_with(auto f) { return output_with(function_name(f), f); }
 
     auto declare_reduction(std::string name, auto f, auto&&... init_args)
     {

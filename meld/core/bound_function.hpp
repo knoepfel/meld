@@ -43,7 +43,7 @@ namespace meld {
     }
 
     template <typename... InputArgs>
-    auto filter(std::tuple<InputArgs...> input_args)
+    auto& filter(std::tuple<InputArgs...> input_args)
       requires is_filter_like<FT>
     {
       static_assert(N == sizeof...(InputArgs),
@@ -66,10 +66,11 @@ namespace meld {
           std::move(inputs),
           std::move(product_names));
       });
+      return *this;
     }
 
     template <typename... InputArgs>
-    auto monitor(std::tuple<InputArgs...> input_args)
+    auto& monitor(std::tuple<InputArgs...> input_args)
       requires is_monitor_like<FT>
     {
       static_assert(N == sizeof...(InputArgs),
@@ -92,12 +93,7 @@ namespace meld {
           std::move(inputs),
           std::move(product_names));
       });
-    }
-
-    template <typename... InputArgs>
-    auto reduce_all(std::tuple<InputArgs...> input_args [[maybe_unused]])
-      requires is_reduction_like<FT>
-    {
+      return *this;
     }
 
     template <typename... InputArgs>
@@ -115,7 +111,7 @@ namespace meld {
       return pre_transform<decltype(function_closure), decltype(processed_input_args)>{
         nodes_.register_transform(errors_),
         std::move(name_),
-        node_options_t::concurrency(),
+        node_options_t::release_concurrency(),
         node_options_t::release_preceding_filters(),
         graph_,
         std::move(function_closure),

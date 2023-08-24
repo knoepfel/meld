@@ -58,7 +58,7 @@ namespace meld {
       return partial_splitter<Object, Predicate, Unfold, decltype(processed_input_args)>{
         nodes_.register_splitter(errors_),
         std::move(name_),
-        node_options_t::concurrency(),
+        node_options_t::release_concurrency(),
         node_options_t::release_preceding_filters(),
         std::vector<std::string>{},
         graph_,

@@ -2,7 +2,6 @@
 #define meld_core_declared_monitor_hpp
 
 #include "meld/concurrency.hpp"
-#include "meld/core/common_node_options.hpp"
 #include "meld/core/concepts.hpp"
 #include "meld/core/detail/form_input_arguments.hpp"
 #include "meld/core/detail/port_names.hpp"

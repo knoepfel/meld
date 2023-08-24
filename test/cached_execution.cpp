@@ -47,14 +47,14 @@ TEST_CASE("Cached function calls", "[data model]")
 {
   framework_graph g{detail::create_next<cached_execution_source>()};
 
-  g.with("A1", call_one).using_concurrency(unlimited).transform("number").to("one");
-  g.with("A2", call_one).using_concurrency(unlimited).transform("one").to("used_one");
-  g.with("A3", call_one).using_concurrency(unlimited).transform("used_one").to("done_one");
+  g.with("A1", call_one).transform("number").to("one").using_concurrency(unlimited);
+  g.with("A2", call_one).transform("one").to("used_one").using_concurrency(unlimited);
+  g.with("A3", call_one).transform("used_one").to("done_one").using_concurrency(unlimited);
 
-  g.with("B1", call_two).using_concurrency(unlimited).transform("one", "another").to("two");
-  g.with("B2", call_two).using_concurrency(unlimited).transform("used_one", "two").to("used_two");
+  g.with("B1", call_two).transform("one", "another").to("two").using_concurrency(unlimited);
+  g.with("B2", call_two).transform("used_one", "two").to("used_two").using_concurrency(unlimited);
 
-  g.with("C", call_two).using_concurrency(unlimited).transform("used_two", "still").to("three");
+  g.with("C", call_two).transform("used_two", "still").to("three").using_concurrency(unlimited);
 
   g.execute("cached_execution_t.gv");
 
