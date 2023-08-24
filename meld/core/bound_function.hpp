@@ -42,15 +42,11 @@ namespace meld {
     {
     }
 
-    template <typename... InputArgs>
-    auto& filter(std::tuple<InputArgs...> input_args)
+    auto& filter(std::array<specified_label, N> input_args)
       requires is_filter_like<FT>
     {
-      static_assert(N == sizeof...(InputArgs),
-                    "The number of function parameters is not the same as the number of specified "
-                    "input arguments.");
       auto processed_input_args =
-        detail::form_input_arguments<input_parameter_types>(std::move(input_args));
+        form_input_arguments<input_parameter_types>(std::move(input_args));
       nodes_.register_filter(errors_).set([this, inputs = std::move(processed_input_args)] {
         auto product_names = detail::port_names(inputs);
         auto function_closure = delegate(obj_, ft_);
@@ -69,15 +65,11 @@ namespace meld {
       return *this;
     }
 
-    template <typename... InputArgs>
-    auto& monitor(std::tuple<InputArgs...> input_args)
+    auto& monitor(std::array<specified_label, N> input_args)
       requires is_monitor_like<FT>
     {
-      static_assert(N == sizeof...(InputArgs),
-                    "The number of function parameters is not the same as the number of specified "
-                    "input arguments.");
       auto processed_input_args =
-        detail::form_input_arguments<input_parameter_types>(std::move(input_args));
+        form_input_arguments<input_parameter_types>(std::move(input_args));
       nodes_.register_monitor(errors_).set([this, inputs = std::move(processed_input_args)] {
         auto product_names = detail::port_names(inputs);
         auto function_closure = delegate(obj_, ft_);
@@ -96,15 +88,11 @@ namespace meld {
       return *this;
     }
 
-    template <typename... InputArgs>
-    auto transform(std::tuple<InputArgs...> input_args)
+    auto transform(std::array<specified_label, N> input_args)
       requires is_transform_like<FT>
     {
-      static_assert(N == sizeof...(InputArgs),
-                    "The number of function parameters is not the same as the number of specified "
-                    "input arguments.");
       auto processed_input_args =
-        detail::form_input_arguments<input_parameter_types>(std::move(input_args));
+        form_input_arguments<input_parameter_types>(std::move(input_args));
       auto product_names = detail::port_names(processed_input_args);
       auto function_closure = delegate(obj_, ft_);
 
@@ -121,18 +109,26 @@ namespace meld {
 
     auto filter(std::convertible_to<std::string> auto... input_args)
     {
-      return filter(std::make_tuple(react_to(std::forward<decltype(input_args)>(input_args))...));
+      static_assert(N == sizeof...(input_args),
+                    "The number of function parameters is not the same as the number of specified "
+                    "input arguments.");
+      return filter({specified_label{std::forward<decltype(input_args)>(input_args)}...});
     }
 
     auto monitor(std::convertible_to<std::string> auto... input_args)
     {
-      return monitor(std::make_tuple(react_to(std::forward<decltype(input_args)>(input_args))...));
+      static_assert(N == sizeof...(input_args),
+                    "The number of function parameters is not the same as the number of specified "
+                    "input arguments.");
+      return monitor({specified_label{std::forward<decltype(input_args)>(input_args)}...});
     }
 
     auto transform(std::convertible_to<std::string> auto... input_args)
     {
-      return transform(
-        std::make_tuple(react_to(std::forward<decltype(input_args)>(input_args))...));
+      static_assert(N == sizeof...(input_args),
+                    "The number of function parameters is not the same as the number of specified "
+                    "input arguments.");
+      return transform({specified_label{std::forward<decltype(input_args)>(input_args)}...});
     }
 
   private:

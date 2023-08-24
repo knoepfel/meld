@@ -23,8 +23,6 @@ namespace meld {
   template <typename T>
   concept input_argument = std::convertible_to<T, specified_label>;
 
-  inline specified_label react_to(std::string const& name) { return {name}; }
-
   template <typename T>
   class common_node_options {
   public:
@@ -51,7 +49,7 @@ namespace meld {
 
     decltype(auto) react_to(std::convertible_to<std::string> auto&&... ts)
     {
-      return input(meld::react_to(std::forward<decltype(ts)>(ts))...);
+      return input(specified_label{std::forward<decltype(ts)>(ts)}...);
     }
 
     decltype(auto) input(input_argument auto&&... ts)
@@ -59,7 +57,7 @@ namespace meld {
       static_assert(T::N == sizeof...(ts),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      return self().input(std::make_tuple(std::forward<decltype(ts)>(ts)...));
+      return self().input({specified_label{std::forward<decltype(ts)>(ts)}...});
     }
 
   protected:

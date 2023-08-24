@@ -13,21 +13,13 @@ namespace meld::detail {
   template <typename Head, typename... Tail>
   auto port_names_impl(Head const& head, Tail const&... tail)
   {
-    if constexpr (does_expect_message<Head>) {
-      auto result = std::make_tuple(head.name);
-      if constexpr (sizeof...(Tail) == 0ull) {
-        return result;
-      }
-      else {
-        static_assert(sizeof...(tail) > 0);
-        return std::tuple_cat(result, port_names_impl(tail...));
-      }
-    }
-    else if constexpr (sizeof...(Tail) == 0ull) {
-      return std::tuple{};
+    auto result = std::make_tuple(head.name);
+    if constexpr (sizeof...(Tail) == 0ull) {
+      return result;
     }
     else {
-      return port_names_impl(tail...);
+      static_assert(sizeof...(tail) > 0);
+      return std::tuple_cat(result, port_names_impl(tail...));
     }
   }
 

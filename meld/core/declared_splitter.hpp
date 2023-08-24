@@ -3,7 +3,6 @@
 
 #include "meld/concurrency.hpp"
 #include "meld/core/concepts.hpp"
-#include "meld/core/detail/form_input_arguments.hpp"
 #include "meld/core/detail/port_names.hpp"
 #include "meld/core/end_of_message.hpp"
 #include "meld/core/fwd.hpp"

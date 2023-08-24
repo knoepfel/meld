@@ -4,7 +4,6 @@
 #include "meld/concurrency.hpp"
 #include "meld/core/common_node_options.hpp"
 #include "meld/core/concepts.hpp"
-#include "meld/core/detail/form_input_arguments.hpp"
 #include "meld/core/detail/port_names.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
@@ -81,14 +80,10 @@ namespace meld {
     {
     }
 
-    template <typename... InputArgs>
-    auto input(std::tuple<InputArgs...> input_args)
+    auto input(std::array<specified_label, N> input_args)
     {
-      static_assert(N == sizeof...(InputArgs),
-                    "The number of function parameters is not the same as the number of specified "
-                    "input arguments.");
       auto processed_input_args =
-        detail::form_input_arguments<input_parameter_types>(std::move(input_args));
+        form_input_arguments<input_parameter_types>(std::move(input_args));
       auto product_names = detail::port_names(processed_input_args);
       return reduction_requires_output<size(product_names), decltype(processed_input_args)>{
         std::move(reg_),

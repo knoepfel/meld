@@ -6,6 +6,7 @@
 #include "meld/core/declared_filter.hpp"
 #include "meld/core/declared_monitor.hpp"
 #include "meld/core/declared_transform.hpp"
+#include "meld/core/input_arguments.hpp"
 #include "meld/core/node_catalog.hpp"
 #include "meld/core/node_options.hpp"
 #include "meld/metaprogramming/delegate.hpp"
@@ -45,14 +46,10 @@ namespace meld {
     {
     }
 
-    template <typename... InputArgs>
-    auto split(std::tuple<InputArgs...> input_args)
+    auto split(std::array<specified_label, N> input_args)
     {
-      static_assert(N == sizeof...(InputArgs),
-                    "The number of function parameters is not the same as the number of specified "
-                    "input arguments.");
       auto processed_input_args =
-        detail::form_input_arguments<input_parameter_types>(std::move(input_args));
+        form_input_arguments<input_parameter_types>(std::move(input_args));
       auto product_names = detail::port_names(processed_input_args);
 
       return partial_splitter<Object, Predicate, Unfold, decltype(processed_input_args)>{
@@ -70,7 +67,10 @@ namespace meld {
 
     auto split(std::convertible_to<std::string> auto... input_args)
     {
-      return split(std::make_tuple(react_to(std::forward<decltype(input_args)>(input_args))...));
+      static_assert(N == sizeof...(input_args),
+                    "The number of function parameters is not the same as the number of specified "
+                    "input arguments.");
+      return split({specified_label{std::forward<decltype(input_args)>(input_args)}...});
     }
 
   private:
