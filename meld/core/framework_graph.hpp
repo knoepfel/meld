@@ -2,6 +2,7 @@
 #define meld_core_framework_graph_hpp
 
 #include "meld/configuration.hpp"
+#include "meld/core/cached_product_stores.hpp"
 #include "meld/core/declared_reduction.hpp"
 #include "meld/core/declared_splitter.hpp"
 #include "meld/core/end_of_message.hpp"
@@ -14,6 +15,7 @@
 #include "meld/core/node_catalog.hpp"
 #include "meld/model/level_hierarchy.hpp"
 #include "meld/model/product_store.hpp"
+#include "meld/source.hpp"
 #include "meld/utilities/resource_usage.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
@@ -48,6 +50,8 @@ namespace meld {
     explicit framework_graph(product_store_ptr store,
                              int max_parallelism = oneapi::tbb::info::default_concurrency());
     explicit framework_graph(std::function<product_store_ptr()> f,
+                             int max_parallelism = oneapi::tbb::info::default_concurrency());
+    explicit framework_graph(detail::next_store_t f,
                              int max_parallelism = oneapi::tbb::info::default_concurrency());
     ~framework_graph();
 
@@ -112,6 +116,7 @@ namespace meld {
     tbb::flow::graph graph_{};
     level_hierarchy hierarchy_{};
     node_catalog nodes_{};
+    cached_product_stores stores_{};
     std::vector<std::string> registration_errors_{};
     std::map<std::string, result_collector> filter_collectors_{};
     tbb::flow::input_node<message> src_;

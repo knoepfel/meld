@@ -4,6 +4,7 @@
 #include "boost/dll/alias.hpp"
 
 #include "meld/configuration.hpp"
+#include "meld/core/cached_product_stores.hpp"
 #include "meld/model/product_store.hpp"
 
 #include <memory>
@@ -23,7 +24,8 @@ namespace meld::detail {
   }
 
   template <typename T>
-  std::function<product_store_ptr()> create_next(configuration const& config = {})
+  std::function<product_store_ptr(cached_product_stores&)> create_next(
+    configuration const& config = {})
   {
     // N.B. Because we are initializing an std::function object with a lambda, the lambda
     //      (and therefore its captured values) must be copy-constructible.  This means
@@ -33,10 +35,16 @@ namespace meld::detail {
     //      the source object is created only once, thus avoiding potential errors in the
     //      implementations of the source class' copy/move constructors (e.g. if the
     //      source is caching an iterator).
-    return [t = make<T>(config)] { return t->next(); };
+    if constexpr (requires(T t, cached_product_stores& stores) { t.next(stores); }) {
+      return [t = make<T>(config)](cached_product_stores& stores) { return t->next(stores); };
+    }
+    else {
+      return [t = make<T>(config)](cached_product_stores&) { return t->next(); };
+    }
   }
 
-  using source_creator_t = std::function<product_store_ptr()>(configuration const&);
+  using next_store_t = std::function<product_store_ptr(cached_product_stores&)>;
+  using source_creator_t = next_store_t(configuration const&);
 }
 
 #define DEFINE_SOURCE(source) BOOST_DLL_ALIAS(meld::detail::create_next<source>, create_source)

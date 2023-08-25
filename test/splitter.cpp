@@ -63,10 +63,7 @@ namespace {
   };
 
   void add(std::atomic<unsigned int>& counter, unsigned number) { counter += number; }
-  void add_numbers [[maybe_unused]] (std::atomic<unsigned int>& counter, unsigned number)
-  {
-    counter += number;
-  }
+  void add_numbers(std::atomic<unsigned int>& counter, unsigned number) { counter += number; }
 
   void check_sum(handle<unsigned int> const sum)
   {
@@ -97,8 +94,7 @@ TEST_CASE("Splitting the processing", "[graph]")
 
   auto it = cbegin(levels);
   auto const e = cend(levels);
-  cached_product_stores cached_stores{};
-  framework_graph g{[&cached_stores, it, e]() mutable -> product_store_ptr {
+  framework_graph g{[it, e](cached_product_stores& cached_stores) mutable -> product_store_ptr {
     if (it == e) {
       return nullptr;
     }

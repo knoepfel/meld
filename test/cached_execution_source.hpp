@@ -47,14 +47,14 @@ namespace test {
       assert(size(levels_) == 1 + n_runs * (1 + n_subruns * (1 + n_events)));
     }
 
-    meld::product_store_ptr next()
+    meld::product_store_ptr next(meld::cached_product_stores& cached_stores)
     {
       if (current_ == end(levels_)) {
         return nullptr;
       }
       auto const id = *current_++;
 
-      auto store = cached_stores_.get_store(id);
+      auto store = cached_stores.get_store(id);
       if (id->level_name() == "run") {
         store->add_product<int>("number", 2 * store->id()->number());
       }
@@ -69,7 +69,6 @@ namespace test {
 
   private:
     std::vector<meld::level_id_ptr> levels_;
-    meld::cached_product_stores cached_stores_{};
     decltype(levels_)::iterator current_;
   };
 }

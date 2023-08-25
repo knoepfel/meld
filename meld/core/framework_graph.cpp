@@ -32,7 +32,7 @@ namespace meld {
   std::size_t level_sentry::depth() const noexcept { return depth_; }
 
   framework_graph::framework_graph(product_store_ptr store, int const max_parallelism) :
-    framework_graph{[store]() mutable {
+    framework_graph{[store](cached_product_stores&) mutable {
                       // Returns non-null store, then replaces it with nullptr, thus
                       // resulting in one graph execution.
                       return std::exchange(store, nullptr);
@@ -41,13 +41,19 @@ namespace meld {
   {
   }
 
-  // FIXME: The algorithm below should support user-specified flush stores.
-  framework_graph::framework_graph(std::function<product_store_ptr()> next_store,
+  framework_graph::framework_graph(std::function<product_store_ptr()> f,
                                    int const max_parallelism) :
+    framework_graph{[ft = std::move(f)](cached_product_stores&) mutable { return ft(); },
+                    max_parallelism}
+  {
+  }
+
+  // FIXME: The algorithm below should support user-specified flush stores.
+  framework_graph::framework_graph(detail::next_store_t next_store, int const max_parallelism) :
     parallelism_limit_{static_cast<std::size_t>(max_parallelism)},
     src_{graph_,
-         [this, read_next_store = std::move(next_store)](tbb::flow_control& fc) mutable -> message {
-           auto store = read_next_store();
+         [this, read_next = std::move(next_store)](tbb::flow_control& fc) mutable -> message {
+           auto store = read_next(stores_);
            if (not store) {
              drain();
              fc.stop();

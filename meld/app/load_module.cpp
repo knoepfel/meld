@@ -57,7 +57,7 @@ namespace meld {
     creator(module_proxy, config);
   }
 
-  std::function<product_store_ptr()> load_source(boost::json::object const& raw_config)
+  detail::next_store_t load_source(boost::json::object const& raw_config)
   {
     configuration const config{raw_config};
     auto const& spec = config.get<std::string>("plugin");

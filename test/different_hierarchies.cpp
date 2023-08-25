@@ -67,8 +67,7 @@ TEST_CASE("Different hierarchies used with reduction", "[graph]")
 
   auto it = cbegin(levels);
   auto const e = cend(levels);
-  cached_product_stores cached_stores{};
-  framework_graph g{[&cached_stores, it, e]() mutable -> product_store_ptr {
+  framework_graph g{[it, e](cached_product_stores& cached_stores) mutable -> product_store_ptr {
     if (it == e) {
       return nullptr;
     }
