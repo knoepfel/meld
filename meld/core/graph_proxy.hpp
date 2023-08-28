@@ -73,7 +73,7 @@ namespace meld {
                             delegate(bound_obj_, f),
                             c};
     }
-    auto output_with(auto f, concurrency c = concurrency::serial)
+    auto output_with(is_output_like auto f, concurrency c = concurrency::serial)
     {
       return output_with(function_name(f), f, c);
     }

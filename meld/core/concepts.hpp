@@ -54,7 +54,9 @@ namespace meld {
   concept is_monitor_like = at_least_one_input_parameter<T> && returns<T, void>;
 
   template <typename T>
-  concept is_output_like = expects_input_parameters<T, product_store const&> && returns<T, void>;
+  concept is_output_like = std::is_member_function_pointer_v<T> &&
+                           expects_input_parameters<T, product_store const&> &&
+                           returns<T, void>;
 
   template <typename T>
   concept is_reduction_like =
