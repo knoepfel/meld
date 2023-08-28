@@ -1,4 +1,5 @@
 add_library(meld_core SHARED
+  concurrency.cpp
   consumer.cpp
   declared_filter.cpp
   declared_monitor.cpp

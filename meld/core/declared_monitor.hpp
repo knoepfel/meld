@@ -1,7 +1,6 @@
 #ifndef meld_core_declared_monitor_hpp
 #define meld_core_declared_monitor_hpp
 
-#include "meld/concurrency.hpp"
 #include "meld/core/concepts.hpp"
 #include "meld/core/detail/port_names.hpp"
 #include "meld/core/fwd.hpp"

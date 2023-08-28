@@ -69,23 +69,15 @@ namespace meld {
     // N.B. declare_output() is not directly accessible through framework_graph.  Is this
     //      right?
 
-    auto with(std::string name, auto f) { return proxy().with(std::move(name), f); }
-    auto with(auto f) { return with(function_name(f), f); }
+    auto with(std::string name, auto f, concurrency c = concurrency::serial)
+    {
+      return proxy().with(std::move(name), f, c);
+    }
+    auto with(auto f, concurrency c = concurrency::serial) { return with(function_name(f), f, c); }
     template <typename T>
-    auto with(auto predicate, auto unfold)
+    auto with(auto predicate, auto unfold, concurrency c = concurrency::serial)
     {
-      return unfold_proxy<T>().declare_unfold(predicate, unfold);
-    }
-
-    template <typename R, typename... Args, typename... InitArgs>
-    auto declare_reduction(std::string name, void (*f)(R&, Args...), InitArgs&&... init_args)
-    {
-      return proxy().declare_reduction(std::move(name), f, std::forward<InitArgs>(init_args)...);
-    }
-    template <typename R, typename... Args, typename... InitArgs>
-    auto declare_reduction(void (*f)(R&, Args...), InitArgs&&... init_args)
-    {
-      return declare_reduction(function_name(f), f, std::forward<InitArgs>(init_args)...);
+      return unfold_proxy<T>().declare_unfold(predicate, unfold, c);
     }
 
     template <typename T, typename... Args>

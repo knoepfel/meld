@@ -26,10 +26,10 @@ namespace meld {
   template <typename T>
   class common_node_options {
   public:
-    T& concurrency(std::size_t n)
+    T& concurrency(meld::concurrency c)
     {
       if (!concurrency_) {
-        concurrency_ = n;
+        concurrency_ = c.value;
       }
       return self();
     }
@@ -83,7 +83,10 @@ namespace meld {
     {
       return std::move(preceding_filters_).value_or(std::vector<std::string>{});
     }
-    std::size_t concurrency() const noexcept { return concurrency_.value_or(concurrency::serial); }
+    std::size_t concurrency() const noexcept
+    {
+      return concurrency_.value_or(concurrency::serial.value);
+    }
 
   private:
     auto& self() { return *static_cast<T*>(this); }

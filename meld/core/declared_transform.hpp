@@ -1,7 +1,6 @@
 #ifndef meld_core_declared_transform_hpp
 #define meld_core_declared_transform_hpp
 
-#include "meld/concurrency.hpp"
 #include "meld/core/concepts.hpp"
 #include "meld/core/detail/port_names.hpp"
 #include "meld/core/fwd.hpp"
@@ -62,14 +61,14 @@ namespace meld {
   public:
     pre_transform(registrar<declared_transforms> reg,
                   std::string name,
-                  std::optional<std::size_t> concurrency,
+                  std::size_t concurrency,
                   std::vector<std::string> preceding_filters,
                   tbb::flow::graph& g,
                   function_t&& f,
                   InputArgs input_args,
                   std::array<std::string, N> product_names) :
       name_{std::move(name)},
-      concurrency_{std::move(concurrency)},
+      concurrency_{concurrency},
       preceding_filters_{std::move(preceding_filters)},
       graph_{g},
       ft_{std::move(f)},
@@ -91,17 +90,9 @@ namespace meld {
       return to(std::array<std::string, M>{std::forward<decltype(ts)>(ts)...});
     }
 
-    auto& using_concurrency(std::size_t n)
-    {
-      if (!concurrency_) {
-        concurrency_ = n;
-      }
-      return *this;
-    }
-
   private:
     std::string name_;
-    std::optional<std::size_t> concurrency_;
+    std::size_t concurrency_;
     std::vector<std::string> preceding_filters_;
     tbb::flow::graph& graph_;
     function_t ft_;
@@ -247,7 +238,7 @@ namespace meld {
       "objects.");
     reg_.set([this, outputs = std::move(output_keys)] {
       return std::make_unique<total_transform<M>>(std::move(name_),
-                                                  concurrency_.value_or(concurrency::serial),
+                                                  concurrency_,
                                                   std::move(preceding_filters_),
                                                   std::vector<std::string>{},
                                                   graph_,

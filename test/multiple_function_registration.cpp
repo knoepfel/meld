@@ -8,7 +8,6 @@
 #include <vector>
 
 using namespace meld;
-using namespace meld::concurrency;
 
 namespace {
   auto square_numbers(std::vector<unsigned> const& numbers)
@@ -48,29 +47,21 @@ TEST_CASE("Call multiple functions", "[programming model]")
 
   SECTION("All free functions")
   {
-    g.with(square_numbers).transform("numbers").to("squared_numbers").using_concurrency(unlimited);
-    g.with(sum_numbers)
-      .transform("squared_numbers")
-      .to("summed_numbers")
-      .using_concurrency(unlimited);
-    g.with(sqrt_sum_numbers)
+    g.with(square_numbers, concurrency::unlimited).transform("numbers").to("squared_numbers");
+    g.with(sum_numbers, concurrency::unlimited).transform("squared_numbers").to("summed_numbers");
+    g.with(sqrt_sum_numbers, concurrency::unlimited)
       .transform("summed_numbers", "offset")
-      .to("result")
-      .using_concurrency(unlimited);
+      .to("result");
   }
 
   SECTION("Transforms, one from a class")
   {
-    g.with(square_numbers).transform("numbers").to("squared_numbers").using_concurrency(unlimited);
-    g.with(sum_numbers)
-      .transform("squared_numbers")
-      .to("summed_numbers")
-      .using_concurrency(unlimited);
+    g.with(square_numbers, concurrency::unlimited).transform("numbers").to("squared_numbers");
+    g.with(sum_numbers, concurrency::unlimited).transform("squared_numbers").to("summed_numbers");
     g.make<A>()
-      .with(&A::sqrt_sum)
+      .with(&A::sqrt_sum, concurrency::unlimited)
       .transform("summed_numbers", "offset")
-      .to("result")
-      .using_concurrency(unlimited);
+      .to("result");
   }
 
   // The following is invoked for *each* section above

@@ -32,7 +32,6 @@
 #include <vector>
 
 using namespace meld;
-using namespace meld::concurrency;
 
 namespace {
   auto square(unsigned int const num) { return num * num; }
@@ -111,21 +110,20 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     return store;
   }};
 
-  g.with("get_the_time", strtime)
+  g.with("get_the_time", strtime, concurrency::unlimited)
     .filtered_by()
     .transform("time")
-    .to("strtime")
-    .using_concurrency(unlimited);
-  g.with(square).transform("number").to("squared_number").using_concurrency(unlimited);
-  g.declare_reduction(add, 15u)
+    .to("strtime");
+  g.with(square, concurrency::unlimited).transform("number").to("squared_number");
+  g.with(add, concurrency::unlimited)
     .filtered_by()
-    .concurrency(unlimited)
-    .react_to("squared_number")
-    .output("added_data")
-    .over("run");
+    .reduce("squared_number")
+    .over_each("run")
+    .to("added_data")
+    .initialized_with(15u);
 
-  g.with(scale).transform("added_data").to("result").using_concurrency(unlimited);
-  g.with(print_result).monitor("result", "strtime").using_concurrency(unlimited);
+  g.with(scale, concurrency::unlimited).transform("added_data").to("result");
+  g.with(print_result, concurrency::unlimited).monitor("result", "strtime");
 
   g.make<test::products_for_output>().output_with(&test::products_for_output::save).filtered_by();
 

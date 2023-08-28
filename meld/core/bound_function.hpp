@@ -1,10 +1,12 @@
 #ifndef meld_core_bound_function_hpp
 #define meld_core_bound_function_hpp
 
+#include "meld/concurrency.hpp"
 #include "meld/configuration.hpp"
 #include "meld/core/concepts.hpp"
 #include "meld/core/declared_filter.hpp"
 #include "meld/core/declared_monitor.hpp"
+#include "meld/core/declared_reduction.hpp"
 #include "meld/core/declared_transform.hpp"
 #include "meld/core/node_catalog.hpp"
 #include "meld/core/node_options.hpp"
@@ -29,6 +31,7 @@ namespace meld {
                    std::string name,
                    std::shared_ptr<T> obj,
                    FT f,
+                   concurrency c,
                    tbb::flow::graph& g,
                    node_catalog& nodes,
                    std::vector<std::string>& errors) :
@@ -36,6 +39,7 @@ namespace meld {
       name_{std::move(name)},
       obj_{obj},
       ft_{std::move(f)},
+      concurrency_{c},
       graph_{g},
       nodes_{nodes},
       errors_{errors}
@@ -54,7 +58,7 @@ namespace meld {
         return std::make_unique<
           complete_filter<decltype(function_closure), decltype(processed_input_args)>>(
           std::move(name_),
-          node_options_t::concurrency(),
+          concurrency_.value,
           node_options_t::release_preceding_filters(),
           std::vector<std::string>{},
           graph_,
@@ -77,7 +81,7 @@ namespace meld {
         return std::make_unique<
           complete_monitor<decltype(function_closure), decltype(processed_input_args)>>(
           std::move(name_),
-          node_options_t::concurrency(),
+          concurrency_.value,
           node_options_t::release_preceding_filters(),
           std::vector<std::string>{},
           graph_,
@@ -99,8 +103,27 @@ namespace meld {
       return pre_transform<decltype(function_closure), decltype(processed_input_args)>{
         nodes_.register_transform(errors_),
         std::move(name_),
-        node_options_t::release_concurrency(),
+        concurrency_.value,
         node_options_t::release_preceding_filters(),
+        graph_,
+        std::move(function_closure),
+        std::move(processed_input_args),
+        std::move(product_names)};
+    }
+
+    auto reduce(std::array<specified_label, N - 1> input_args)
+      requires is_reduction_like<FT>
+    {
+      using all_but_first = skip_first_type<input_parameter_types>;
+      auto processed_input_args = form_input_arguments<all_but_first>(std::move(input_args));
+      auto product_names = detail::port_names(processed_input_args);
+      auto function_closure = delegate(obj_, ft_);
+      return pre_reduction<decltype(function_closure), decltype(processed_input_args)>{
+        nodes_.register_reduction(errors_),
+        std::move(name_),
+        concurrency_.value,
+        node_options_t::release_preceding_filters(),
+        node_options_t::release_store_names(),
         graph_,
         std::move(function_closure),
         std::move(processed_input_args),
@@ -131,10 +154,19 @@ namespace meld {
       return transform({specified_label{std::forward<decltype(input_args)>(input_args)}...});
     }
 
+    auto reduce(std::convertible_to<std::string> auto... input_args)
+    {
+      static_assert(N - 1 == sizeof...(input_args),
+                    "The number of function parameters is not the same as the number of specified "
+                    "input arguments.");
+      return reduce({specified_label{std::forward<decltype(input_args)>(input_args)}...});
+    }
+
   private:
     std::string name_;
     std::shared_ptr<T> obj_;
     FT ft_;
+    concurrency concurrency_;
     tbb::flow::graph& graph_;
     node_catalog& nodes_;
     std::vector<std::string>& errors_;

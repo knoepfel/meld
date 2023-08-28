@@ -51,86 +51,35 @@ namespace meld {
 
   // Registering concrete reductions
 
-  template <is_reduction_like FT, typename InitTuple>
-  class incomplete_reduction : public common_node_options<incomplete_reduction<FT, InitTuple>> {
-    using common_node_options_t = common_node_options<incomplete_reduction<FT, InitTuple>>;
-    using function_t = FT;
+  template <is_reduction_like FT, typename InputArgs>
+  class pre_reduction {
     using input_parameter_types =
       skip_first_type<function_parameter_types<FT>>; // Skip reduction object
-    template <std::size_t Nactual, typename InputArgs>
-    class reduction_requires_output;
-    template <std::size_t Nactual, std::size_t M, typename InputArgs>
-    class complete_reduction;
-
-  public:
     static constexpr auto N = std::tuple_size_v<input_parameter_types>;
+    using R = std::decay_t<std::tuple_element_t<0, function_parameter_types<FT>>>;
 
-    incomplete_reduction(registrar<declared_reductions> reg,
-                         configuration const* config,
-                         std::string name,
-                         tbb::flow::graph& g,
-                         function_t f,
-                         InitTuple initializer) :
-      common_node_options_t{config},
-      reg_{std::move(reg)},
-      name_{std::move(name)},
-      graph_{g},
-      ft_{std::move(f)},
-      initializer_{std::move(initializer)}
-    {
-    }
+    static constexpr std::size_t M = 1; // hard-coded for now
+    using function_t = FT;
 
-    auto input(std::array<specified_label, N> input_args)
-    {
-      auto processed_input_args =
-        form_input_arguments<input_parameter_types>(std::move(input_args));
-      auto product_names = detail::port_names(processed_input_args);
-      return reduction_requires_output<size(product_names), decltype(processed_input_args)>{
-        std::move(reg_),
-        std::move(name_),
-        common_node_options_t::concurrency(),
-        common_node_options_t::release_preceding_filters(),
-        common_node_options_t::release_store_names(),
-        graph_,
-        std::move(ft_),
-        std::move(initializer_),
-        std::move(processed_input_args),
-        std::move(product_names)};
-    }
-
-  private:
-    registrar<declared_reductions> reg_;
-    std::string name_;
-    tbb::flow::graph& graph_;
-    function_t ft_;
-    InitTuple initializer_;
-  };
-
-  // =====================================================================================
-
-  template <is_reduction_like FT, typename InitTuple>
-  template <std::size_t Nactual, typename InputArgs>
-  class incomplete_reduction<FT, InitTuple>::reduction_requires_output {
-    static constexpr std::size_t M = 1ull; // TODO: Hard-wired, for now
+    template <typename InitTuple>
+    class total_reduction;
 
   public:
-    reduction_requires_output(registrar<declared_reductions> reg,
-                              std::string name,
-                              std::size_t concurrency,
-                              std::vector<std::string> preceding_filters,
-                              std::vector<std::string> receive_stores,
-                              tbb::flow::graph& g,
-                              function_t&& f,
-                              InitTuple initializer,
-                              InputArgs input_args,
-                              std::array<std::string, Nactual> product_names) :
+    pre_reduction(registrar<declared_reductions> reg,
+                  std::string name,
+                  std::size_t concurrency,
+                  std::vector<std::string> preceding_filters,
+                  std::vector<std::string> receive_stores,
+                  tbb::flow::graph& g,
+                  function_t&& f,
+                  InputArgs input_args,
+                  std::array<std::string, N> product_names) :
       name_{std::move(name)},
+      concurrency_{concurrency},
       preceding_filters_{std::move(preceding_filters)},
       receive_stores_{std::move(receive_stores)},
-      concurrency_{concurrency},
       graph_{g},
       ft_{std::move(f)},
-      initializer_{std::move(initializer)},
       input_args_{std::move(input_args)},
       product_names_{std::move(product_names)},
       reg_{std::move(reg)}
@@ -138,134 +87,156 @@ namespace meld {
     }
 
     template <std::size_t Msize>
-    auto& output(std::array<std::string, Msize> output_keys)
+    auto& to(std::array<std::string, Msize> output_keys)
     {
       static_assert(
         M == Msize,
         "The number of function parameters is not the same as the number of returned output "
         "objects.");
-      reg_.set([this, outputs = std::move(output_keys)] {
+      output_keys_ = std::move(output_keys);
+      reg_.set([this] {
         if (empty(reduction_interval_)) {
           throw std::runtime_error(
             "The reduction range must be specified using the 'over(...)' syntax.");
         }
-        return std::make_unique<complete_reduction<Nactual, M, InputArgs>>(
-          std::move(name_),
-          concurrency_,
-          std::move(preceding_filters_),
-          std::move(receive_stores_),
-          graph_,
-          std::move(ft_),
-          std::move(initializer_),
-          std::move(input_args_),
-          std::move(product_names_),
-          std::move(outputs),
-          std::move(reduction_interval_));
+        return std::make_unique<total_reduction<std::tuple<>>>(std::move(name_),
+                                                               concurrency_,
+                                                               std::move(preceding_filters_),
+                                                               std::move(receive_stores_),
+                                                               graph_,
+                                                               std::move(ft_),
+                                                               std::make_tuple(),
+                                                               std::move(input_args_),
+                                                               std::move(product_names_),
+                                                               std::move(output_keys_),
+                                                               std::move(reduction_interval_));
       });
       return *this;
     }
 
-    auto& output(std::convertible_to<std::string> auto&&... ts)
+    auto& to(std::convertible_to<std::string> auto&&... ts)
     {
       static_assert(
         M == sizeof...(ts),
         "The number of function parameters is not the same as the number of returned output "
         "objects.");
-      return output(std::array<std::string, sizeof...(ts)>{std::forward<decltype(ts)>(ts)...});
+      return to(std::array<std::string, M>{std::forward<decltype(ts)>(ts)...});
     }
 
-    void over(std::string const& level_name) { reduction_interval_ = level_name; }
+    auto& over_each(std::string const& level_name)
+    {
+      reduction_interval_ = level_name;
+      return *this;
+    }
+
+    auto& initialized_with(auto&&... ts)
+    {
+      reg_.set([this, init = std::tuple{ts...}] {
+        if (empty(reduction_interval_)) {
+          throw std::runtime_error(
+            "The reduction range must be specified using the 'over(...)' syntax.");
+        }
+        return std::make_unique<total_reduction<decltype(init)>>(std::move(name_),
+                                                                 concurrency_,
+                                                                 std::move(preceding_filters_),
+                                                                 std::move(receive_stores_),
+                                                                 graph_,
+                                                                 std::move(ft_),
+                                                                 std::move(init),
+                                                                 std::move(input_args_),
+                                                                 std::move(product_names_),
+                                                                 std::move(output_keys_),
+                                                                 std::move(reduction_interval_));
+      });
+      return *this;
+    }
 
   private:
     std::string name_;
+    std::size_t concurrency_;
     std::vector<std::string> preceding_filters_;
     std::vector<std::string> receive_stores_;
-    std::size_t concurrency_;
     tbb::flow::graph& graph_;
     function_t ft_;
-    InitTuple initializer_;
     InputArgs input_args_;
-    std::array<std::string, Nactual> product_names_;
+    std::array<std::string, N> product_names_;
     std::string reduction_interval_;
+    std::array<std::string, M> output_keys_;
     registrar<declared_reductions> reg_;
   };
 
-  // =================================================================================
-
-  template <is_reduction_like FT, typename InitTuple>
-  template <std::size_t Nactual, std::size_t M, typename InputArgs>
-  class incomplete_reduction<FT, InitTuple>::complete_reduction :
+  template <is_reduction_like FT, typename InputArgs>
+  template <typename InitTuple>
+  class pre_reduction<FT, InputArgs>::total_reduction :
     public declared_reduction,
     public count_stores {
-    using R = std::decay_t<std::tuple_element_t<0, function_parameter_types<FT>>>;
 
   public:
-    complete_reduction(std::string name,
-                       std::size_t concurrency,
-                       std::vector<std::string> preceding_filters,
-                       std::vector<std::string> release_stores,
-                       tbb::flow::graph& g,
-                       function_t&& f,
-                       InitTuple initializer,
-                       InputArgs input,
-                       std::array<std::string, Nactual> product_names,
-                       std::array<std::string, M> output,
-                       std::string reduction_interval) :
+    total_reduction(std::string name,
+                    std::size_t concurrency,
+                    std::vector<std::string> preceding_filters,
+                    std::vector<std::string> release_stores,
+                    tbb::flow::graph& g,
+                    function_t&& f,
+                    InitTuple initializer,
+                    InputArgs input,
+                    std::array<std::string, N> product_names,
+                    std::array<std::string, M> output,
+                    std::string reduction_interval) :
       declared_reduction{std::move(name), std::move(preceding_filters), std::move(release_stores)},
       initializer_{std::move(initializer)},
       product_names_{std::move(product_names)},
       input_{std::move(input)},
       output_{std::move(output)},
       reduction_interval_{std::move(reduction_interval)},
-      join_{make_join_or_none(g, std::make_index_sequence<Nactual>{})},
-      reduction_{g,
-                 concurrency,
-                 [this, ft = std::move(f)](messages_t<Nactual> const& messages, auto& outputs) {
-                   // N.B. The assumption is that a reduction will *never* need to cache
-                   //      the product store it creates.  Any flush messages *do not* need
-                   //      to be propagated to downstream nodes.
-                   auto const& msg = most_derived(messages);
-                   auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
+      join_{make_join_or_none(g, std::make_index_sequence<N>{})},
+      reduction_{
+        g, concurrency, [this, ft = std::move(f)](messages_t<N> const& messages, auto& outputs) {
+          // N.B. The assumption is that a reduction will *never* need to cache
+          //      the product store it creates.  Any flush messages *do not* need
+          //      to be propagated to downstream nodes.
+          auto const& msg = most_derived(messages);
+          auto const& [store, original_message_id] = std::tie(msg.store, msg.original_id);
 
-                   if (not store->is_flush() and not store->id()->parent(reduction_interval_)) {
-                     return;
-                   }
+          if (not store->is_flush() and not store->id()->parent(reduction_interval_)) {
+            return;
+          }
 
-                   if (store->is_flush()) {
-                     // Downstream nodes always get the flush.
-                     get<0>(outputs).try_put(msg);
-                     if (store->id()->level_name() != reduction_interval_) {
-                       return;
-                     }
-                   }
+          if (store->is_flush()) {
+            // Downstream nodes always get the flush.
+            get<0>(outputs).try_put(msg);
+            if (store->id()->level_name() != reduction_interval_) {
+              return;
+            }
+          }
 
-                   auto const& reduction_store =
-                     store->is_flush() ? store : store->parent(reduction_interval_);
-                   assert(reduction_store);
-                   auto const& id_for_counter = reduction_store->id();
+          auto const& reduction_store =
+            store->is_flush() ? store : store->parent(reduction_interval_);
+          assert(reduction_store);
+          auto const& id_for_counter = reduction_store->id();
 
-                   counter_accessor ca;
-                   auto& counter = counter_for(id_for_counter->hash(), ca);
-                   if (store->is_flush()) {
-                     counter.set_flush_value(store, original_message_id);
-                   }
-                   else {
-                     call(ft, messages, std::make_index_sequence<N>{});
-                     counter.increment(store->id()->level_name());
-                   }
-                   ca.release();
+          counter_accessor ca;
+          auto& counter = counter_for(id_for_counter->hash(), ca);
+          if (store->is_flush()) {
+            counter.set_flush_value(store, original_message_id);
+          }
+          else {
+            call(ft, messages, std::make_index_sequence<N>{});
+            counter.increment(store->id()->level_name());
+          }
+          ca.release();
 
-                   const_counter_accessor cca;
-                   bool const has_counter = counter_for(id_for_counter->hash(), cca);
+          const_counter_accessor cca;
+          bool const has_counter = counter_for(id_for_counter->hash(), cca);
 
-                   if (has_counter && cca->second->is_flush()) {
-                     auto parent = reduction_store->make_continuation(this->name());
-                     commit_(*parent);
-                     // FIXME: This msg.eom value may be wrong!
-                     get<0>(outputs).try_put({parent, msg.eom, counter.original_message_id()});
-                     erase_counter(cca);
-                   }
-                 }}
+          if (has_counter && cca->second->is_flush()) {
+            auto parent = reduction_store->make_continuation(this->name());
+            commit_(*parent);
+            // FIXME: This msg.eom value may be wrong!
+            get<0>(outputs).try_put({parent, msg.eom, counter.original_message_id()});
+            erase_counter(cca);
+          }
+        }}
     {
       make_edge(join_, reduction_);
     }
@@ -276,10 +247,7 @@ namespace meld {
       return receiver_for<N>(join_, product_names_, product_name);
     }
 
-    std::vector<tbb::flow::receiver<message>*> ports() override
-    {
-      return input_ports<Nactual>(join_);
-    }
+    std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
     tbb::flow::sender<message>& sender() override { return output_port<0ull>(reduction_); }
     tbb::flow::sender<message>& to_output() override { return sender(); }
@@ -290,7 +258,7 @@ namespace meld {
     std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
 
     template <std::size_t... Is>
-    void call(function_t const& ft, messages_t<Nactual> const& messages, std::index_sequence<Is...>)
+    void call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
     {
       auto const& parent_id = *most_derived(messages).store->id()->parent(reduction_interval_);
       // FIXME: Not the safest approach!
@@ -331,12 +299,12 @@ namespace meld {
     }
 
     InitTuple initializer_;
-    std::array<std::string, Nactual> product_names_;
+    std::array<std::string, N> product_names_;
     InputArgs input_;
     std::array<std::string, M> output_;
     std::string reduction_interval_;
-    join_or_none_t<Nactual> join_;
-    tbb::flow::multifunction_node<messages_t<Nactual>, messages_t<1>> reduction_;
+    join_or_none_t<N> join_;
+    tbb::flow::multifunction_node<messages_t<N>, messages_t<1>> reduction_;
     tbb::concurrent_unordered_map<level_id, std::unique_ptr<R>> results_;
     std::atomic<std::size_t> calls_;
   };

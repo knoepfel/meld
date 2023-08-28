@@ -49,11 +49,13 @@ namespace meld {
                    configuration const* config,
                    std::string name,
                    tbb::flow::graph& g,
-                   detail::output_function_t&& f) :
+                   detail::output_function_t&& f,
+                   concurrency c) :
       node_options_t{config},
       name_{std::move(name)},
       graph_{g},
       ft_{std::move(f)},
+      concurrency_{c},
       reg_{std::move(reg)}
     {
       reg_.set([this] { return create(); });
@@ -63,7 +65,7 @@ namespace meld {
     declared_output_ptr create()
     {
       return std::make_unique<declared_output>(std::move(name_),
-                                               node_options_t::concurrency(),
+                                               concurrency_.value,
                                                node_options_t::release_preceding_filters(),
                                                graph_,
                                                std::move(ft_));
@@ -72,6 +74,7 @@ namespace meld {
     std::string name_;
     tbb::flow::graph& graph_;
     detail::output_function_t ft_;
+    concurrency concurrency_;
     registrar<declared_outputs> reg_;
   };
 }

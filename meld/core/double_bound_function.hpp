@@ -1,6 +1,7 @@
 #ifndef meld_core_double_bound_function_hpp
 #define meld_core_double_bound_function_hpp
 
+#include "meld/concurrency.hpp"
 #include "meld/configuration.hpp"
 #include "meld/core/concepts.hpp"
 #include "meld/core/declared_filter.hpp"
@@ -33,6 +34,7 @@ namespace meld {
                           std::string name,
                           Predicate predicate,
                           Unfold unfold,
+                          concurrency c,
                           tbb::flow::graph& g,
                           node_catalog& nodes,
                           std::vector<std::string>& errors) :
@@ -40,6 +42,7 @@ namespace meld {
       name_{std::move(name)},
       predicate_{std::move(predicate)},
       unfold_{std::move(unfold)},
+      concurrency_{c.value},
       graph_{g},
       nodes_{nodes},
       errors_{errors}
@@ -55,7 +58,7 @@ namespace meld {
       return partial_splitter<Object, Predicate, Unfold, decltype(processed_input_args)>{
         nodes_.register_splitter(errors_),
         std::move(name_),
-        node_options_t::release_concurrency(),
+        concurrency_,
         node_options_t::release_preceding_filters(),
         std::vector<std::string>{},
         graph_,
@@ -77,6 +80,7 @@ namespace meld {
     std::string name_;
     Predicate predicate_;
     Unfold unfold_;
+    std::size_t concurrency_;
     tbb::flow::graph& graph_;
     node_catalog& nodes_;
     std::vector<std::string>& errors_;

@@ -1,9 +1,10 @@
 #ifndef meld_core_graph_proxy_hpp
 #define meld_core_graph_proxy_hpp
 
+#include "meld/concurrency.hpp"
 #include "meld/configuration.hpp"
-#include "meld/core/bound_function.hpp"
 #include "meld/core/concepts.hpp"
+#include "meld/core/glue.hpp"
 #include "meld/core/node_catalog.hpp"
 #include "meld/core/registrar.hpp"
 #include "meld/metaprogramming/delegate.hpp"
@@ -50,33 +51,31 @@ namespace meld {
         config_, graph_, nodes_, std::make_shared<U>(std::forward<Args>(args)...), errors_};
     }
 
-    auto with(std::string name, auto f)
+    auto with(std::string name, auto f, concurrency c = concurrency::serial)
     {
-      return bound_function{config_, qualified(name), bound_obj_, f, graph_, nodes_, errors_};
+      return glue{graph_, nodes_, bound_obj_, errors_, config_}.with(qualified(name), f, c);
     }
 
-    auto with(auto f) { return with(function_name(f), f); }
+    auto with(auto f, concurrency c = concurrency::serial) { return with(function_name(f), f, c); }
 
-    auto output_with(std::string name, is_output_like auto f)
+    template <typename Splitter>
+    auto with(auto predicate, auto unfold, concurrency c = concurrency::serial)
     {
-      return output_creator{
-        nodes_.register_output(errors_), config_, qualified(name), graph_, delegate(bound_obj_, f)};
+      return splitter_glue<Splitter>(graph_, nodes_, errors_).declare_unfold(predicate, unfold, c);
     }
-    auto output_with(auto f) { return output_with(function_name(f), f); }
 
-    auto declare_reduction(std::string name, auto f, auto&&... init_args)
+    auto output_with(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
     {
-      return incomplete_reduction{nodes_.register_reduction(errors_),
-                                  config_,
-                                  qualified(name),
-                                  graph_,
-                                  delegate(bound_obj_, f),
-                                  std::make_tuple(std::forward<decltype(init_args)>(init_args)...)};
+      return output_creator{nodes_.register_output(errors_),
+                            config_,
+                            qualified(name),
+                            graph_,
+                            delegate(bound_obj_, f),
+                            c};
     }
-    auto declare_reduction(auto f, auto&&... init_args)
+    auto output_with(auto f, concurrency c = concurrency::serial)
     {
-      return declare_reduction(
-        function_name(f), f, std::forward<decltype(init_args)>(init_args)...);
+      return output_with(function_name(f), f, c);
     }
 
   private:

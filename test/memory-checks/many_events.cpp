@@ -3,7 +3,6 @@
 #include "test/products_for_output.hpp"
 
 using namespace meld;
-using namespace meld::concurrency;
 
 namespace {
   unsigned pass_on(unsigned number) { return number; }
@@ -30,6 +29,6 @@ int main()
     return store;
   }};
 
-  g.with(pass_on).transform("number").to("different").using_concurrency(unlimited);
+  g.with(pass_on, concurrency::unlimited).transform("number").to("different");
   g.execute();
 }

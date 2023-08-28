@@ -3,8 +3,6 @@
 #include <algorithm>
 #include <string>
 
-using namespace meld::concurrency;
-
 namespace {
   auto fibs_less_than(int const n)
   {
@@ -34,7 +32,6 @@ namespace {
 DEFINE_MODULE(m, config)
 {
   m.make<fibonacci_numbers>(config.get<int>("max_number"))
-    .with(&fibonacci_numbers::accept)
-    .filter(config.get<std::string>("product_name"))
-    .using_concurrency(unlimited);
+    .with(&fibonacci_numbers::accept, meld::concurrency::unlimited)
+    .filter(config.get<std::string>("product_name"));
 }

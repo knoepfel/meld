@@ -1,6 +1,7 @@
 #ifndef meld_core_glue_hpp
 #define meld_core_glue_hpp
 
+#include "meld/concurrency.hpp"
 #include "meld/core/bound_function.hpp"
 #include "meld/core/concepts.hpp"
 #include "meld/core/double_bound_function.hpp"
@@ -27,38 +28,34 @@ namespace meld {
     glue(tbb::flow::graph& g,
          node_catalog& nodes,
          std::shared_ptr<T> bound_obj,
-         std::vector<std::string>& errors) :
-      graph_{g}, nodes_{nodes}, bound_obj_{std::move(bound_obj)}, errors_{errors}
+         std::vector<std::string>& errors,
+         configuration const* config = nullptr) :
+      graph_{g}, nodes_{nodes}, bound_obj_{std::move(bound_obj)}, errors_{errors}, config_{config}
     {
     }
 
-    auto with(std::string name, auto f)
+    auto with(std::string name, auto f, concurrency c = concurrency::serial)
     {
-      return bound_function{nullptr, std::move(name), bound_obj_, f, graph_, nodes_, errors_};
+      return bound_function{config_, std::move(name), bound_obj_, f, c, graph_, nodes_, errors_};
     }
 
-    auto with(auto f) { return with(function_name(f), f); }
-
-    auto output_with(std::string name, is_output_like auto f)
+    auto with(auto f, concurrency c = {concurrency::serial})
     {
-      return output_creator{
-        nodes_.register_output(errors_), nullptr, std::move(name), graph_, delegate(bound_obj_, f)};
+      return with(function_name(f), f, c);
     }
-    auto output_with(auto f) { return output_with(function_name(f), f); }
 
-    auto declare_reduction(std::string name, auto f, auto&&... init_args)
+    auto output_with(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
     {
-      return incomplete_reduction{nodes_.register_reduction(errors_),
-                                  nullptr,
-                                  std::move(name),
-                                  graph_,
-                                  delegate(bound_obj_, f),
-                                  std::make_tuple(std::forward<decltype(init_args)>(init_args)...)};
+      return output_creator{nodes_.register_output(errors_),
+                            config_,
+                            std::move(name),
+                            graph_,
+                            delegate(bound_obj_, f),
+                            c};
     }
-    auto declare_reduction(auto f, auto&&... init_args)
+    auto output_with(auto f, concurrency c = {concurrency::serial})
     {
-      return declare_reduction(
-        function_name(f), f, std::forward<decltype(init_args)>(init_args)...);
+      return output_with(function_name(f), f, c);
     }
 
   private:
@@ -66,23 +63,28 @@ namespace meld {
     node_catalog& nodes_;
     std::shared_ptr<T> bound_obj_;
     std::vector<std::string>& errors_;
+    configuration const* config_;
   };
 
   template <typename T>
   class splitter_glue {
   public:
-    splitter_glue(tbb::flow::graph& g, node_catalog& nodes, std::vector<std::string>& errors) :
-      graph_{g}, nodes_{nodes}, errors_{errors}
+    splitter_glue(tbb::flow::graph& g,
+                  node_catalog& nodes,
+                  std::vector<std::string>& errors,
+                  configuration const* config = nullptr) :
+      graph_{g}, nodes_{nodes}, errors_{errors}, config_{config}
     {
     }
 
-    auto declare_unfold(auto predicate, auto unfold)
+    auto declare_unfold(auto predicate, auto unfold, concurrency c)
     {
       return double_bound_function<T, decltype(predicate), decltype(unfold)>{
-        nullptr,
+        config_,
         detail::stripped_name(boost::core::demangle(typeid(T).name())),
         predicate,
         unfold,
+        c,
         graph_,
         nodes_,
         errors_};
@@ -92,6 +94,7 @@ namespace meld {
     tbb::flow::graph& graph_;
     node_catalog& nodes_;
     std::vector<std::string>& errors_;
+    configuration const* config_;
   };
 }
 

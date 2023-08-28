@@ -9,7 +9,6 @@
 
 using namespace std::string_literals;
 using namespace meld;
-using namespace meld::concurrency;
 
 namespace {
   struct A {
@@ -63,42 +62,37 @@ TEST_CASE("Call non-framework functions", "[programming model]")
   auto glueball = g.make<A>();
   SECTION("No framework")
   {
-    glueball.with(&A::no_framework)
+    glueball.with(&A::no_framework, concurrency::unlimited)
       .transform(product_names)
-      .to(oproduct_names)
-      .using_concurrency(unlimited);
+      .to(oproduct_names);
   }
   SECTION("No framework, all references")
   {
-    glueball.with(&A::no_framework_all_refs)
+    glueball.with(&A::no_framework_all_refs, concurrency::unlimited)
       .transform(product_names)
-      .to(oproduct_names)
-      .using_concurrency(unlimited);
+      .to(oproduct_names);
   }
   SECTION("No framework, all pointers")
   {
-    glueball.with(&A::no_framework_all_ptrs)
+    glueball.with(&A::no_framework_all_ptrs, concurrency::unlimited)
       .transform(product_names)
-      .to(oproduct_names)
-      .using_concurrency(unlimited);
+      .to(oproduct_names);
   }
   SECTION("One framework argument")
   {
-    glueball.with(&A::one_framework_arg)
+    glueball.with(&A::one_framework_arg, concurrency::unlimited)
       .transform(product_names)
-      .to(oproduct_names)
-      .using_concurrency(unlimited);
+      .to(oproduct_names);
   }
   SECTION("All framework arguments")
   {
-    glueball.with(&A::all_framework_args)
+    glueball.with(&A::all_framework_args, concurrency::unlimited)
       .transform(product_names)
-      .to(oproduct_names)
-      .using_concurrency(unlimited);
+      .to(oproduct_names);
   }
 
   // The following is invoked for *each* section above
-  g.with(verify_results).monitor(product_names).using_concurrency(unlimited);
+  g.with(verify_results, concurrency::unlimited).monitor(product_names);
 
   g.execute("class_component_t.gv");
 }

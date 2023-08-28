@@ -1,7 +1,6 @@
 #ifndef meld_core_declared_splitter_hpp
 #define meld_core_declared_splitter_hpp
 
-#include "meld/concurrency.hpp"
 #include "meld/core/concepts.hpp"
 #include "meld/core/detail/port_names.hpp"
 #include "meld/core/end_of_message.hpp"
@@ -84,7 +83,7 @@ namespace meld {
   public:
     partial_splitter(registrar<declared_splitters> reg,
                      std::string name,
-                     std::optional<std::size_t> concurrency,
+                     std::size_t concurrency,
                      std::vector<std::string> preceding_filters,
                      std::vector<std::string> receive_stores,
                      tbb::flow::graph& g,
@@ -110,7 +109,7 @@ namespace meld {
     {
       reg_.set([this, output = std::move(output_product_names)] {
         return std::make_unique<complete_splitter<M>>(std::move(name_),
-                                                      concurrency_.value_or(concurrency::serial),
+                                                      concurrency_,
                                                       std::move(preceding_filters_),
                                                       std::move(receive_stores_),
                                                       graph_,
@@ -135,17 +134,9 @@ namespace meld {
       return *this;
     }
 
-    auto& using_concurrency(std::size_t n)
-    {
-      if (!concurrency_) {
-        concurrency_ = n;
-      }
-      return *this;
-    }
-
   private:
     std::string name_;
-    std::optional<std::size_t> concurrency_;
+    std::size_t concurrency_;
     std::vector<std::string> preceding_filters_;
     std::vector<std::string> receive_stores_;
     tbb::flow::graph& graph_;
