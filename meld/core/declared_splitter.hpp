@@ -58,9 +58,7 @@ namespace meld {
 
   class declared_splitter : public products_consumer {
   public:
-    declared_splitter(std::string name,
-                      std::vector<std::string> preceding_filters,
-                      std::vector<std::string> receive_stores);
+    declared_splitter(std::string name, std::vector<std::string> preceding_filters);
     virtual ~declared_splitter();
 
     virtual tbb::flow::sender<message>& to_output() = 0;
@@ -85,7 +83,6 @@ namespace meld {
                      std::string name,
                      std::size_t concurrency,
                      std::vector<std::string> preceding_filters,
-                     std::vector<std::string> receive_stores,
                      tbb::flow::graph& g,
                      Predicate&& predicate,
                      Unfold&& unfold,
@@ -94,7 +91,6 @@ namespace meld {
       name_{std::move(name)},
       concurrency_{concurrency},
       preceding_filters_{std::move(preceding_filters)},
-      receive_stores_{std::move(receive_stores)},
       graph_{g},
       predicate_{std::move(predicate)},
       unfold_{std::move(unfold)},
@@ -111,7 +107,6 @@ namespace meld {
         return std::make_unique<complete_splitter<M>>(std::move(name_),
                                                       concurrency_,
                                                       std::move(preceding_filters_),
-                                                      std::move(receive_stores_),
                                                       graph_,
                                                       std::move(predicate_),
                                                       std::move(unfold_),
@@ -138,7 +133,6 @@ namespace meld {
     std::string name_;
     std::size_t concurrency_;
     std::vector<std::string> preceding_filters_;
-    std::vector<std::string> receive_stores_;
     tbb::flow::graph& graph_;
     Predicate predicate_;
     Unfold unfold_;
@@ -163,7 +157,6 @@ namespace meld {
     complete_splitter(std::string name,
                       std::size_t concurrency,
                       std::vector<std::string> preceding_filters,
-                      std::vector<std::string> receive_stores,
                       tbb::flow::graph& g,
                       Predicate&& predicate,
                       Unfold&& unfold,
@@ -171,7 +164,7 @@ namespace meld {
                       std::array<std::string, N> product_names,
                       std::array<std::string, M> output_products,
                       std::string new_level_name) :
-      declared_splitter{std::move(name), std::move(preceding_filters), std::move(receive_stores)},
+      declared_splitter{std::move(name), std::move(preceding_filters)},
       product_names_{std::move(product_names)},
       input_{std::move(input)},
       output_{std::move(output_products)},

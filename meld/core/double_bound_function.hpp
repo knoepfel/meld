@@ -60,7 +60,6 @@ namespace meld {
         std::move(name_),
         concurrency_,
         node_options_t::release_preceding_filters(),
-        std::vector<std::string>{},
         graph_,
         std::move(predicate_),
         std::move(unfold_),

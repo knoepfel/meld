@@ -6,7 +6,7 @@ namespace meld {
                                    std::vector<std::string> preceding_filters,
                                    tbb::flow::graph& g,
                                    detail::output_function_t&& ft) :
-    consumer{std::move(name), std::move(preceding_filters), {}},
+    consumer{std::move(name), std::move(preceding_filters)},
     node_{g, concurrency, [f = std::move(ft)](message const& msg) -> tbb::flow::continue_msg {
             if (not msg.store->is_flush()) {
               f(*msg.store);

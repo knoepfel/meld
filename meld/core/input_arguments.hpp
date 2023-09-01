@@ -22,6 +22,7 @@ namespace meld {
 
   struct specified_label {
     std::string name;
+    std::string domain;
   };
 
   template <typename InputTypes, std::size_t... Is>

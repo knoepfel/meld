@@ -34,9 +34,7 @@ namespace meld {
 
   class declared_transform : public products_consumer {
   public:
-    declared_transform(std::string name,
-                       std::vector<std::string> preceding_filters,
-                       std::vector<std::string> receive_stores);
+    declared_transform(std::string name, std::vector<std::string> preceding_filters);
     virtual ~declared_transform();
 
     virtual tbb::flow::sender<message>& sender() = 0;
@@ -116,13 +114,12 @@ namespace meld {
     total_transform(std::string name,
                     std::size_t concurrency,
                     std::vector<std::string> preceding_filters,
-                    std::vector<std::string> receive_stores,
                     tbb::flow::graph& g,
                     function_t&& f,
                     InputArgs input,
                     std::array<std::string, N> product_names,
                     std::array<std::string, M> output) :
-      declared_transform{std::move(name), std::move(preceding_filters), std::move(receive_stores)},
+      declared_transform{std::move(name), std::move(preceding_filters)},
       product_names_{std::move(product_names)},
       input_{std::move(input)},
       output_{std::move(output)},
@@ -240,7 +237,6 @@ namespace meld {
       return std::make_unique<total_transform<M>>(std::move(name_),
                                                   concurrency_,
                                                   std::move(preceding_filters_),
-                                                  std::vector<std::string>{},
                                                   graph_,
                                                   std::move(ft_),
                                                   std::move(input_args_),

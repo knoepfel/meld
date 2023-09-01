@@ -31,9 +31,8 @@ namespace meld {
   }
 
   declared_splitter::declared_splitter(std::string name,
-                                       std::vector<std::string> preceding_filters,
-                                       std::vector<std::string> receive_stores) :
-    products_consumer{std::move(name), std::move(preceding_filters), std::move(receive_stores)}
+                                       std::vector<std::string> preceding_filters) :
+    products_consumer{std::move(name), std::move(preceding_filters)}
   {
   }
 

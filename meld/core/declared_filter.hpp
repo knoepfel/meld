@@ -38,8 +38,7 @@ namespace meld {
   class declared_filter : public products_consumer {
   public:
     declared_filter(std::string name,
-                    std::vector<std::string> preceding_filters,
-                    std::vector<std::string> receive_stores);
+                    std::vector<std::string> preceding_filters);
     virtual ~declared_filter();
 
     virtual tbb::flow::sender<filter_result>& sender() = 0;
@@ -62,12 +61,11 @@ namespace meld {
     complete_filter(std::string name,
                     std::size_t concurrency,
                     std::vector<std::string> preceding_filters,
-                    std::vector<std::string> receive_stores,
                     tbb::flow::graph& g,
                     function_t&& f,
                     InputArgs input,
                     std::array<std::string, N> product_names) :
-      declared_filter{std::move(name), std::move(preceding_filters), std::move(receive_stores)},
+      declared_filter{std::move(name), std::move(preceding_filters)},
       product_names_{std::move(product_names)},
       input_{std::move(input)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},
