@@ -4,6 +4,7 @@
 #include "meld/core/consumer.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
+#include "meld/core/specified_label.hpp"
 #include "meld/model/level_id.hpp"
 
 #include "oneapi/tbb/flow_graph.h"
@@ -23,7 +24,7 @@ namespace meld {
 
     tbb::flow::receiver<message>& port(std::string const& product_name);
     virtual std::vector<tbb::flow::receiver<message>*> ports() = 0;
-    virtual std::span<std::string const, std::dynamic_extent> input() const = 0;
+    virtual std::span<specified_label const, std::dynamic_extent> input() const = 0;
     virtual std::size_t num_calls() const = 0;
 
   private:

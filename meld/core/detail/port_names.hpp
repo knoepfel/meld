@@ -36,7 +36,7 @@ namespace meld::detail {
   {
     constexpr auto N = std::tuple_size_v<InputArgs>;
     auto names = detail::port_names_impl(args, std::make_index_sequence<N>{});
-    return to_array<std::string>(names);
+    return to_array<specified_label>(names);
   }
 }
 

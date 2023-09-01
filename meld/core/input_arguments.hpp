@@ -2,6 +2,7 @@
 #define meld_core_input_arguments_hpp
 
 #include "meld/core/message.hpp"
+#include "meld/core/specified_label.hpp"
 
 #include <array>
 #include <cstddef>
@@ -18,11 +19,6 @@ namespace meld {
     {
       return std::get<JoinNodePort>(messages).store->template get_handle<handle_arg_t>(name);
     }
-  };
-
-  struct specified_label {
-    std::string name;
-    std::string domain;
   };
 
   template <typename InputTypes, std::size_t... Is>

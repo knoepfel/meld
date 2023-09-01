@@ -7,6 +7,7 @@
 #include "meld/core/message.hpp"
 #include "meld/core/products_consumer.hpp"
 #include "meld/core/registrar.hpp"
+#include "meld/core/specified_label.hpp"
 #include "meld/core/store_counters.hpp"
 #include "meld/metaprogramming/type_deduction.hpp"
 #include "meld/model/handle.hpp"
@@ -64,7 +65,7 @@ namespace meld {
                   tbb::flow::graph& g,
                   function_t&& f,
                   InputArgs input_args,
-                  std::array<std::string, N> product_names) :
+                  std::array<specified_label, N> product_names) :
       name_{std::move(name)},
       concurrency_{concurrency},
       preceding_filters_{std::move(preceding_filters)},
@@ -95,7 +96,7 @@ namespace meld {
     tbb::flow::graph& graph_;
     function_t ft_;
     InputArgs input_args_;
-    std::array<std::string, N> product_names_;
+    std::array<specified_label, N> product_names_;
     registrar<declared_transforms> reg_;
   };
 
@@ -117,7 +118,7 @@ namespace meld {
                     tbb::flow::graph& g,
                     function_t&& f,
                     InputArgs input,
-                    std::array<std::string, N> product_names,
+                    std::array<specified_label, N> product_names,
                     std::array<std::string, M> output) :
       declared_transform{std::move(name), std::move(preceding_filters)},
       product_names_{std::move(product_names)},
@@ -177,7 +178,7 @@ namespace meld {
 
     tbb::flow::sender<message>& sender() override { return output_port<0>(transform_); }
     tbb::flow::sender<message>& to_output() override { return output_port<1>(transform_); }
-    std::span<std::string const, std::dynamic_extent> input() const override
+    std::span<specified_label const, std::dynamic_extent> input() const override
     {
       return product_names_;
     }
@@ -216,7 +217,7 @@ namespace meld {
 
     std::size_t num_calls() const final { return calls_.load(); }
 
-    std::array<std::string, N> product_names_;
+    std::array<specified_label, N> product_names_;
     InputArgs input_;
     std::array<std::string, M> output_;
     join_or_none_t<N> join_;

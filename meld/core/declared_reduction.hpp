@@ -70,7 +70,7 @@ namespace meld {
                   tbb::flow::graph& g,
                   function_t&& f,
                   InputArgs input_args,
-                  std::array<std::string, N> product_names) :
+                  std::array<specified_label, N> product_names) :
       name_{std::move(name)},
       concurrency_{concurrency},
       preceding_filters_{std::move(preceding_filters)},
@@ -152,7 +152,7 @@ namespace meld {
     tbb::flow::graph& graph_;
     function_t ft_;
     InputArgs input_args_;
-    std::array<std::string, N> product_names_;
+    std::array<specified_label, N> product_names_;
     std::string reduction_interval_;
     std::array<std::string, M> output_keys_;
     registrar<declared_reductions> reg_;
@@ -172,7 +172,7 @@ namespace meld {
                     function_t&& f,
                     InitTuple initializer,
                     InputArgs input,
-                    std::array<std::string, N> product_names,
+                    std::array<specified_label, N> product_names,
                     std::array<std::string, M> output,
                     std::string reduction_interval) :
       declared_reduction{std::move(name), std::move(preceding_filters)},
@@ -243,7 +243,7 @@ namespace meld {
 
     tbb::flow::sender<message>& sender() override { return output_port<0ull>(reduction_); }
     tbb::flow::sender<message>& to_output() override { return sender(); }
-    std::span<std::string const, std::dynamic_extent> input() const override
+    std::span<specified_label const, std::dynamic_extent> input() const override
     {
       return product_names_;
     }
@@ -291,7 +291,7 @@ namespace meld {
     }
 
     InitTuple initializer_;
-    std::array<std::string, N> product_names_;
+    std::array<specified_label, N> product_names_;
     InputArgs input_;
     std::array<std::string, M> output_;
     std::string reduction_interval_;

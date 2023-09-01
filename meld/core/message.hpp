@@ -2,6 +2,7 @@
 #define meld_core_message_hpp
 
 #include "meld/core/fwd.hpp"
+#include "meld/core/specified_label.hpp"
 #include "meld/model/handle.hpp"
 #include "meld/model/product_store.hpp"
 #include "meld/utilities/sized_tuple.hpp"
@@ -71,7 +72,7 @@ namespace meld {
     }
   }
 
-  std::size_t port_index_for(std::span<std::string const> product_names,
+  std::size_t port_index_for(std::span<specified_label const> product_names,
                              std::string const& product_name);
 
   template <std::size_t I, std::size_t N>
@@ -89,7 +90,7 @@ namespace meld {
 
   template <std::size_t N>
   tbb::flow::receiver<message>& receiver_for(join_or_none_t<N>& join,
-                                             std::span<std::string const> product_names,
+                                             std::span<specified_label const> product_names,
                                              std::string const& product_name)
   {
     if constexpr (N > 1ull) {

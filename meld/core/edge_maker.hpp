@@ -148,12 +148,13 @@ namespace meld {
         }
       }
 
-      for (auto const& product_name : node->input()) {
+      for (auto const& [product_name, allowed_domains] : node->input()) {
         auto it = producers_.find(product_name);
         auto* input_port = collector ? collector : &node->port(product_name);
         if (it == cend(producers_)) {
           // Is there a way to detect mis-specified product dependencies?
-          result.push_back({node_name, product_name, nullptr, input_port});
+          auto const* domains = allowed_domains.empty() ? nullptr : &allowed_domains;
+          result.push_back({node_name, product_name, domains, input_port});
           continue;
         }
 
@@ -217,7 +218,7 @@ namespace meld {
     // Create head nodes for splitters
     auto get_consumed_products = [](auto const& cons, auto& products) {
       for (auto const& [key, consumer] : cons.data) {
-        for (auto const& product_name : consumer->input()) {
+        for (auto const& [product_name, _] : consumer->input()) {
           products[product_name].push_back(key);
         }
       }

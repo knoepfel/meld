@@ -87,7 +87,7 @@ namespace meld {
                      Predicate&& predicate,
                      Unfold&& unfold,
                      InputArgs input_args,
-                     std::array<std::string, N> product_names) :
+                     std::array<specified_label, N> product_names) :
       name_{std::move(name)},
       concurrency_{concurrency},
       preceding_filters_{std::move(preceding_filters)},
@@ -137,7 +137,7 @@ namespace meld {
     Predicate predicate_;
     Unfold unfold_;
     InputArgs input_args_;
-    std::array<std::string, N> product_names_;
+    std::array<specified_label, N> product_names_;
     std::string new_level_name_;
     registrar<declared_splitters> reg_;
   };
@@ -161,7 +161,7 @@ namespace meld {
                       Predicate&& predicate,
                       Unfold&& unfold,
                       InputArgs input,
-                      std::array<std::string, N> product_names,
+                      std::array<specified_label, N> product_names,
                       std::array<std::string, M> output_products,
                       std::string new_level_name) :
       declared_splitter{std::move(name), std::move(preceding_filters)},
@@ -222,7 +222,7 @@ namespace meld {
 
     tbb::flow::sender<message>& to_output() override { return to_output_; }
 
-    std::span<std::string const, std::dynamic_extent> input() const override
+    std::span<specified_label const, std::dynamic_extent> input() const override
     {
       return product_names_;
     }
@@ -259,7 +259,7 @@ namespace meld {
 
     std::size_t num_calls() const final { return calls_.load(); }
 
-    std::array<std::string, N> product_names_;
+    std::array<specified_label, N> product_names_;
     InputArgs input_;
     std::array<std::string, M> output_;
     std::string new_level_name_;

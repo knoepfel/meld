@@ -60,6 +60,7 @@ add_catch_test(product_store LIBRARIES meld::core)
 add_catch_test(reduction LIBRARIES meld::core)
 add_catch_test(replicated LIBRARIES TBB::tbb meld::utilities spdlog::spdlog)
 add_catch_test(serializer LIBRARIES meld::core TBB::tbb)
+add_catch_test(specified_label LIBRARIES meld::core)
 add_catch_test(splitter LIBRARIES Boost::json meld::core TBB::tbb TEST_DOT_GRAPH)
 
 add_subdirectory(benchmarks)

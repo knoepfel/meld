@@ -1,13 +1,13 @@
 #ifndef meld_core_declared_filter_hpp
 #define meld_core_declared_filter_hpp
 
-#include "meld/concurrency.hpp"
 #include "meld/core/detail/port_names.hpp"
 #include "meld/core/filter/filter_impl.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
 #include "meld/core/products_consumer.hpp"
 #include "meld/core/registrar.hpp"
+#include "meld/core/specified_label.hpp"
 #include "meld/core/store_counters.hpp"
 #include "meld/metaprogramming/type_deduction.hpp"
 #include "meld/model/handle.hpp"
@@ -37,8 +37,7 @@ namespace meld {
 
   class declared_filter : public products_consumer {
   public:
-    declared_filter(std::string name,
-                    std::vector<std::string> preceding_filters);
+    declared_filter(std::string name, std::vector<std::string> preceding_filters);
     virtual ~declared_filter();
 
     virtual tbb::flow::sender<filter_result>& sender() = 0;
@@ -64,7 +63,7 @@ namespace meld {
                     tbb::flow::graph& g,
                     function_t&& f,
                     InputArgs input,
-                    std::array<std::string, N> product_names) :
+                    std::array<specified_label, N> product_names) :
       declared_filter{std::move(name), std::move(preceding_filters)},
       product_names_{std::move(product_names)},
       input_{std::move(input)},
@@ -115,7 +114,7 @@ namespace meld {
     std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
     tbb::flow::sender<filter_result>& sender() override { return filter_; }
-    std::span<std::string const, std::dynamic_extent> input() const override
+    std::span<specified_label const, std::dynamic_extent> input() const override
     {
       return product_names_;
     }
@@ -129,7 +128,7 @@ namespace meld {
 
     std::size_t num_calls() const final { return calls_.load(); }
 
-    std::array<std::string, N> product_names_;
+    std::array<specified_label, N> product_names_;
     InputArgs input_;
     join_or_none_t<N> join_;
     tbb::flow::function_node<messages_t<N>, filter_result> filter_;

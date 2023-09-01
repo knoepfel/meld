@@ -18,11 +18,12 @@ namespace meld {
     return b;
   }
 
-  std::size_t port_index_for(std::span<std::string const> product_names,
+  std::size_t port_index_for(std::span<specified_label const> product_names,
                              std::string const& product_name)
   {
     auto const [b, e] = std::make_tuple(cbegin(product_names), cend(product_names));
-    auto it = find(b, e, product_name);
+    auto it =
+      find_if(b, e, [&product_name](auto const& label) { return label.name == product_name; });
     if (it == e) {
       throw std::runtime_error("Product name " + product_name + " not valid for splitter.");
     }
