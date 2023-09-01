@@ -2,11 +2,11 @@
 #define meld_core_declared_reduction_hpp
 
 #include "meld/concurrency.hpp"
-#include "meld/core/common_node_options.hpp"
 #include "meld/core/concepts.hpp"
 #include "meld/core/detail/port_names.hpp"
 #include "meld/core/fwd.hpp"
 #include "meld/core/message.hpp"
+#include "meld/core/node_options.hpp"
 #include "meld/core/products_consumer.hpp"
 #include "meld/core/reduction/send.hpp"
 #include "meld/core/registrar.hpp"
