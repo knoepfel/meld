@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <string>
 
-namespace {
+namespace test {
   auto fibs_less_than(int const n)
   {
     std::vector<int> result;
@@ -31,7 +31,7 @@ namespace {
 
 DEFINE_MODULE(m, config)
 {
-  m.make<fibonacci_numbers>(config.get<int>("max_number"))
-    .with(&fibonacci_numbers::accept, meld::concurrency::unlimited)
+  m.make<test::fibonacci_numbers>(config.get<int>("max_number"))
+    .with(&test::fibonacci_numbers::accept, meld::concurrency::unlimited)
     .filter(config.get<std::string>("product_name"));
 }
