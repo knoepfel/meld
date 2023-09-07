@@ -1,6 +1,7 @@
 #include "meld/core/specified_label.hpp"
 
 #include <stdexcept>
+#include <tuple>
 
 namespace meld {
   specified_label specified_label::operator()(std::string domain) &&
