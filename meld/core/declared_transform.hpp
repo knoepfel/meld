@@ -77,6 +77,16 @@ namespace meld {
     {
     }
 
+    auto& for_each(std::string const& domain)
+    {
+      for (auto& [_, allowed_domains] : input_args_) {
+        if (empty(allowed_domains)) {
+          allowed_domains.push_back(domain);
+        }
+      }
+      return *this;
+    }
+
     template <std::size_t Msize>
     auto& to(std::array<std::string, Msize> output_keys);
 

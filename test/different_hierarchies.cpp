@@ -82,10 +82,10 @@ TEST_CASE("Different hierarchies used with reduction", "[graph]")
 
   g.with("run_add", add, concurrency::unlimited)
     .reduce("number")
-    .over_each("run")
+    .for_each("run")
     .to("run_sum")
     .initialized_with(0u);
-  g.with("job_add", add, concurrency::unlimited).reduce("number").over_each("job").to("job_sum");
+  g.with("job_add", add, concurrency::unlimited).reduce("number").to("job_sum");
 
   g.with("verify_run_sum", [](unsigned int actual) { CHECK(actual == 10u); }).monitor("run_sum");
   g.with("verify_job_sum",

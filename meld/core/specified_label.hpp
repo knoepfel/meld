@@ -12,7 +12,7 @@ namespace meld {
     specified_label operator()(std::string domain) &&;
   };
 
-  specified_label operator""_in_each(char const* str, std::size_t);
+  specified_label operator""_in(char const* str, std::size_t);
   bool operator==(specified_label const& a, specified_label const& b);
   bool operator!=(specified_label const& a, specified_label const& b);
 }

@@ -118,7 +118,7 @@ namespace meld {
       return to(std::array<std::string, M>{std::forward<decltype(ts)>(ts)...});
     }
 
-    auto& over_each(std::string const& level_name)
+    auto& for_each(std::string const& level_name)
     {
       reduction_interval_ = level_name;
       return *this;
@@ -153,7 +153,7 @@ namespace meld {
     function_t ft_;
     InputArgs input_args_;
     std::array<specified_label, N> product_names_;
-    std::string reduction_interval_;
+    std::string reduction_interval_{level_id::base().level_name()};
     std::array<std::string, M> output_keys_;
     registrar<declared_reductions> reg_;
   };

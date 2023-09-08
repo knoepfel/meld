@@ -12,7 +12,7 @@ namespace meld {
     return {std::move(name), {std::move(domain)}};
   }
 
-  specified_label operator""_in_each(char const* name, std::size_t length)
+  specified_label operator""_in(char const* name, std::size_t length)
   {
     if (length == 0ull) {
       throw std::runtime_error("Cannot specify product with empty name.");
