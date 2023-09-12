@@ -46,88 +46,56 @@ namespace meld {
     {
     }
 
-    auto& filter(std::array<specified_label, N> input_args)
+    auto filter(std::array<specified_label, N> input_args)
       requires is_filter_like<FT>
     {
-      auto processed_input_args =
-        form_input_arguments<input_parameter_types>(std::move(input_args));
-      nodes_.register_filter(errors_).set([this, inputs = std::move(processed_input_args)] {
-        auto product_names = detail::port_names(inputs);
-        auto function_closure = delegate(obj_, ft_);
-
-        return std::make_unique<
-          complete_filter<decltype(function_closure), decltype(processed_input_args)>>(
-          std::move(name_),
-          concurrency_.value,
-          node_options_t::release_preceding_filters(),
-          graph_,
-          std::move(function_closure),
-          std::move(inputs),
-          std::move(product_names));
-      });
-      return *this;
+      return pre_filter{nodes_.register_filter(errors_),
+                        std::move(name_),
+                        concurrency_.value,
+                        node_options_t::release_preceding_filters(),
+                        graph_,
+                        delegate(obj_, ft_),
+                        form_input_arguments<input_parameter_types>(std::move(input_args))};
     }
 
-    auto& monitor(std::array<specified_label, N> input_args)
+    auto monitor(std::array<specified_label, N> input_args)
       requires is_monitor_like<FT>
     {
-      auto processed_input_args =
-        form_input_arguments<input_parameter_types>(std::move(input_args));
-      nodes_.register_monitor(errors_).set([this, inputs = std::move(processed_input_args)] {
-        auto product_names = detail::port_names(inputs);
-        auto function_closure = delegate(obj_, ft_);
-
-        return std::make_unique<
-          complete_monitor<decltype(function_closure), decltype(processed_input_args)>>(
-          std::move(name_),
-          concurrency_.value,
-          node_options_t::release_preceding_filters(),
-          graph_,
-          std::move(function_closure),
-          std::move(inputs),
-          std::move(product_names));
-      });
-      return *this;
+      return pre_monitor{nodes_.register_monitor(errors_),
+                         std::move(name_),
+                         concurrency_.value,
+                         node_options_t::release_preceding_filters(),
+                         graph_,
+                         delegate(obj_, ft_),
+                         form_input_arguments<input_parameter_types>(std::move(input_args))};
     }
 
     auto transform(std::array<specified_label, N> input_args)
       requires is_transform_like<FT>
     {
-      auto processed_input_args =
-        form_input_arguments<input_parameter_types>(std::move(input_args));
-      auto product_names = detail::port_names(processed_input_args);
-      auto function_closure = delegate(obj_, ft_);
-
-      return pre_transform<decltype(function_closure), decltype(processed_input_args)>{
-        nodes_.register_transform(errors_),
-        std::move(name_),
-        concurrency_.value,
-        node_options_t::release_preceding_filters(),
-        graph_,
-        std::move(function_closure),
-        std::move(processed_input_args),
-        std::move(product_names)};
+      return pre_transform{nodes_.register_transform(errors_),
+                           std::move(name_),
+                           concurrency_.value,
+                           node_options_t::release_preceding_filters(),
+                           graph_,
+                           delegate(obj_, ft_),
+                           form_input_arguments<input_parameter_types>(std::move(input_args))};
     }
 
     auto reduce(std::array<specified_label, N - 1> input_args)
       requires is_reduction_like<FT>
     {
       using all_but_first = skip_first_type<input_parameter_types>;
-      auto processed_input_args = form_input_arguments<all_but_first>(std::move(input_args));
-      auto product_names = detail::port_names(processed_input_args);
-      auto function_closure = delegate(obj_, ft_);
-      return pre_reduction<decltype(function_closure), decltype(processed_input_args)>{
-        nodes_.register_reduction(errors_),
-        std::move(name_),
-        concurrency_.value,
-        node_options_t::release_preceding_filters(),
-        graph_,
-        std::move(function_closure),
-        std::move(processed_input_args),
-        std::move(product_names)};
+      return pre_reduction{nodes_.register_reduction(errors_),
+                           std::move(name_),
+                           concurrency_.value,
+                           node_options_t::release_preceding_filters(),
+                           graph_,
+                           delegate(obj_, ft_),
+                           form_input_arguments<all_but_first>(std::move(input_args))};
     }
 
-    auto filter(std::convertible_to<std::string> auto... input_args)
+    auto filter(label_compatible auto... input_args)
     {
       static_assert(N == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
@@ -135,7 +103,7 @@ namespace meld {
       return filter({specified_label{std::forward<decltype(input_args)>(input_args)}...});
     }
 
-    auto monitor(std::convertible_to<std::string> auto... input_args)
+    auto monitor(label_compatible auto... input_args)
     {
       static_assert(N == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
@@ -143,7 +111,7 @@ namespace meld {
       return monitor({specified_label{std::forward<decltype(input_args)>(input_args)}...});
     }
 
-    auto transform(std::convertible_to<std::string> auto... input_args)
+    auto transform(label_compatible auto... input_args)
     {
       static_assert(N == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
@@ -151,7 +119,7 @@ namespace meld {
       return transform({specified_label{std::forward<decltype(input_args)>(input_args)}...});
     }
 
-    auto reduce(std::convertible_to<std::string> auto... input_args)
+    auto reduce(label_compatible auto... input_args)
     {
       static_assert(N - 1 == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "

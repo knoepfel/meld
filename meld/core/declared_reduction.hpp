@@ -69,15 +69,14 @@ namespace meld {
                   std::vector<std::string> preceding_filters,
                   tbb::flow::graph& g,
                   function_t&& f,
-                  InputArgs input_args,
-                  std::array<specified_label, N> product_names) :
+                  InputArgs input_args) :
       name_{std::move(name)},
       concurrency_{concurrency},
       preceding_filters_{std::move(preceding_filters)},
       graph_{g},
       ft_{std::move(f)},
       input_args_{std::move(input_args)},
-      product_names_{std::move(product_names)},
+      product_names_{detail::port_names(input_args_)},
       reg_{std::move(reg)}
     {
     }
@@ -90,22 +89,7 @@ namespace meld {
         "The number of function parameters is not the same as the number of returned output "
         "objects.");
       output_keys_ = std::move(output_keys);
-      reg_.set([this] {
-        if (empty(reduction_interval_)) {
-          throw std::runtime_error(
-            "The reduction range must be specified using the 'over(...)' syntax.");
-        }
-        return std::make_unique<total_reduction<std::tuple<>>>(std::move(name_),
-                                                               concurrency_,
-                                                               std::move(preceding_filters_),
-                                                               graph_,
-                                                               std::move(ft_),
-                                                               std::make_tuple(),
-                                                               std::move(input_args_),
-                                                               std::move(product_names_),
-                                                               std::move(output_keys_),
-                                                               std::move(reduction_interval_));
-      });
+      reg_.set([this] { return create(std::make_tuple()); });
       return *this;
     }
 
@@ -126,26 +110,30 @@ namespace meld {
 
     auto& initialized_with(auto&&... ts)
     {
-      reg_.set([this, init = std::tuple{ts...}] {
-        if (empty(reduction_interval_)) {
-          throw std::runtime_error(
-            "The reduction range must be specified using the 'over(...)' syntax.");
-        }
-        return std::make_unique<total_reduction<decltype(init)>>(std::move(name_),
-                                                                 concurrency_,
-                                                                 std::move(preceding_filters_),
-                                                                 graph_,
-                                                                 std::move(ft_),
-                                                                 std::move(init),
-                                                                 std::move(input_args_),
-                                                                 std::move(product_names_),
-                                                                 std::move(output_keys_),
-                                                                 std::move(reduction_interval_));
-      });
+      reg_.set([this, init = std::tuple{ts...}] { return create(std::move(init)); });
       return *this;
     }
 
   private:
+    template <typename T>
+    declared_reduction_ptr create(T init)
+    {
+      if (empty(reduction_interval_)) {
+        throw std::runtime_error(
+          "The reduction range must be specified using the 'over(...)' syntax.");
+      }
+      return std::make_unique<total_reduction<decltype(init)>>(std::move(name_),
+                                                               concurrency_,
+                                                               std::move(preceding_filters_),
+                                                               graph_,
+                                                               std::move(ft_),
+                                                               std::move(init),
+                                                               std::move(input_args_),
+                                                               std::move(product_names_),
+                                                               std::move(output_keys_),
+                                                               std::move(reduction_interval_));
+    }
+
     std::string name_;
     std::size_t concurrency_;
     std::vector<std::string> preceding_filters_;
@@ -162,7 +150,7 @@ namespace meld {
   template <typename InitTuple>
   class pre_reduction<FT, InputArgs>::total_reduction :
     public declared_reduction,
-    public count_stores {
+    private count_stores {
 
   public:
     total_reduction(std::string name,

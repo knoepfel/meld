@@ -53,7 +53,6 @@ namespace meld {
     {
       auto processed_input_args =
         form_input_arguments<input_parameter_types>(std::move(input_args));
-      auto product_names = detail::port_names(processed_input_args);
 
       return partial_splitter<Object, Predicate, Unfold, decltype(processed_input_args)>{
         nodes_.register_splitter(errors_),
@@ -63,11 +62,10 @@ namespace meld {
         graph_,
         std::move(predicate_),
         std::move(unfold_),
-        std::move(processed_input_args),
-        std::move(product_names)};
+        std::move(processed_input_args)};
     }
 
-    auto split(std::convertible_to<std::string> auto... input_args)
+    auto split(label_compatible auto... input_args)
     {
       static_assert(N == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "

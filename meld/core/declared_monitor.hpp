@@ -44,9 +44,68 @@ namespace meld {
   using declared_monitors = std::map<std::string, declared_monitor_ptr>;
 
   // Registering concrete monitors
+  template <is_monitor_like FT, typename InputArgs>
+  class pre_monitor {
+    static constexpr std::size_t N = std::tuple_size_v<InputArgs>;
+    using function_t = FT;
+
+    class complete_monitor;
+
+  public:
+    pre_monitor(registrar<declared_monitors> reg,
+                std::string name,
+                std::size_t concurrency,
+                std::vector<std::string> preceding_filters,
+                tbb::flow::graph& g,
+                function_t&& f,
+                InputArgs input_args) :
+      name_{std::move(name)},
+      concurrency_{concurrency},
+      preceding_filters_{std::move(preceding_filters)},
+      graph_{g},
+      ft_{std::move(f)},
+      input_args_{std::move(input_args)},
+      product_names_{detail::port_names(input_args_)},
+      reg_{std::move(reg)}
+    {
+      reg_.set([this] { return create(); });
+    }
+
+    auto& for_each(std::string const& domain)
+    {
+      for (auto& [_, allowed_domains] : product_names_) {
+        if (empty(allowed_domains)) {
+          allowed_domains.push_back(domain);
+        }
+      }
+      return *this;
+    }
+
+  private:
+    declared_monitor_ptr create()
+    {
+      return std::make_unique<complete_monitor>(std::move(name_),
+                                                concurrency_,
+                                                std::move(preceding_filters_),
+                                                graph_,
+                                                std::move(ft_),
+                                                std::move(input_args_),
+                                                std::move(product_names_));
+    }
+    std::string name_;
+    std::size_t concurrency_;
+    std::vector<std::string> preceding_filters_;
+    tbb::flow::graph& graph_;
+    function_t ft_;
+    InputArgs input_args_;
+    std::array<specified_label, N> product_names_;
+    registrar<declared_monitors> reg_;
+  };
 
   template <is_monitor_like FT, typename InputArgs>
-  class complete_monitor : public declared_monitor, public detect_flush_flag {
+  class pre_monitor<FT, InputArgs>::complete_monitor :
+    public declared_monitor,
+    private detect_flush_flag {
 
     static constexpr auto N = std::tuple_size_v<InputArgs>;
     using function_t = FT;

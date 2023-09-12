@@ -64,22 +64,21 @@ namespace meld {
                   std::vector<std::string> preceding_filters,
                   tbb::flow::graph& g,
                   function_t&& f,
-                  InputArgs input_args,
-                  std::array<specified_label, N> product_names) :
+                  InputArgs input_args) :
       name_{std::move(name)},
       concurrency_{concurrency},
       preceding_filters_{std::move(preceding_filters)},
       graph_{g},
       ft_{std::move(f)},
       input_args_{std::move(input_args)},
-      product_names_{std::move(product_names)},
+      product_names_{detail::port_names(input_args_)},
       reg_{std::move(reg)}
     {
     }
 
     auto& for_each(std::string const& domain)
     {
-      for (auto& [_, allowed_domains] : input_args_) {
+      for (auto& [_, allowed_domains] : product_names_) {
         if (empty(allowed_domains)) {
           allowed_domains.push_back(domain);
         }
@@ -88,7 +87,15 @@ namespace meld {
     }
 
     template <std::size_t Msize>
-    auto& to(std::array<std::string, Msize> output_keys);
+    auto& to(std::array<std::string, Msize> output_keys)
+    {
+      static_assert(
+        M == Msize,
+        "The number of function parameters is not the same as the number of returned output "
+        "objects.");
+      reg_.set([this, outputs = std::move(output_keys)] { return create(std::move(outputs)); });
+      return *this;
+    }
 
     auto& to(std::convertible_to<std::string> auto&&... ts)
     {
@@ -100,6 +107,18 @@ namespace meld {
     }
 
   private:
+    declared_transform_ptr create(std::array<std::string, M> outputs)
+    {
+      return std::make_unique<total_transform<M>>(std::move(name_),
+                                                  concurrency_,
+                                                  std::move(preceding_filters_),
+                                                  graph_,
+                                                  std::move(ft_),
+                                                  std::move(input_args_),
+                                                  std::move(product_names_),
+                                                  std::move(outputs));
+    }
+
     std::string name_;
     std::size_t concurrency_;
     std::vector<std::string> preceding_filters_;
@@ -116,7 +135,7 @@ namespace meld {
   template <std::size_t M>
   class pre_transform<FT, InputArgs>::total_transform :
     public declared_transform,
-    public detect_flush_flag {
+    private detect_flush_flag {
     using stores_t = tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr>;
     using accessor = stores_t::accessor;
     using const_accessor = stores_t::const_accessor;
@@ -235,27 +254,6 @@ namespace meld {
     stores_t stores_;
     std::atomic<std::size_t> calls_;
   };
-
-  template <is_transform_like FT, typename InputArgs>
-  template <std::size_t Msize>
-  auto& pre_transform<FT, InputArgs>::to(std::array<std::string, Msize> output_keys)
-  {
-    static_assert(
-      M == Msize,
-      "The number of function parameters is not the same as the number of returned output "
-      "objects.");
-    reg_.set([this, outputs = std::move(output_keys)] {
-      return std::make_unique<total_transform<M>>(std::move(name_),
-                                                  concurrency_,
-                                                  std::move(preceding_filters_),
-                                                  graph_,
-                                                  std::move(ft_),
-                                                  std::move(input_args_),
-                                                  std::move(product_names_),
-                                                  std::move(outputs));
-    });
-    return *this;
-  }
 
 }
 

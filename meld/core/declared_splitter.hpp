@@ -86,8 +86,7 @@ namespace meld {
                      tbb::flow::graph& g,
                      Predicate&& predicate,
                      Unfold&& unfold,
-                     InputArgs input_args,
-                     std::array<specified_label, N> product_names) :
+                     InputArgs input_args) :
       name_{std::move(name)},
       concurrency_{concurrency},
       preceding_filters_{std::move(preceding_filters)},
@@ -95,26 +94,15 @@ namespace meld {
       predicate_{std::move(predicate)},
       unfold_{std::move(unfold)},
       input_args_{std::move(input_args)},
-      product_names_{std::move(product_names)},
+      product_names_{detail::port_names(input_args_)},
       reg_{std::move(reg)}
     {
     }
 
     template <std::size_t M>
-    auto& into(std::array<std::string, M> output_product_names)
+    auto& into(std::array<std::string, M> output_products)
     {
-      reg_.set([this, output = std::move(output_product_names)] {
-        return std::make_unique<complete_splitter<M>>(std::move(name_),
-                                                      concurrency_,
-                                                      std::move(preceding_filters_),
-                                                      graph_,
-                                                      std::move(predicate_),
-                                                      std::move(unfold_),
-                                                      std::move(input_args_),
-                                                      std::move(product_names_),
-                                                      std::move(output),
-                                                      std::move(new_level_name_));
-      });
+      reg_.set([this, outputs = std::move(output_products)] { return create(std::move(outputs)); });
       return *this;
     }
 
@@ -130,6 +118,21 @@ namespace meld {
     }
 
   private:
+    template <std::size_t M>
+    declared_splitter_ptr create(std::array<std::string, M> outputs)
+    {
+      return std::make_unique<complete_splitter<M>>(std::move(name_),
+                                                    concurrency_,
+                                                    std::move(preceding_filters_),
+                                                    graph_,
+                                                    std::move(predicate_),
+                                                    std::move(unfold_),
+                                                    std::move(input_args_),
+                                                    std::move(product_names_),
+                                                    std::move(outputs),
+                                                    std::move(new_level_name_));
+    }
+
     std::string name_;
     std::size_t concurrency_;
     std::vector<std::string> preceding_filters_;
@@ -148,7 +151,7 @@ namespace meld {
   template <std::size_t M>
   class partial_splitter<Object, Predicate, Unfold, InputArgs>::complete_splitter :
     public declared_splitter,
-    public detect_flush_flag {
+    private detect_flush_flag {
     using stores_t = tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr>;
     using accessor = stores_t::accessor;
     using const_accessor = stores_t::const_accessor;

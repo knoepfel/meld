@@ -1,6 +1,7 @@
 #ifndef meld_core_declared_filter_hpp
 #define meld_core_declared_filter_hpp
 
+#include "meld/core/concepts.hpp"
 #include "meld/core/detail/port_names.hpp"
 #include "meld/core/filter/filter_impl.hpp"
 #include "meld/core/fwd.hpp"
@@ -46,10 +47,72 @@ namespace meld {
   using declared_filter_ptr = std::unique_ptr<declared_filter>;
   using declared_filters = std::map<std::string, declared_filter_ptr>;
 
-  // Registering concrete filters
+  // =====================================================================================
 
-  template <typename FT, typename InputArgs>
-  class complete_filter : public declared_filter, public detect_flush_flag {
+  template <is_filter_like FT, typename InputArgs>
+  class pre_filter {
+    static constexpr std::size_t N = std::tuple_size_v<InputArgs>;
+    using function_t = FT;
+
+    class complete_filter;
+
+  public:
+    pre_filter(registrar<declared_filters> reg,
+               std::string name,
+               std::size_t concurrency,
+               std::vector<std::string> preceding_filters,
+               tbb::flow::graph& g,
+               function_t&& f,
+               InputArgs input_args) :
+      name_{std::move(name)},
+      concurrency_{concurrency},
+      preceding_filters_{std::move(preceding_filters)},
+      graph_{g},
+      ft_{std::move(f)},
+      input_args_{std::move(input_args)},
+      product_names_{detail::port_names(input_args_)},
+      reg_{std::move(reg)}
+    {
+      reg_.set([this] { return create(); });
+    }
+
+    auto& for_each(std::string const& domain)
+    {
+      for (auto& [_, allowed_domains] : product_names_) {
+        if (empty(allowed_domains)) {
+          allowed_domains.push_back(domain);
+        }
+      }
+      return *this;
+    }
+
+  private:
+    declared_filter_ptr create()
+    {
+      return std::make_unique<complete_filter>(std::move(name_),
+                                               concurrency_,
+                                               std::move(preceding_filters_),
+                                               graph_,
+                                               std::move(ft_),
+                                               std::move(input_args_),
+                                               std::move(product_names_));
+    }
+    std::string name_;
+    std::size_t concurrency_;
+    std::vector<std::string> preceding_filters_;
+    tbb::flow::graph& graph_;
+    function_t ft_;
+    InputArgs input_args_;
+    std::array<specified_label, N> product_names_;
+    registrar<declared_filters> reg_;
+  };
+
+  // =====================================================================================
+
+  template <is_filter_like FT, typename InputArgs>
+  class pre_filter<FT, InputArgs>::complete_filter :
+    public declared_filter,
+    private detect_flush_flag {
     static constexpr auto N = std::tuple_size_v<InputArgs>;
     using function_t = FT;
     using results_t = tbb::concurrent_hash_map<level_id::hash_type, filter_result>;
