@@ -42,6 +42,7 @@ add_unit_test(concepts LIBRARIES meld::core)
 add_unit_test(string_literal LIBRARIES meld::utilities)
 add_unit_test(type_deduction LIBRARIES meld::metaprogramming)
 
+add_catch_test(allowed_domains LIBRARIES meld::core Boost::json TEST_DOT_GRAPH)
 add_catch_test(cached_execution LIBRARIES meld::core Boost::json TEST_DOT_GRAPH)
 add_catch_test(cached_product_stores LIBRARIES meld::core)
 add_catch_test(class_registration LIBRARIES meld::core Boost::json)

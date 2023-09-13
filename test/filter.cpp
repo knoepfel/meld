@@ -95,16 +95,18 @@ namespace {
 TEST_CASE("Two filters", "[filtering]")
 {
   framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
-  g.with(evens_only, concurrency::unlimited).filter("num");
-  g.with(odds_only, concurrency::unlimited).filter("num");
+  g.with(evens_only, concurrency::unlimited).filter("num").for_each("event");
+  g.with(odds_only, concurrency::unlimited).filter("num").for_each("event");
   g.make<sum_numbers>(20u)
     .with("add_evens", &sum_numbers::add, concurrency::unlimited)
     .filtered_by("evens_only")
-    .monitor("num");
+    .monitor("num")
+    .for_each("event");
   g.make<sum_numbers>(25u)
     .with("add_odds", &sum_numbers::add, concurrency::unlimited)
     .filtered_by("odds_only")
-    .monitor("num");
+    .monitor("num")
+    .for_each("event");
 
   g.execute("two_independent_filters_t.gv");
 }

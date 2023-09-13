@@ -21,7 +21,7 @@ namespace meld {
     }
 
     auto const parent_hash = id->has_parent() ? id->parent()->level_hash() : -1ull;
-    // Warning: It can happen that two threads get to this location at the same time.  Two
+    // Warning: It can happen that two threads get to this location at the same time.  To
     // guard against overwriting the value of "count", we use the returned iterator "it",
     // which will either refer to the new node in the map, or to the already-emplaced
     // node.  We then increment the count.
