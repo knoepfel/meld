@@ -148,13 +148,13 @@ namespace meld {
         }
       }
 
-      for (auto const& [product_name, allowed_domains] : node->input()) {
+      for (auto const& [product_name, domain] : node->input()) {
         auto it = producers_.find(product_name);
         auto* input_port = collector ? collector : &node->port(product_name);
         if (it == cend(producers_)) {
           // Is there a way to detect mis-specified product dependencies?
-          auto const* domains = allowed_domains.empty() ? nullptr : &allowed_domains;
-          result.push_back({node_name, product_name, domains, input_port});
+          auto const* allowed_domain = domain.empty() ? nullptr : &domain;
+          result.push_back({node_name, product_name, allowed_domain, input_port});
           continue;
         }
 

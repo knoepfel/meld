@@ -30,7 +30,7 @@ namespace meld {
     struct named_input_port {
       std::string node_name;
       std::string product_name;
-      std::vector<std::string> const* accepts_stores;
+      std::string const* domain;
       tbb::flow::receiver<message>* port;
     };
     using head_ports_t = std::vector<named_input_port>;

@@ -8,15 +8,15 @@ local max_number = 100000;
   modules: {
     a_creator: {
       plugin: 'last_index',
-      product_name: 'a',
+      produces: 'a',
     },
     even_filter: {
       plugin: 'accept_even_numbers',
-      product_name: 'a',
+      consumes: 'a',
     },
     fibonacci_filter: {
       plugin: 'accept_fibonacci_numbers',
-      product_name: 'a',
+      consumes: 'a',
       max_number: max_number,
     },
     d: {

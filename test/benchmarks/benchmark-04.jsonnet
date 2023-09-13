@@ -9,7 +9,7 @@
     },
     read_index: {
       plugin: 'read_index',
-      product_name: 'a'
+      consumes: 'a'
     },
   },
 }

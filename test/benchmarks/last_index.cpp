@@ -11,5 +11,5 @@ DEFINE_MODULE(m, config)
 {
   m.with(last_index, concurrency::unlimited)
     .transform("id")
-    .to(config.get<std::string>("product_name", "a"));
+    .to(config.get<std::string>("produces", "a"));
 }

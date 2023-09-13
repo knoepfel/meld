@@ -22,8 +22,13 @@ namespace meld {
 
   bool operator==(specified_label const& a, specified_label const& b)
   {
-    return std::tie(a.name, a.allowed_domains) == std::tie(b.name, b.allowed_domains);
+    return std::tie(a.name, a.domain) == std::tie(b.name, b.domain);
   }
 
   bool operator!=(specified_label const& a, specified_label const& b) { return !(a == b); }
+
+  bool operator<(specified_label const& a, specified_label const& b)
+  {
+    return std::tie(a.name, a.domain) < std::tie(b.name, b.domain);
+  }
 }

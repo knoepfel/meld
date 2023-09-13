@@ -4,8 +4,12 @@
 #include "meld/core/message.hpp"
 #include "meld/core/specified_label.hpp"
 
+#include "fmt/format.h"
+
+#include <algorithm>
 #include <array>
 #include <cstddef>
+#include <set>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -32,8 +36,26 @@ namespace meld {
   // =====================================================================================
 
   template <typename InputTypes, std::size_t N>
-  auto form_input_arguments(std::array<specified_label, N> args)
+  auto form_input_arguments(std::string const& algorithm_name, std::array<specified_label, N> args)
   {
+    auto sorted = args;
+    std::sort(begin(sorted), end(sorted));
+    std::set unique_and_sorted(begin(sorted), end(sorted));
+    std::vector<specified_label> duplicates;
+    std::set_difference(begin(sorted),
+                        end(sorted),
+                        begin(unique_and_sorted),
+                        end(unique_and_sorted),
+                        std::back_inserter(duplicates));
+    if (not empty(duplicates)) {
+      std::string error =
+        fmt::format("Algorithm '{}' uses the following products more than once:\n", algorithm_name);
+      for (auto const& name : duplicates) {
+        error += fmt::format(" - '{}'\n", name.name);
+      }
+      throw std::runtime_error(error);
+    }
+
     return form_input_arguments_impl<InputTypes>(std::move(args), std::make_index_sequence<N>{});
   }
 }

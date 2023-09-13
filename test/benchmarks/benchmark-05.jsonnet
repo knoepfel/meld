@@ -6,11 +6,11 @@
   modules: {
     b_creator: {
       plugin: 'last_index',
-      product_name: 'b',
+      produces: 'b',
     },
     c_creator: {
       plugin: 'last_index',
-      product_name: 'c',
+      produces: 'c',
     },
     d: {
       plugin: 'verify_difference',

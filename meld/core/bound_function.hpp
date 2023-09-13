@@ -49,50 +49,54 @@ namespace meld {
     auto filter(std::array<specified_label, N> input_args)
       requires is_filter_like<FT>
     {
+      auto inputs = form_input_arguments<input_parameter_types>(name_, std::move(input_args));
       return pre_filter{nodes_.register_filter(errors_),
                         std::move(name_),
                         concurrency_.value,
                         node_options_t::release_preceding_filters(),
                         graph_,
                         delegate(obj_, ft_),
-                        form_input_arguments<input_parameter_types>(std::move(input_args))};
+                        std::move(inputs)};
     }
 
     auto monitor(std::array<specified_label, N> input_args)
       requires is_monitor_like<FT>
     {
+      auto inputs = form_input_arguments<input_parameter_types>(name_, std::move(input_args));
       return pre_monitor{nodes_.register_monitor(errors_),
                          std::move(name_),
                          concurrency_.value,
                          node_options_t::release_preceding_filters(),
                          graph_,
                          delegate(obj_, ft_),
-                         form_input_arguments<input_parameter_types>(std::move(input_args))};
+                         std::move(inputs)};
     }
 
     auto transform(std::array<specified_label, N> input_args)
       requires is_transform_like<FT>
     {
+      auto inputs = form_input_arguments<input_parameter_types>(name_, std::move(input_args));
       return pre_transform{nodes_.register_transform(errors_),
                            std::move(name_),
                            concurrency_.value,
                            node_options_t::release_preceding_filters(),
                            graph_,
                            delegate(obj_, ft_),
-                           form_input_arguments<input_parameter_types>(std::move(input_args))};
+                           std::move(inputs)};
     }
 
     auto reduce(std::array<specified_label, N - 1> input_args)
       requires is_reduction_like<FT>
     {
       using all_but_first = skip_first_type<input_parameter_types>;
+      auto inputs = form_input_arguments<all_but_first>(name_, std::move(input_args));
       return pre_reduction{nodes_.register_reduction(errors_),
                            std::move(name_),
                            concurrency_.value,
                            node_options_t::release_preceding_filters(),
                            graph_,
                            delegate(obj_, ft_),
-                           form_input_arguments<all_but_first>(std::move(input_args))};
+                           std::move(inputs)};
     }
 
     auto filter(label_compatible auto... input_args)

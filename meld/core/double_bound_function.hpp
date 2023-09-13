@@ -52,7 +52,7 @@ namespace meld {
     auto split(std::array<specified_label, N> input_args)
     {
       auto processed_input_args =
-        form_input_arguments<input_parameter_types>(std::move(input_args));
+        form_input_arguments<input_parameter_types>(name_, std::move(input_args));
 
       return partial_splitter<Object, Predicate, Unfold, decltype(processed_input_args)>{
         nodes_.register_splitter(errors_),

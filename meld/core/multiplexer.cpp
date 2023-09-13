@@ -45,9 +45,8 @@ namespace meld {
         continue;
       }
 
-      if (auto store_names = head_port.accepts_stores) {
-        if (not binary_search(
-              begin(*store_names), end(*store_names), store_to_send->level_name())) {
+      if (auto allowed_domain = head_port.domain) {
+        if (store_to_send->level_name() != *allowed_domain) {
           continue;
         }
       }

@@ -12,12 +12,12 @@
     },
     even_filter: {
       plugin: 'accept_even_numbers',
-      product_name: 'a',
+      consumes: 'a',
     },
     d: {
       plugin: 'read_index',
       filtered_by: ['even_filter:accept_even_numbers'],
-      product_name: 'b',
+      consumes: 'b',
     },
   },
 }

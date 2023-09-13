@@ -36,7 +36,7 @@ namespace {
       }
 
       auto store = stores.get_store(*it_++);
-      store->add_product("id", store->id());
+      store->add_product("id", *store->id());
       return store;
     }
 

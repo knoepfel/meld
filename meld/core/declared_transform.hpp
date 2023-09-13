@@ -78,9 +78,9 @@ namespace meld {
 
     auto& for_each(std::string const& domain)
     {
-      for (auto& [_, allowed_domains] : product_names_) {
-        if (empty(allowed_domains)) {
-          allowed_domains.push_back(domain);
+      for (auto& [_, allowed_domain] : product_names_) {
+        if (empty(allowed_domain)) {
+          allowed_domain = domain;
         }
       }
       return *this;
