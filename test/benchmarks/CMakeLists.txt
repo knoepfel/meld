@@ -1,5 +1,8 @@
 jsonnet_so_workaround()
 
+add_library(fibonacci_numbers SHARED fibonacci_numbers.cpp)
+target_include_directories(fibonacci_numbers PRIVATE ${PROJECT_SOURCE_DIR})
+
 add_library(benchmarks_source MODULE benchmarks_source.cpp)
 target_link_libraries(benchmarks_source PRIVATE meld::model Boost::json)
 
@@ -25,7 +28,10 @@ add_library(accept_even_numbers MODULE accept_even_numbers.cpp)
 target_link_libraries(accept_even_numbers PRIVATE meld::module)
 
 add_library(accept_fibonacci_numbers MODULE accept_fibonacci_numbers.cpp)
-target_link_libraries(accept_fibonacci_numbers PRIVATE meld::module)
+target_link_libraries(accept_fibonacci_numbers PRIVATE meld::module fibonacci_numbers)
+
+add_library(verify_even_fibonacci_numbers MODULE verify_even_fibonacci_numbers.cpp)
+target_link_libraries(verify_even_fibonacci_numbers PRIVATE meld::module fibonacci_numbers)
 
 add_library(verify_difference MODULE verify_difference.cpp)
 target_link_libraries(verify_difference PRIVATE meld::module)

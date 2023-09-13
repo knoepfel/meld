@@ -20,11 +20,10 @@ local max_number = 100000;
       max_number: max_number,
     },
     d: {
-      plugin: 'verify_difference',
+      plugin: 'verify_even_fibonacci_numbers',
       filtered_by: ['even_filter:accept_even_numbers', 'fibonacci_filter:accept'],
-      i: 'a',
-      j: 'a',
-      expected: 0,
+      consumes: 'a',
+      max_number: max_number,
     },
   },
 }
