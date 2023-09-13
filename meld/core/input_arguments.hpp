@@ -18,10 +18,10 @@ namespace meld {
   template <typename T, std::size_t JoinNodePort>
   struct retriever {
     using handle_arg_t = typename handle_for<T>::value_type;
-    std::string name;
+    specified_label label;
     auto retrieve(auto const& messages) const
     {
-      return std::get<JoinNodePort>(messages).store->template get_handle<handle_arg_t>(name);
+      return std::get<JoinNodePort>(messages).store->template get_handle<handle_arg_t>(label.name);
     }
   };
 
@@ -30,7 +30,7 @@ namespace meld {
                                  std::index_sequence<Is...>)
   {
     return std::make_tuple(
-      retriever<std::tuple_element_t<Is, InputTypes>, Is>{std::move(args[Is].name)}...);
+      retriever<std::tuple_element_t<Is, InputTypes>, Is>{std::move(args[Is])}...);
   }
 
   // =====================================================================================
@@ -50,8 +50,8 @@ namespace meld {
     if (not empty(duplicates)) {
       std::string error =
         fmt::format("Algorithm '{}' uses the following products more than once:\n", algorithm_name);
-      for (auto const& name : duplicates) {
-        error += fmt::format(" - '{}'\n", name.name);
+      for (auto const& label : duplicates) {
+        error += fmt::format(" - '{}'\n", label.to_string());
       }
       throw std::runtime_error(error);
     }

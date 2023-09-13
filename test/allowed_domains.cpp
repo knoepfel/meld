@@ -47,8 +47,7 @@ namespace {
 
   void check_two_ids(level_id const& parent_id, level_id const& id)
   {
-    CHECK(id.depth() == 3ull);
-    CHECK(parent_id.depth() == 3ull);
+    CHECK(parent_id.depth() + 1ull == id.depth());
     CHECK(parent_id.hash() == id.parent()->hash());
   }
 
@@ -70,10 +69,12 @@ TEST_CASE("Testing domains", "[data model]")
 {
   source src;
   framework_graph g{[&src](cached_product_stores& stores) mutable { return src.next(stores); }, 1};
-  g.with(check_two_ids).monitor("id"_in("subrun"), "id").for_each("event");
-  g.with(check_three_ids).monitor("id"_in("run"), "id"_in("subrun"), "id").for_each("event");
-  CHECK_THROWS(g.execute("allowed_domains_t.gv")); // Due to duplicate product names
+  g.with("se", check_two_ids).monitor("id"_in("subrun"), "id").for_each("event");
+  g.with("rs", check_two_ids).monitor("id"_in("run"), "id").for_each("subrun");
+  g.with("rse", check_three_ids).monitor("id"_in("run"), "id"_in("subrun"), "id").for_each("event");
+  g.execute("allowed_domains_t.gv");
 
-  CHECK(g.execution_counts("check_two_ids") == 0ull);
-  CHECK(g.execution_counts("check_three_ids") == 0ull);
+  CHECK(g.execution_counts("se") == 1ull);
+  CHECK(g.execution_counts("rs") == 1ull);
+  CHECK(g.execution_counts("rse") == 1ull);
 }

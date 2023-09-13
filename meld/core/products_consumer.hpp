@@ -22,13 +22,13 @@ namespace meld {
 
     std::size_t num_inputs() const;
 
-    tbb::flow::receiver<message>& port(std::string const& product_name);
+    tbb::flow::receiver<message>& port(specified_label const& product_label);
     virtual std::vector<tbb::flow::receiver<message>*> ports() = 0;
     virtual std::span<specified_label const, std::dynamic_extent> input() const = 0;
     virtual std::size_t num_calls() const = 0;
 
   private:
-    virtual tbb::flow::receiver<message>& port_for(std::string const& product_name) = 0;
+    virtual tbb::flow::receiver<message>& port_for(specified_label const& product_label) = 0;
   };
 }
 

@@ -94,7 +94,7 @@ namespace meld {
       predicate_{std::move(predicate)},
       unfold_{std::move(unfold)},
       input_args_{std::move(input_args)},
-      product_names_{detail::port_names(input_args_)},
+      product_labels_{detail::port_names(input_args_)},
       reg_{std::move(reg)}
     {
     }
@@ -128,7 +128,7 @@ namespace meld {
                                                     std::move(predicate_),
                                                     std::move(unfold_),
                                                     std::move(input_args_),
-                                                    std::move(product_names_),
+                                                    std::move(product_labels_),
                                                     std::move(outputs),
                                                     std::move(new_level_name_));
     }
@@ -140,7 +140,7 @@ namespace meld {
     Predicate predicate_;
     Unfold unfold_;
     InputArgs input_args_;
-    std::array<specified_label, N> product_names_;
+    std::array<specified_label, N> product_labels_;
     std::string new_level_name_;
     registrar<declared_splitters> reg_;
   };
@@ -164,11 +164,11 @@ namespace meld {
                       Predicate&& predicate,
                       Unfold&& unfold,
                       InputArgs input,
-                      std::array<specified_label, N> product_names,
+                      std::array<specified_label, N> product_labels,
                       std::array<std::string, M> output_products,
                       std::string new_level_name) :
       declared_splitter{std::move(name), std::move(preceding_filters)},
-      product_names_{std::move(product_names)},
+      product_labels_{std::move(product_labels)},
       input_{std::move(input)},
       output_{std::move(output_products)},
       new_level_name_{std::move(new_level_name)},
@@ -217,9 +217,9 @@ namespace meld {
     }
 
   private:
-    tbb::flow::receiver<message>& port_for(std::string const& product_name) override
+    tbb::flow::receiver<message>& port_for(specified_label const& product_label) override
     {
-      return receiver_for<N>(join_, product_names_, product_name);
+      return receiver_for<N>(join_, product_labels_, product_label);
     }
     std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
@@ -227,7 +227,7 @@ namespace meld {
 
     std::span<specified_label const, std::dynamic_extent> input() const override
     {
-      return product_names_;
+      return product_labels_;
     }
     std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
 
@@ -262,7 +262,7 @@ namespace meld {
 
     std::size_t num_calls() const final { return calls_.load(); }
 
-    std::array<specified_label, N> product_names_;
+    std::array<specified_label, N> product_labels_;
     InputArgs input_;
     std::array<std::string, M> output_;
     std::string new_level_name_;

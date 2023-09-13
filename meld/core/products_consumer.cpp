@@ -12,9 +12,9 @@ namespace meld {
 
   std::size_t products_consumer::num_inputs() const { return input().size(); }
 
-  tbb::flow::receiver<message>& products_consumer::port(std::string const& product_name)
+  tbb::flow::receiver<message>& products_consumer::port(specified_label const& product_label)
   {
-    return port_for(product_name);
+    return port_for(product_label);
   }
 
 }

@@ -72,8 +72,8 @@ namespace meld {
     }
   }
 
-  std::size_t port_index_for(std::span<specified_label const> product_names,
-                             std::string const& product_name);
+  std::size_t port_index_for(std::span<specified_label const> product_labels,
+                             specified_label const& product_label);
 
   template <std::size_t I, std::size_t N>
   tbb::flow::receiver<message>& receiver_for(detail::join_messages_t<N>& join,
@@ -90,11 +90,11 @@ namespace meld {
 
   template <std::size_t N>
   tbb::flow::receiver<message>& receiver_for(join_or_none_t<N>& join,
-                                             std::span<specified_label const> product_names,
-                                             std::string const& product_name)
+                                             std::span<specified_label const> product_labels,
+                                             specified_label const& product_label)
   {
     if constexpr (N > 1ull) {
-      auto const index = port_index_for(product_names, product_name);
+      auto const index = port_index_for(product_labels, product_label);
       return receiver_for<0ull, N>(join, index);
     }
     else {

@@ -76,7 +76,7 @@ namespace meld {
       graph_{g},
       ft_{std::move(f)},
       input_args_{std::move(input_args)},
-      product_names_{detail::port_names(input_args_)},
+      product_labels_{detail::port_names(input_args_)},
       reg_{std::move(reg)}
     {
     }
@@ -129,7 +129,7 @@ namespace meld {
                                                                std::move(ft_),
                                                                std::move(init),
                                                                std::move(input_args_),
-                                                               std::move(product_names_),
+                                                               std::move(product_labels_),
                                                                std::move(output_keys_),
                                                                std::move(reduction_interval_));
     }
@@ -140,7 +140,7 @@ namespace meld {
     tbb::flow::graph& graph_;
     function_t ft_;
     InputArgs input_args_;
-    std::array<specified_label, N> product_names_;
+    std::array<specified_label, N> product_labels_;
     std::string reduction_interval_{level_id::base().level_name()};
     std::array<std::string, M> output_keys_;
     registrar<declared_reductions> reg_;
@@ -160,12 +160,12 @@ namespace meld {
                     function_t&& f,
                     InitTuple initializer,
                     InputArgs input,
-                    std::array<specified_label, N> product_names,
+                    std::array<specified_label, N> product_labels,
                     std::array<std::string, M> output,
                     std::string reduction_interval) :
       declared_reduction{std::move(name), std::move(preceding_filters)},
       initializer_{std::move(initializer)},
-      product_names_{std::move(product_names)},
+      product_labels_{std::move(product_labels)},
       input_{std::move(input)},
       output_{std::move(output)},
       reduction_interval_{std::move(reduction_interval)},
@@ -222,9 +222,9 @@ namespace meld {
     }
 
   private:
-    tbb::flow::receiver<message>& port_for(std::string const& product_name) override
+    tbb::flow::receiver<message>& port_for(specified_label const& product_label) override
     {
-      return receiver_for<N>(join_, product_names_, product_name);
+      return receiver_for<N>(join_, product_labels_, product_label);
     }
 
     std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
@@ -233,7 +233,7 @@ namespace meld {
     tbb::flow::sender<message>& to_output() override { return sender(); }
     std::span<specified_label const, std::dynamic_extent> input() const override
     {
-      return product_names_;
+      return product_labels_;
     }
     std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
 
@@ -279,7 +279,7 @@ namespace meld {
     }
 
     InitTuple initializer_;
-    std::array<specified_label, N> product_names_;
+    std::array<specified_label, N> product_labels_;
     InputArgs input_;
     std::array<std::string, M> output_;
     std::string reduction_interval_;

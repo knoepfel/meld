@@ -85,7 +85,7 @@ namespace meld {
                                 dot::attributes attrs);
 
     std::unique_ptr<std::ofstream> fout_{nullptr};
-    std::map<product_name_t, meld::multiplexer::named_output_port> producers_;
+    std::map<product_name_t, multiplexer::named_output_port> producers_;
     declared_outputs& outputs_;
     std::map<std::string, dot::attributes> attributes_;
   };
@@ -148,13 +148,12 @@ namespace meld {
         }
       }
 
-      for (auto const& [product_name, domain] : node->input()) {
-        auto it = producers_.find(product_name);
-        auto* input_port = collector ? collector : &node->port(product_name);
+      for (auto const& product_label : node->input()) {
+        auto it = producers_.find(product_label.name);
+        auto* input_port = collector ? collector : &node->port(product_label);
         if (it == cend(producers_)) {
           // Is there a way to detect mis-specified product dependencies?
-          auto const* allowed_domain = domain.empty() ? nullptr : &domain;
-          result.push_back({node_name, product_name, allowed_domain, input_port});
+          result[node_name].push_back({product_label, input_port});
           continue;
         }
 
@@ -165,7 +164,7 @@ namespace meld {
           dot_normal_edge(*fout_,
                           sender_name,
                           node_name,
-                          {.arrowtail = src_attributes.arrowtail, .label = product_name});
+                          {.arrowtail = src_attributes.arrowtail, .label = product_label.name});
         }
       }
     }
@@ -174,7 +173,7 @@ namespace meld {
 
   template <typename... Args>
   void edge_maker::operator()(tbb::flow::input_node<message>& source,
-                              meld::multiplexer& multi,
+                              multiplexer& multi,
                               std::map<std::string, result_collector>& filter_collectors,
                               consumers<Args>... cons)
   {
@@ -183,7 +182,7 @@ namespace meld {
     make_edge(source, multi);
 
     // Create edges to outputs
-    auto& splitters = std::get<consumers<meld::declared_splitters>&>(std::tie(cons...));
+    auto& splitters = std::get<consumers<declared_splitters>&>(std::tie(cons...));
 
     for (auto const& [name, output_node] : outputs_) {
       make_edge(source, output_node->port());
@@ -209,11 +208,8 @@ namespace meld {
     }
 
     // Create normal edges
-    meld::multiplexer::head_ports_t head_ports;
-    auto append = [](auto& heads, auto const& new_heads) {
-      heads.insert(end(heads), begin(new_heads), end(new_heads));
-    };
-    (append(head_ports, edges(filter_collectors, cons)), ...);
+    multiplexer::head_ports_t head_ports;
+    (head_ports.merge(edges(filter_collectors, cons)), ...);
 
     // Create head nodes for splitters
     auto get_consumed_products = [](auto const& cons, auto& products) {
@@ -229,17 +225,19 @@ namespace meld {
 
     std::set<std::string> remove_ports_for_products;
     for (auto const& [name, splitter] : splitters.data) {
-      meld::multiplexer::head_ports_t heads;
+      multiplexer::head_ports_t heads;
       for (auto const& product_name : splitter->output()) {
         // There can be multiple head nodes that require the same product.
         remove_ports_for_products.insert(product_name);
-        for (auto const& port : head_ports) {
-          if (port.product_name != product_name) {
-            continue;
-          }
-          heads.push_back(port);
-          if (fout_) {
-            dot_multiplexing_edge(*fout_, name, port.node_name, {.label = product_name});
+        for (auto const& [node_name, ports] : head_ports) {
+          for (auto const& port : ports) {
+            if (port.product_label.name != product_name) {
+              continue;
+            }
+            heads[node_name].push_back(port);
+            if (fout_) {
+              dot_multiplexing_edge(*fout_, name, node_name, {.label = product_name});
+            }
           }
         }
       }
@@ -248,13 +246,17 @@ namespace meld {
 
     // Remove head nodes claimed by splitters
     for (auto const& key : remove_ports_for_products) {
-      std::erase_if(head_ports, [&key](auto const& port) { return port.product_name == key; });
+      for (auto& [_, ports] : head_ports) {
+        std::erase_if(ports, [&key](auto const& port) { return port.product_label.name == key; });
+      }
     }
 
     if (fout_) {
-      for (auto const& head_port : head_ports) {
-        dot_multiplexing_edge(
-          *fout_, "Multiplexer", head_port.node_name, {.label = head_port.product_name});
+      for (auto const& [node_name, ports] : head_ports) {
+        for (auto const& head_port : ports) {
+          dot_multiplexing_edge(
+            *fout_, "Multiplexer", node_name, {.label = head_port.product_label.to_string()});
+        }
       }
     }
 
