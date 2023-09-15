@@ -15,8 +15,9 @@ namespace meld {
 
   product_store_const_ptr generator::make_child(std::size_t const i, products new_products)
   {
-    ++child_counts_[new_level_name_];
-    return parent_->make_child(i, new_level_name_, node_name_, std::move(new_products));
+    auto child = parent_->make_child(i, new_level_name_, node_name_, std::move(new_products));
+    ++child_counts_[child->id()->level_hash()];
+    return child;
   }
 
   product_store_const_ptr generator::flush_store() const
@@ -24,8 +25,7 @@ namespace meld {
     auto result = parent_->make_flush();
     if (not child_counts_.empty()) {
       result->add_product("[flush]",
-                          std::make_shared<flush_counts const>(parent_->id()->level_name(),
-                                                               std::move(child_counts_)));
+                          std::make_shared<flush_counts const>(std::move(child_counts_)));
     }
     return result;
   }

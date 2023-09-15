@@ -2,10 +2,15 @@
 #include "meld/model/level_hierarchy.hpp"
 #include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
+#include "meld/utilities/hashing.hpp"
 
 #include "catch2/catch.hpp"
 
 using namespace meld;
+
+namespace {
+  auto const job_hash_value = hash("job");
+}
 
 TEST_CASE("Counter with nothing processed", "[data model]")
 {
@@ -19,7 +24,8 @@ TEST_CASE("Counter one layer deep", "[data model]")
   for (std::size_t i = 0; i != 10; ++i) {
     job_counter.make_child("event");
   }
-  CHECK(job_counter.result().count_for("event") == 10);
+  auto const event_hash_value = hash(job_hash_value, "event");
+  CHECK(job_counter.result().count_for(event_hash_value) == 10);
 }
 
 TEST_CASE("Counter multiple layers deep", "[data model]")
@@ -44,6 +50,10 @@ TEST_CASE("Counter multiple layers deep", "[data model]")
     CHECK(h.count_for("event") == processed_events);
   };
 
+  auto const run_hash_value = hash(job_hash_value, "run");
+  auto const subrun_hash_value = hash(run_hash_value, "subrun");
+  auto const event_hash_value = hash(subrun_hash_value, "event");
+
   auto job_store = product_store::base();
   counters.update(job_store->id());
   for (std::size_t i = 0; i != nruns; ++i) {
@@ -66,23 +76,23 @@ TEST_CASE("Counter multiple layers deep", "[data model]")
       auto results = counters.extract(subrun_store->id());
       ++processed_subruns;
 
-      CHECK(results.count_for("event"));
+      CHECK(results.count_for(event_hash_value));
       check_all_processed();
     }
     h.increment_count(run_store->id());
     auto results = counters.extract(run_store->id());
     ++processed_runs;
 
-    CHECK(results.count_for("event") == nevents_per_subrun * nsubruns_per_run);
-    CHECK(results.count_for("subrun") == nsubruns_per_run);
+    CHECK(results.count_for(event_hash_value) == nevents_per_subrun * nsubruns_per_run);
+    CHECK(results.count_for(subrun_hash_value) == nsubruns_per_run);
     check_all_processed();
   }
   h.increment_count(job_store->id());
   auto results = counters.extract(job_store->id());
   ++processed_jobs;
 
-  CHECK(results.count_for("event") == nevents_per_subrun * nsubruns_per_run * nruns);
-  CHECK(results.count_for("subrun") == nsubruns_per_run * nruns);
-  CHECK(results.count_for("run") == nruns);
+  CHECK(results.count_for(event_hash_value) == nevents_per_subrun * nsubruns_per_run * nruns);
+  CHECK(results.count_for(subrun_hash_value) == nsubruns_per_run * nruns);
+  CHECK(results.count_for(run_hash_value) == nruns);
   check_all_processed();
 }

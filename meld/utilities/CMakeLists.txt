@@ -1,4 +1,4 @@
-add_library(meld_utilities SHARED resource_usage.cpp)
+add_library(meld_utilities SHARED hashing.cpp resource_usage.cpp)
 target_include_directories(meld_utilities PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(meld_utilities PRIVATE spdlog::spdlog)
 

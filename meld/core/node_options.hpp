@@ -6,12 +6,8 @@
 // in C++23 (which will largely replace CRTP).
 // =======================================================================================
 
-#include "meld/concurrency.hpp"
 #include "meld/configuration.hpp"
-#include "meld/core/concepts.hpp"
-#include "meld/core/input_arguments.hpp"
 
-#include <concepts>
 #include <optional>
 #include <string>
 #include <vector>
@@ -40,7 +36,6 @@ namespace meld {
       if (!config) {
         return;
       }
-      // concurrency_ = config->get_if_present<int>("concurrency");
       preceding_filters_ = config->get_if_present<std::vector<std::string>>("filtered_by");
     }
 
@@ -48,9 +43,6 @@ namespace meld {
     {
       return std::move(preceding_filters_).value_or(std::vector<std::string>{});
     }
-
-    // FIXME: These are the allowed levels that each algorithm may process.
-    std::vector<std::string> release_store_names() { return {}; }
 
   private:
     auto& self() { return *static_cast<T*>(this); }

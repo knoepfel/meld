@@ -53,7 +53,7 @@ namespace meld {
     product_store_ptr parent_;
     std::string const& node_name_;
     std::string const& new_level_name_;
-    std::map<std::string, std::size_t> child_counts_;
+    std::map<level_id::hash_type, std::size_t> child_counts_;
   };
 
   class declared_splitter : public products_consumer {

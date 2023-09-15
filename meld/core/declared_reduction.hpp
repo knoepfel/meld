@@ -202,7 +202,7 @@ namespace meld {
           }
           else {
             call(ft, messages, std::make_index_sequence<N>{});
-            counter.increment(store->id()->level_name());
+            counter.increment(store->id()->level_hash());
           }
           ca.release();
 

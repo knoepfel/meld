@@ -43,7 +43,7 @@ namespace meld {
     explicit level_id(level_id_ptr parent, std::size_t i, std::string level_name);
     level_id_ptr parent_{nullptr};
     std::size_t number_{-1ull};
-    std::string level_name_{"job"};
+    std::string level_name_;
     std::size_t level_hash_;
     std::size_t depth_{};
     hash_type hash_{0};

@@ -1,19 +1,21 @@
 #include "meld/model/level_counter.hpp"
+#include "meld/utilities/hashing.hpp"
 
 #include <cassert>
 
 namespace meld {
 
-  flush_counts::flush_counts(std::string level_name) : level_name_{std::move(level_name)} {}
+  flush_counts::flush_counts() = default;
 
-  flush_counts::flush_counts(std::string level_name,
-                             std::map<std::string, std::size_t> child_counts) :
-    level_name_{std::move(level_name)}, child_counts_{std::move(child_counts)}
+  flush_counts::flush_counts(std::map<level_id::hash_type, std::size_t> child_counts) :
+    child_counts_{std::move(child_counts)}
   {
   }
 
-  level_counter::level_counter(level_counter* parent, std::string level_name) :
-    parent_{parent}, level_name_{std::move(level_name)}
+  level_counter::level_counter() : level_counter{nullptr, "job"} {}
+
+  level_counter::level_counter(level_counter* parent, std::string const& level_name) :
+    parent_{parent}, level_hash_{parent_ ? hash(parent->level_hash_, level_name) : hash(level_name)}
   {
   }
 
@@ -24,20 +26,20 @@ namespace meld {
     }
   }
 
-  level_counter level_counter::make_child(std::string level_name)
+  level_counter level_counter::make_child(std::string const& level_name)
   {
-    return {this, std::move(level_name)};
+    return {this, level_name};
   }
 
   void level_counter::adjust(level_counter& child)
   {
-    auto it = child_counts_.find(child.level_name_);
-    if (it == cend(child_counts_)) {
-      it = child_counts_.try_emplace(child.level_name_, 0).first;
+    auto it2 = child_counts_.find(child.level_hash_);
+    if (it2 == cend(child_counts_)) {
+      it2 = child_counts_.try_emplace(child.level_hash_, 0).first;
     }
-    ++it->second;
-    for (auto const& [nested_level_name, count] : child.child_counts_) {
-      child_counts_[nested_level_name] += count;
+    ++it2->second;
+    for (auto const& [nested_level_hash, count] : child.child_counts_) {
+      child_counts_[nested_level_hash] += count;
     }
   }
 

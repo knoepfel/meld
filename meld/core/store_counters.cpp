@@ -13,12 +13,6 @@ namespace meld {
 
   bool store_flag::is_flush(level_id const* /*id*/) noexcept
   {
-    // if (id) {
-    //   spdlog::info(" ===> Checking {}: Processed {}  Flush received {}",
-    //                id->to_string(),
-    //                processed_,
-    //                flush_received_);
-    // }
     return processed_ and flush_received_;
   }
 
@@ -58,7 +52,7 @@ namespace meld {
     original_message_id_ = original_message_id;
   }
 
-  void store_counter::increment(std::string const& level_name) { ++counts_[level_name]; }
+  void store_counter::increment(level_id::hash_type const level_hash) { ++counts_[level_hash]; }
 
   bool store_counter::is_flush()
   {
@@ -81,8 +75,8 @@ namespace meld {
       return false;
     }
 
-    for (auto const& [name, count] : counts_) {
-      auto maybe_count = flush_counts->count_for(name);
+    for (auto const& [level_hash, count] : counts_) {
+      auto maybe_count = flush_counts->count_for(level_hash);
       if (!maybe_count or count != *maybe_count) {
         return false;
       }

@@ -1,8 +1,7 @@
 #include "meld/model/level_id.hpp"
+#include "meld/utilities/hashing.hpp"
 
 #include "boost/algorithm/string.hpp"
-#include "boost/functional/hash.hpp"
-#include "fmt/ranges.h"
 
 #include <algorithm>
 #include <iostream>
@@ -12,18 +11,6 @@
 #include <stdexcept>
 
 namespace {
-
-  std::hash<std::string> const string_hasher{};
-  std::size_t hash_numbers(std::size_t i, std::size_t j)
-  {
-    boost::hash_combine(i, j);
-    return i;
-  }
-
-  std::size_t hash_numbers(std::size_t i, std::size_t j, std::size_t k)
-  {
-    return hash_numbers(hash_numbers(i, j), k);
-  }
 
   std::vector<std::size_t> all_numbers(meld::level_id const& id)
   {
@@ -44,19 +31,17 @@ namespace {
 
 namespace meld {
 
-  level_id::level_id() : level_hash_{string_hasher(level_name_)} {}
+  level_id::level_id() : level_name_{"job"}, level_hash_{meld::hash(level_name_)} {}
 
   level_id::level_id(level_id_ptr parent, std::size_t i, std::string level_name) :
     parent_{std::move(parent)},
     number_{i},
     level_name_{std::move(level_name)},
-    level_hash_{hash_numbers(parent_->level_hash_, string_hasher(level_name_))},
+    level_hash_{meld::hash(parent_->level_hash_, level_name_)},
     depth_{parent_->depth_ + 1},
-    hash_{hash_numbers(parent_->hash_, number_, level_hash_)}
+    hash_{meld::hash(parent_->hash_, number_, level_hash_)}
   {
-    // if (empty(level_name_)) {
-    //   throw std::runtime_error("Cannot create a level ID with no level name");
-    // }
+    // FIXME: Should it be an error to create an ID with an empty name?
   }
 
   level_id const& level_id::base() { return *base_ptr(); }
