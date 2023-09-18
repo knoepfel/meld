@@ -58,12 +58,7 @@ namespace meld {
     operator const_reference() const noexcept { return operator*(); }
     operator const_pointer() const noexcept { return operator->(); }
 
-    level_id const& id()
-      const noexcept // FIXME: Should probably get a separate function name to distinguish it
-                     //        from product IDs, which are not yet implemented
-    {
-      return *id_;
-    }
+    auto const& level_id() const noexcept { return *id_; }
 
     template <typename U>
     friend class handle;
@@ -78,7 +73,7 @@ namespace meld {
   private:
     std::variant<const_pointer, err_t> rep_{"Cannot dereference empty handle of type '" +
                                             boost::core::demangle(typeid(T).name()) + "'."};
-    level_id const* id_;
+    class level_id const* id_;
   };
 
   template <typename T>

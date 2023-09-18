@@ -41,7 +41,7 @@ TEST_CASE("Handle type conversions (run-time checks)", "[data model]")
   product<int> const number{3};
   handle const h{number};
   CHECK(handle<int const>{number} == h);
-  CHECK(h.id() == level_id::base());
+  CHECK(h.level_id() == level_id::base());
 
   int const& num_ref = h;
   int const* num_ptr = h;

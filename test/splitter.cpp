@@ -66,7 +66,7 @@ namespace {
 
   void check_sum(handle<unsigned int> const sum)
   {
-    if (sum.id().number() == 0ull) {
+    if (sum.level_id().number() == 0ull) {
       CHECK(*sum == 45);
     }
     else {
@@ -74,9 +74,9 @@ namespace {
     }
   }
 
-  void check_sum_same [[maybe_unused]] (handle<unsigned int> const sum)
+  void check_sum_same(handle<unsigned int> const sum)
   {
-    auto const expected_sum = (sum.id().number() + 1) * 10;
+    auto const expected_sum = (sum.level_id().number() + 1) * 10;
     CHECK(*sum == expected_sum);
   }
 }

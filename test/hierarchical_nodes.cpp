@@ -72,7 +72,7 @@ namespace {
   void print_result(handle<double> result, std::string const& stringized_time)
   {
     spdlog::debug("{}: {} @ {}",
-                  result.id().to_string(),
+                  result.level_id().to_string(),
                   *result,
                   stringized_time.substr(0, stringized_time.find('\n')));
   }
