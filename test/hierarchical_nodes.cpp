@@ -22,7 +22,7 @@
 #include "meld/model/product_store.hpp"
 #include "test/products_for_output.hpp"
 
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 #include "spdlog/spdlog.h"
 
 #include <atomic>

@@ -28,7 +28,7 @@
 #include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
 
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 #include "spdlog/spdlog.h"
 
 #include <atomic>

@@ -39,10 +39,7 @@ namespace meld {
       return bound_function{config_, std::move(name), bound_obj_, f, c, graph_, nodes_, errors_};
     }
 
-    auto with(auto f, concurrency c = concurrency::serial)
-    {
-      return with(function_name(f), f, c);
-    }
+    auto with(auto f, concurrency c = concurrency::serial) { return with(function_name(f), f, c); }
 
     auto output_with(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
     {

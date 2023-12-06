@@ -1,5 +1,3 @@
-jsonnet_so_workaround()
-
 include(NProc)
 
 add_library(check_parallelism MODULE check_parallelism.cpp)

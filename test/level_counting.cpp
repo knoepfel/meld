@@ -4,7 +4,7 @@
 #include "meld/model/product_store.hpp"
 #include "meld/utilities/hashing.hpp"
 
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 
 using namespace meld;
 

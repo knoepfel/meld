@@ -12,6 +12,8 @@ if (JSONNET_EXE)
   endif()
   find_library(${CMAKE_FIND_PACKAGE_NAME}_LIBRARY NAMES jsonnet++)
   mark_as_advanced(${CMAKE_FIND_PACKAGE_NAME}_LIBRARY)
+  find_library(${CMAKE_FIND_PACKAGE_NAME}_CLIBRARY NAMES jsonnet)
+  mark_as_advanced(${CMAKE_FIND_PACKAGE_NAME}_CLIBRARY)
 endif()
 
 include(FindPackageHandleStandardArgs)
@@ -28,13 +30,7 @@ if (${CMAKE_FIND_PACKAGE_NAME}_FOUND)
     add_library(jsonnet::lib SHARED IMPORTED)
     set_target_properties(jsonnet::lib PROPERTIES
       IMPORTED_LOCATION "${${CMAKE_FIND_PACKAGE_NAME}_LIBRARY}"
-      INTERFACE_INCLUDE_DIRECTORIES "${${CMAKE_FIND_PACKAGE_NAME}_INCLUDE_DIR}")
+      INTERFACE_INCLUDE_DIRECTORIES "${${CMAKE_FIND_PACKAGE_NAME}_INCLUDE_DIR}"
+      INTERFACE_LINK_LIBRARIES ${${CMAKE_FIND_PACKAGE_NAME}_CLIBRARY})
   endif()
 endif()
-
-cmake_path(GET jsonnet_LIBRARY FILENAME JSONNET_LIBNAME)
-
-function(jsonnet_so_workaround)
-  file(CREATE_LINK ${jsonnet_LIBRARY} ${CMAKE_CURRENT_BINARY_DIR}/${JSONNET_LIBNAME} SYMBOLIC)
-  file(CREATE_LINK ${jsonnet_LIBRARY}.0 ${CMAKE_CURRENT_BINARY_DIR}/${JSONNET_LIBNAME}.0 SYMBOLIC)
-endfunction()

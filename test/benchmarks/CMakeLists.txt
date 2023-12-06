@@ -1,5 +1,3 @@
-jsonnet_so_workaround()
-
 add_library(fibonacci_numbers SHARED fibonacci_numbers.cpp)
 target_include_directories(fibonacci_numbers PRIVATE ${PROJECT_SOURCE_DIR})
 

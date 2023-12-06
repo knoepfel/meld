@@ -5,7 +5,7 @@
 #include "meld/model/level_hierarchy.hpp"
 #include "meld/model/product_store.hpp"
 
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 #include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/concurrent_vector.h"
 #include "oneapi/tbb/flow_graph.h"

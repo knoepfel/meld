@@ -32,7 +32,7 @@
 #include "meld/source.hpp"
 #include "test/cached_execution_source.hpp"
 
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 
 using namespace meld;
 using namespace test;

@@ -17,6 +17,7 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
 list(PREPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/Modules)
 
 find_library(BACKTRACE_LIB backtrace REQUIRED)
+find_path(BACKTRACE_INC backtrace.h REQUIRED)
 find_package(Boost REQUIRED COMPONENTS headers json program_options stacktrace_basic)
 find_package(TBB REQUIRED)
 find_package(fmt REQUIRED)

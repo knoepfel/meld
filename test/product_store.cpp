@@ -1,7 +1,7 @@
 #include "meld/model/product_store.hpp"
 #include "meld/model/handle.hpp"
 
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 
 #include <tuple>
 #include <vector>
@@ -18,11 +18,13 @@ TEST_CASE("Product store insertion", "[data model]")
 
   CHECK_THROWS_WITH(
     store->get_product<double>("number"),
-    Catch::Contains("Cannot get product 'number' with type 'double' -- must specify type 'int'."));
+    Catch::Matchers::ContainsSubstring(
+      "Cannot get product 'number' with type 'double' -- must specify type 'int'."));
 
   auto invalid_handle = store->get_handle<int>("wrong_key");
   CHECK(!invalid_handle);
-  auto const matcher = Catch::Contains("No product exists with the name 'wrong_key'.");
+  auto const matcher =
+    Catch::Matchers::ContainsSubstring("No product exists with the name 'wrong_key'.");
   CHECK_THROWS_WITH(*invalid_handle, matcher);
   CHECK_THROWS_WITH(invalid_handle.operator->(), matcher);
 

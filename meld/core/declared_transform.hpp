@@ -25,6 +25,7 @@
 #include <iterator>
 #include <map>
 #include <memory>
+#include <ranges>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -78,7 +79,7 @@ namespace meld {
 
     auto& for_each(std::string const& domain)
     {
-      for (auto& [_, allowed_domain] : product_labels_) {
+      for (auto& allowed_domain : product_labels_ | std::views::transform(to_domain)) {
         if (empty(allowed_domain)) {
           allowed_domain = domain;
         }

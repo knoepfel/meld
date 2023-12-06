@@ -4,8 +4,8 @@
 #include "meld/core/input_arguments.hpp"
 #include "meld/core/specified_label.hpp"
 
-#include <cstdint>
 #include <array>
+#include <cstdint>
 #include <tuple>
 #include <utility>
 
@@ -14,7 +14,8 @@ namespace meld::detail {
   auto port_names(InputArgs const& args)
   {
     constexpr auto N = std::tuple_size_v<InputArgs>;
-    auto unpack = []<std::size_t... Is>(InputArgs const& inputs, std::index_sequence<Is...>) {
+    auto unpack = []<std::size_t... Is>(InputArgs const& inputs, std::index_sequence<Is...>)
+    {
       return std::array{std::get<Is>(inputs).label...};
     };
     return unpack(args, std::make_index_sequence<N>{});

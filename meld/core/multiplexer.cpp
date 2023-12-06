@@ -13,7 +13,7 @@ namespace {
   meld::product_store_const_ptr store_for(meld::product_store_const_ptr store,
                                           meld::specified_label const& label)
   {
-    auto const& [product_name, domain] = label;
+    auto const& [product_name, domain, relation] = label;
     if (domain.empty()) {
       return store->store_for_product(product_name);
     }

@@ -1,6 +1,6 @@
 #include "meld/model/product_matcher.hpp"
 
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 
 #include <iostream>
 #include <regex>
@@ -87,11 +87,13 @@ TEST_CASE("Product with only module spec", "[data model]")
 
 // TEST_CASE("Ill-formed specs", "[data model]")
 // {
-//   CHECK_THROWS(product_matcher{""},
-//                Catch::Contains("Empty product matcher specifications are not allowed."));
-//   CHECK_THROWS(product_matcher{"a/b/c/add"},
-//                Catch::Contains("The product matcher specification is missing a colon (:)."));
+//   CHECK_THROWS(
+//     product_matcher{""},
+//     Catch::Matchers::ContainsSubstring("Empty product matcher specifications are not allowed."));
+//   CHECK_THROWS(
+//     product_matcher{"a/b/c/add"},
+//     Catch::Matchers::ContainsSubstring("The product matcher specification is missing a colon (:)."));
 //   CHECK_THROWS(
 //     product_matcher{"/a/b/c/add"},
-//     Catch::Contains("The matcher specification may not start with a forward slash (/)."));
+//     Catch::Matchers::ContainsSubstring("The matcher specification may not start with a forward slash (/)."));
 // }

@@ -1,7 +1,7 @@
 #include "meld/utilities/thread_counter.hpp"
 #include "meld/utilities/sleep_for.hpp"
 
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 #include "oneapi/tbb/flow_graph.h"
 
 using namespace meld;
@@ -10,7 +10,8 @@ using namespace oneapi::tbb;
 TEST_CASE("Thread counter exception", "[multithreading]")
 {
   thread_counter::counter_type counter{};
-  CHECK_THROWS_WITH((thread_counter{counter, 0u}), Catch::Contains("Too many threads encountered"));
+  CHECK_THROWS_WITH((thread_counter{counter, 0u}),
+                    Catch::Matchers::ContainsSubstring("Too many threads encountered"));
 }
 
 TEST_CASE("Thread counter in flow graph", "[multithreading]")

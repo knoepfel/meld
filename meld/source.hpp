@@ -35,7 +35,7 @@ namespace meld::detail {
     //      the source object is created only once, thus avoiding potential errors in the
     //      implementations of the source class' copy/move constructors (e.g. if the
     //      source is caching an iterator).
-    if constexpr (requires(T t, cached_product_stores& stores) { t.next(stores); }) {
+    if constexpr (requires(T t, cached_product_stores & stores) { t.next(stores); }) {
       return [t = make<T>(config)](cached_product_stores& stores) { return t->next(stores); };
     }
     else {

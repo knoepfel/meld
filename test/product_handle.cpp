@@ -2,7 +2,7 @@
 #include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
 
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 
 #include <concepts>
 #include <string>
@@ -36,7 +36,9 @@ TEST_CASE("Handle type conversions (run-time checks)", "[data model]")
 {
   handle<double> empty;
   CHECK(not empty);
-  CHECK_THROWS_WITH(*empty, Catch::Contains("Cannot dereference empty handle of type 'double'."));
+  CHECK_THROWS_WITH(
+    *empty,
+    Catch::Matchers::ContainsSubstring("Cannot dereference empty handle of type 'double'."));
 
   product<int> const number{3};
   handle const h{number};

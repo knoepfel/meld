@@ -1,6 +1,6 @@
 #include "meld/core/filter/filter_impl.hpp"
 
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 
 using namespace meld;
 

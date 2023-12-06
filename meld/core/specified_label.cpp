@@ -1,7 +1,7 @@
 #include "meld/core/specified_label.hpp"
 
-#include "spdlog/spdlog.h"
 #include "fmt/format.h"
+#include "spdlog/spdlog.h"
 
 #include <stdexcept>
 #include <tuple>
@@ -10,6 +10,19 @@ namespace meld {
   specified_label specified_label::operator()(std::string domain) &&
   {
     return {std::move(name), std::move(domain)};
+  }
+
+  specified_label specified_label::related_to(std::string relation) &&
+  {
+    return {std::move(name),
+            std::move(domain),
+            std::make_shared<specified_label>(specified_label{relation})};
+  }
+
+  specified_label specified_label::related_to(specified_label relation) &&
+  {
+    return {
+      std::move(name), std::move(domain), std::make_shared<specified_label>(std::move(relation))};
   }
 
   std::string specified_label::to_string() const

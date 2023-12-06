@@ -24,9 +24,11 @@ namespace meld {
   template <typename T, std::size_t N>
   constexpr auto sized_tuple_from(std::span<T> view)
   {
-    return []<std::size_t... I>(auto const& view, std::index_sequence<I...>) {
+    return []<std::size_t... I>(auto const& view, std::index_sequence<I...>)
+    {
       return std::make_tuple(view[I]...);
-    }(view, std::make_index_sequence<N>{});
+    }
+    (view, std::make_index_sequence<N>{});
   }
 
   template <typename... T>

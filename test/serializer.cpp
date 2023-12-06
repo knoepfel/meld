@@ -1,7 +1,7 @@
 #include "meld/graph/serial_node.hpp"
 #include "meld/utilities/thread_counter.hpp"
 
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 #include "oneapi/tbb/flow_graph.h"
 #include "spdlog/spdlog.h"
 

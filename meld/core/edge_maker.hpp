@@ -11,6 +11,7 @@
 #include <iosfwd>
 #include <map>
 #include <memory>
+#include <ranges>
 #include <set>
 #include <string>
 #include <tuple>
@@ -214,7 +215,7 @@ namespace meld {
     // Create head nodes for splitters
     auto get_consumed_products = [](auto const& cons, auto& products) {
       for (auto const& [key, consumer] : cons.data) {
-        for (auto const& [product_name, _] : consumer->input()) {
+        for (auto const& product_name : consumer->input() | std::views::transform(to_name)) {
           products[product_name].push_back(key);
         }
       }
