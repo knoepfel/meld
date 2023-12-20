@@ -1,5 +1,3 @@
-#include "meld/model/product_store.hpp"
-#include "meld/source.hpp"
 #include "meld/utilities/thread_counter.hpp"
 
 #include "catch2/catch_all.hpp"

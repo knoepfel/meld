@@ -8,6 +8,7 @@ add_library(meld_model SHARED
 )
 target_include_directories(meld_model PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(meld_model
+  PUBLIC Boost::boost
   PRIVATE meld::graph spdlog::spdlog meld::utilities)
 
 # Interface library

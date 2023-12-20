@@ -10,6 +10,6 @@ add_library(meld_int INTERFACE)
 target_include_directories(meld_int INTERFACE
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"
   "$<INSTALL_INTERFACE:include>")
-target_link_libraries(meld_int INTERFACE Boost::json meld::core)
+target_link_libraries(meld_int INTERFACE Boost::boost Boost::json meld::core)
 
 add_library(meld::module ALIAS meld_int)
