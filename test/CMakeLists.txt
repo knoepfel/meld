@@ -2,6 +2,8 @@ find_package(Catch2 REQUIRED)
 
 find_program(DOT dot)
 
+add_definitions("-UNDEBUG")
+
 function(dot_test BASENAME)
   if(NOT DOT)
     message(WARNING "dot program not found; all TEST_DOT_GRAPH options will be ignored.")
