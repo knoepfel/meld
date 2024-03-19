@@ -9,11 +9,11 @@
 
 namespace meld {
   using filter_base =
-    oneapi::tbb::flow::composite_node<std::tuple<predicate_result, message>,
+    oneapi::tbb::flow::composite_node<std::tuple<message, predicate_result>,
                                       std::tuple<oneapi::tbb::flow::continue_msg>>;
 
   class filter : public filter_base {
-    using indexer_t = oneapi::tbb::flow::indexer_node<predicate_result, message>;
+    using indexer_t = oneapi::tbb::flow::indexer_node<message, predicate_result>;
     using tag_t = indexer_t::output_type;
 
   public:
@@ -23,8 +23,8 @@ namespace meld {
     explicit filter(oneapi::tbb::flow::graph& g, products_consumer& consumer);
     explicit filter(oneapi::tbb::flow::graph& g, declared_output& output);
 
-    auto& predicate_port() { return input_port<0>(*this); }
-    auto& data_port() { return input_port<1>(*this); }
+    auto& data_port() { return input_port<0>(*this); }
+    auto& predicate_port() { return input_port<1>(*this); }
 
   private:
     oneapi::tbb::flow::continue_msg execute(tag_t const& tag);
