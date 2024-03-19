@@ -9,5 +9,5 @@ DEFINE_MODULE(m, config)
      "accept_even_ids",
      [](meld::level_id const& id) { return id.number() % 2 == 0; },
      meld::concurrency::unlimited)
-    .filter(config.get<std::string>("product_name"));
+    .evaluate(config.get<std::string>("product_name"));
 }

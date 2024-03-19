@@ -48,7 +48,7 @@ namespace meld {
                                      check_parameters<T, Args...>::value;
 
   template <typename T>
-  concept is_filter_like = at_least_one_input_parameter<T> && returns<T, bool>;
+  concept is_predicate_like = at_least_one_input_parameter<T> && returns<T, bool>;
 
   template <typename T>
   concept is_monitor_like = at_least_one_input_parameter<T> && returns<T, void>;

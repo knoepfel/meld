@@ -6,7 +6,7 @@
 #include "meld/core/declared_reduction.hpp"
 #include "meld/core/declared_splitter.hpp"
 #include "meld/core/end_of_message.hpp"
-#include "meld/core/filter/result_collector.hpp"
+#include "meld/core/filter.hpp"
 #include "meld/core/glue.hpp"
 #include "meld/core/graph_proxy.hpp"
 #include "meld/core/message.hpp"
@@ -110,7 +110,7 @@ namespace meld {
     node_catalog nodes_{};
     cached_product_stores stores_{};
     std::vector<std::string> registration_errors_{};
-    std::map<std::string, result_collector> filter_collectors_{};
+    std::map<std::string, filter> filters_{};
     tbb::flow::input_node<message> src_;
     multiplexer multiplexer_;
     std::stack<end_of_message_ptr> eoms_;

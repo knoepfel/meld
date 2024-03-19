@@ -78,7 +78,7 @@ namespace meld {
   std::size_t framework_graph::execution_counts(std::string const& node_name) const
   {
     // FIXME: Yuck!
-    if (auto it = nodes_.filters_.find(node_name); it != nodes_.filters_.end()) {
+    if (auto it = nodes_.predicates_.find(node_name); it != nodes_.predicates_.end()) {
       return it->second->num_calls();
     }
     if (auto it = nodes_.monitors_.find(node_name); it != nodes_.monitors_.end()) {
@@ -110,26 +110,26 @@ namespace meld {
 
   namespace {
     template <typename T>
-    auto internal_edges_for_filters(oneapi::tbb::flow::graph& g,
-                                    declared_filters& filters,
-                                    T const& consumers)
+    auto internal_edges_for_predicates(oneapi::tbb::flow::graph& g,
+                                       declared_predicates& all_predicates,
+                                       T const& consumers)
     {
-      std::map<std::string, result_collector> result;
+      std::map<std::string, filter> result;
       for (auto const& [name, consumer] : consumers) {
-        auto const& preceding_filters = consumer->filtered_by();
-        if (empty(preceding_filters)) {
+        auto const& predicates = consumer->when();
+        if (empty(predicates)) {
           continue;
         }
 
         auto [it, success] = result.try_emplace(name, g, *consumer);
-        // debug("Preceding filters for ", name, ": ", preceding_filters);
-        for (auto const& filter_name : preceding_filters) {
-          auto fit = filters.find(filter_name);
-          if (fit == cend(filters)) {
-            throw std::runtime_error("A non-existent filter with the name '" + filter_name +
+        // debug("Preceding predicates for ", name, ": ", predicates);
+        for (auto const& predicate_name : predicates) {
+          auto fit = all_predicates.find(predicate_name);
+          if (fit == cend(all_predicates)) {
+            throw std::runtime_error("A non-existent filter with the name '" + predicate_name +
                                      "' was specified for " + name);
           }
-          make_edge(fit->second->sender(), it->second.filter_port());
+          make_edge(fit->second->sender(), it->second.predicate_port());
         }
       }
       return result;
@@ -146,21 +146,18 @@ namespace meld {
       throw std::runtime_error(error_msg);
     }
 
-    filter_collectors_.merge(internal_edges_for_filters(graph_, nodes_.filters_, nodes_.filters_));
-    filter_collectors_.merge(internal_edges_for_filters(graph_, nodes_.filters_, nodes_.monitors_));
-    filter_collectors_.merge(internal_edges_for_filters(graph_, nodes_.filters_, nodes_.outputs_));
-    filter_collectors_.merge(
-      internal_edges_for_filters(graph_, nodes_.filters_, nodes_.reductions_));
-    filter_collectors_.merge(
-      internal_edges_for_filters(graph_, nodes_.filters_, nodes_.splitters_));
-    filter_collectors_.merge(
-      internal_edges_for_filters(graph_, nodes_.filters_, nodes_.transforms_));
+    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates_, nodes_.predicates_));
+    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates_, nodes_.monitors_));
+    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates_, nodes_.outputs_));
+    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates_, nodes_.reductions_));
+    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates_, nodes_.splitters_));
+    filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates_, nodes_.transforms_));
 
     edge_maker make_edges{dot_file_name, nodes_.outputs_, nodes_.transforms_, nodes_.reductions_};
     make_edges(src_,
                multiplexer_,
-               filter_collectors_,
-               consumers{nodes_.filters_, {.shape = "box"}},
+               filters_,
+               consumers{nodes_.predicates_, {.shape = "box"}},
                consumers{nodes_.monitors_, {.shape = "ellipse"}},
                consumers{nodes_.reductions_, {.arrowtail = "dot", .shape = "ellipse"}},
                consumers{nodes_.splitters_, {.shape = "trapezium"}},

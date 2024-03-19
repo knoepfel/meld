@@ -1,5 +1,5 @@
-#ifndef meld_core_filter_filter_impl_hpp
-#define meld_core_filter_filter_impl_hpp
+#ifndef meld_core_detail_filter_impl_hpp
+#define meld_core_detail_filter_impl_hpp
 
 #include "meld/core/message.hpp"
 #include "meld/core/specified_label.hpp"
@@ -13,7 +13,7 @@
 #include <span>
 
 namespace meld {
-  struct filter_result {
+  struct predicate_result {
     end_of_message_ptr eom;
     std::size_t msg_id;
     bool result;
@@ -37,7 +37,7 @@ namespace meld {
   public:
     explicit decision_map(unsigned int total_decisions);
 
-    void update(filter_result result);
+    void update(predicate_result result);
     unsigned int value(std::size_t msg_id) const;
     void erase(std::size_t msg_id);
 
@@ -70,4 +70,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_filter_filter_impl_hpp */
+#endif /* meld_core_detail_filter_impl_hpp */

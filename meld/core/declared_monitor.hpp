@@ -37,7 +37,7 @@ namespace meld {
 
   class declared_monitor : public products_consumer {
   public:
-    declared_monitor(std::string name, std::vector<std::string> preceding_filters);
+    declared_monitor(std::string name, std::vector<std::string> predicates);
     virtual ~declared_monitor();
   };
 
@@ -56,13 +56,13 @@ namespace meld {
     pre_monitor(registrar<declared_monitors> reg,
                 std::string name,
                 std::size_t concurrency,
-                std::vector<std::string> preceding_filters,
+                std::vector<std::string> predicates,
                 tbb::flow::graph& g,
                 function_t&& f,
                 InputArgs input_args) :
       name_{std::move(name)},
       concurrency_{concurrency},
-      preceding_filters_{std::move(preceding_filters)},
+      predicates_{std::move(predicates)},
       graph_{g},
       ft_{std::move(f)},
       input_args_{std::move(input_args)},
@@ -87,7 +87,7 @@ namespace meld {
     {
       return std::make_unique<complete_monitor>(std::move(name_),
                                                 concurrency_,
-                                                std::move(preceding_filters_),
+                                                std::move(predicates_),
                                                 graph_,
                                                 std::move(ft_),
                                                 std::move(input_args_),
@@ -95,7 +95,7 @@ namespace meld {
     }
     std::string name_;
     std::size_t concurrency_;
-    std::vector<std::string> preceding_filters_;
+    std::vector<std::string> predicates_;
     tbb::flow::graph& graph_;
     function_t ft_;
     InputArgs input_args_;
@@ -116,12 +116,12 @@ namespace meld {
   public:
     complete_monitor(std::string name,
                      std::size_t concurrency,
-                     std::vector<std::string> preceding_filters,
+                     std::vector<std::string> predicates,
                      tbb::flow::graph& g,
                      function_t&& f,
                      InputArgs input,
                      std::array<specified_label, N> product_labels) :
-      declared_monitor{std::move(name), std::move(preceding_filters)},
+      declared_monitor{std::move(name), std::move(predicates)},
       product_labels_{std::move(product_labels)},
       input_{std::move(input)},
       join_{make_join_or_none(g, std::make_index_sequence<N>{})},

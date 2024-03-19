@@ -7,16 +7,16 @@
 // statement.  For example:
 //
 //   g.make<MyTransform>()
-//     .with("name", &MyTransform::transform)
-//     .using_concurrency(n)
-//     .filtered_by(...)
+//     .with("name", &MyTransform::transform, concurrency{n})
+//     .when(...)
 //     .transform(...)
-//     .to(...);
-//             ^ Registration happens at the completion of the full statement.
+//     .to(...)
+//     .for_each(...);
+//                   ^ Registration happens at the completion of the full statement.
 //
 // This is achieved by creating a class registrar class object (internally during any of
 // the declare* calls), which is then passed along through each successive function call
-// (concurrency, filtered_by, etc.).  When the statement completes (i.e. the semicolon is
+// (concurrency, when, etc.).  When the statement completes (i.e. the semicolon is
 // reached), the registrar object is destroyed, where the registrar's destructor registers
 // the declared function as a graph node to be used by the framework.
 //
@@ -36,14 +36,13 @@
 //
 // Consider the case of two output nodes:
 //
-//   g.make<MyOutput>().declare_output("all_slow", &MyOutput::output);
-//   g.make<MyOutput>().declare_output("all_fast", &MyOutput::output).concurrency(n);
-//   g.make<MyOutput>().declare_output("some_slow", &MyOutput::output).filtered_by(...);
+//   g.make<MyOutput>().output_with("all_slow", &MyOutput::output);
+//   g.make<MyOutput>().output_with("some_slow", &MyOutput::output).when(...);
 //
-// Each of the above registration statements are valid, but how the functions are
+// Either of the above registration statements are valid, but how the functions are
 // registered with the framework depends on the function call-chain.  If the registration
 // were to occur during the declare_output call, then it would be difficult to propagate
-// the "concurrency" or "filtered_by" values.  By using the registrar class, we ensure
+// the "concurrency" or "when" values.  By using the registrar class, we ensure
 // that the user functions are registered at the end of each statement, after all the
 // information has been specified.
 //

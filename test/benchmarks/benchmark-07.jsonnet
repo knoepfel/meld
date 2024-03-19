@@ -10,12 +10,12 @@
     },
     b_creator: {
       plugin: 'last_index',
-      filtered_by: ['even_filter:accept_even_ids'],
+      when: ['even_filter:accept_even_ids'],
       product_name: 'b',
     },
     c_creator: {
       plugin: 'last_index',
-      filtered_by: ['even_filter:accept_even_ids'],
+      when: ['even_filter:accept_even_ids'],
       product_name: 'c',
     },
     d: {

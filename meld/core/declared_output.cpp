@@ -3,10 +3,10 @@
 namespace meld {
   declared_output::declared_output(std::string name,
                                    std::size_t concurrency,
-                                   std::vector<std::string> preceding_filters,
+                                   std::vector<std::string> predicates,
                                    tbb::flow::graph& g,
                                    detail::output_function_t&& ft) :
-    consumer{std::move(name), std::move(preceding_filters)},
+    consumer{std::move(name), std::move(predicates)},
     node_{g, concurrency, [f = std::move(ft)](message const& msg) -> tbb::flow::continue_msg {
             if (not msg.store->is_flush()) {
               f(*msg.store);

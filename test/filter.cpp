@@ -1,14 +1,8 @@
-#include "meld/core/filter/filter_impl.hpp"
-#include "meld/core/filter/result_collector.hpp"
 #include "meld/core/framework_graph.hpp"
-#include "meld/core/message.hpp"
-#include "meld/model/level_hierarchy.hpp"
 #include "meld/model/product_store.hpp"
 
 #include "catch2/catch_all.hpp"
-#include "oneapi/tbb/concurrent_hash_map.h"
 #include "oneapi/tbb/concurrent_vector.h"
-#include "oneapi/tbb/flow_graph.h"
 
 using namespace meld;
 using namespace oneapi::tbb;
@@ -88,97 +82,98 @@ namespace {
     explicit not_in_range(unsigned int const b, unsigned int const e) : begin{b}, end{e} {}
     unsigned int const begin;
     unsigned int const end;
-    bool filter(unsigned int const i) const noexcept { return not in_range(begin, end, i); }
+    bool eval(unsigned int const i) const noexcept { return not in_range(begin, end, i); }
   };
 }
 
-TEST_CASE("Two filters", "[filtering]")
+TEST_CASE("Two predicates", "[filtering]")
 {
   framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
-  g.with(evens_only, concurrency::unlimited).filter("num").for_each("event");
-  g.with(odds_only, concurrency::unlimited).filter("num").for_each("event");
+  g.with(evens_only, concurrency::unlimited).evaluate("num").for_each("event");
+  g.with(odds_only, concurrency::unlimited).evaluate("num").for_each("event");
   g.make<sum_numbers>(20u)
     .with("add_evens", &sum_numbers::add, concurrency::unlimited)
-    .filtered_by("evens_only")
+    .when("evens_only")
     .monitor("num")
     .for_each("event");
   g.make<sum_numbers>(25u)
     .with("add_odds", &sum_numbers::add, concurrency::unlimited)
-    .filtered_by("odds_only")
+    .when("odds_only")
     .monitor("num")
     .for_each("event");
 
-  g.execute("two_independent_filters_t.gv");
+  g.execute("two_independent_predicates_t.gv");
 }
 
-TEST_CASE("Two filters in series", "[filtering]")
+TEST_CASE("Two predicates in series", "[filtering]")
 {
   framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
-  g.with(evens_only, concurrency::unlimited).filter("num");
-  g.with(odds_only, concurrency::unlimited).filtered_by("evens_only").filter("num");
+  g.with(evens_only, concurrency::unlimited).evaluate("num");
+  g.with(odds_only, concurrency::unlimited).when("evens_only").evaluate("num");
   g.make<sum_numbers>(0u)
     .with(&sum_numbers::add, concurrency::unlimited)
-    .filtered_by("odds_only")
+    .when("odds_only")
     .monitor("num");
 
-  g.execute("two_filters_in_series_t.gv");
+  g.execute("two_predicates_in_series_t.gv");
 }
 
-TEST_CASE("Two filters in parallel", "[filtering]")
+TEST_CASE("Two predicates in parallel", "[filtering]")
 {
   framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
-  g.with(evens_only, concurrency::unlimited).filter("num");
-  g.with(odds_only, concurrency::unlimited).filter("num");
+  g.with(evens_only, concurrency::unlimited).evaluate("num");
+  g.with(odds_only, concurrency::unlimited).evaluate("num");
   g.make<sum_numbers>(0u)
     .with(&sum_numbers::add, concurrency::unlimited)
-    .filtered_by("odds_only", "evens_only")
+    .when("odds_only", "evens_only")
     .monitor("num");
 
-  g.execute("two_filters_in_parallel_t.gv");
+  g.execute("two_predicates_in_parallel_t.gv");
 }
 
-TEST_CASE("Three filters in parallel", "[filtering]")
+TEST_CASE("Three predicates in parallel", "[filtering]")
 {
-  struct filter_config {
+  struct predicate_config {
     std::string name;
     unsigned int begin;
     unsigned int end;
   };
-  std::vector<filter_config> configs{{.name = "exclude_0_to_4", .begin = 0, .end = 4},
-                                     {.name = "exclude_6_to_7", .begin = 6, .end = 7},
-                                     {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
+  std::vector<predicate_config> configs{{.name = "exclude_0_to_4", .begin = 0, .end = 4},
+                                        {.name = "exclude_6_to_7", .begin = 6, .end = 7},
+                                        {.name = "exclude_gt_8", .begin = 8, .end = -1u}};
 
   framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
   for (auto const& [name, b, e] : configs) {
     g.make<not_in_range>(b, e)
-      .with(name, &not_in_range::filter, concurrency::unlimited)
-      .filter("num");
+      .with(name, &not_in_range::eval, concurrency::unlimited)
+      .evaluate("num");
   }
 
-  std::vector<std::string> const filter_names{"exclude_0_to_4", "exclude_6_to_7", "exclude_gt_8"};
+  std::vector<std::string> const predicate_names{
+    "exclude_0_to_4", "exclude_6_to_7", "exclude_gt_8"};
   auto const expected_numbers = {4u, 5u, 7u};
   g.make<collect_numbers>(expected_numbers)
     .with(&collect_numbers::collect, concurrency::unlimited)
-    .filtered_by(filter_names)
+    .when(predicate_names)
     .monitor("num");
 
-  g.execute("three_filters_in_parallel_t.gv");
+  g.execute("three_predicates_in_parallel_t.gv");
 }
 
-TEST_CASE("Two filters in parallel (each with multiple arguments)", "[filtering]")
+TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filtering]")
 {
   framework_graph g{[src = source{10u}]() mutable { return src.next(); }};
-  g.with(evens_only, concurrency::unlimited).filter("num");
-  g.with(odds_only, concurrency::unlimited).filter("num");
+  g.with(evens_only, concurrency::unlimited).evaluate("num");
+  g.with(odds_only, concurrency::unlimited).evaluate("num");
   g.make<check_multiple_numbers>(5 * 100)
     .with("check_evens", &check_multiple_numbers::add_difference, concurrency::unlimited)
-    .filtered_by("evens_only")
+    .when("evens_only")
     .monitor("num", "other_num"); // <= Note input order
 
   g.make<check_multiple_numbers>(-5 * 100)
     .with("check_odds", &check_multiple_numbers::add_difference, concurrency::unlimited)
-    .filtered_by("odds_only")
+    .when("odds_only")
     .monitor("other_num", "num"); // <= Note input order
 
-  g.execute("two_filters_in_parallel_multiarg_t.gv");
+  g.execute("two_predicates_in_parallel_multiarg_t.gv");
 }

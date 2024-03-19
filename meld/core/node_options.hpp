@@ -17,17 +17,17 @@ namespace meld {
   template <typename T>
   class node_options {
   public:
-    T& filtered_by(std::vector<std::string> preceding_filters)
+    T& when(std::vector<std::string> predicates)
     {
-      if (!preceding_filters_) {
-        preceding_filters_ = std::move(preceding_filters);
+      if (!predicates_) {
+        predicates_ = std::move(predicates);
       }
       return self();
     }
 
-    T& filtered_by(std::convertible_to<std::string> auto&&... names)
+    T& when(std::convertible_to<std::string> auto&&... names)
     {
-      return filtered_by({std::forward<decltype(names)>(names)...});
+      return when({std::forward<decltype(names)>(names)...});
     }
 
   protected:
@@ -36,17 +36,17 @@ namespace meld {
       if (!config) {
         return;
       }
-      preceding_filters_ = config->get_if_present<std::vector<std::string>>("filtered_by");
+      predicates_ = config->get_if_present<std::vector<std::string>>("when");
     }
 
-    std::vector<std::string> release_preceding_filters()
+    std::vector<std::string> release_predicates()
     {
-      return std::move(preceding_filters_).value_or(std::vector<std::string>{});
+      return std::move(predicates_).value_or(std::vector<std::string>{});
     }
 
   private:
     auto& self() { return *static_cast<T*>(this); }
-    std::optional<std::vector<std::string>> preceding_filters_{};
+    std::optional<std::vector<std::string>> predicates_{};
   };
 }
 

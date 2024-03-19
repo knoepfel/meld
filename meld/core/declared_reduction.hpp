@@ -36,7 +36,7 @@
 namespace meld {
   class declared_reduction : public products_consumer {
   public:
-    declared_reduction(std::string name, std::vector<std::string> preceding_filters);
+    declared_reduction(std::string name, std::vector<std::string> predicates);
     virtual ~declared_reduction();
 
     virtual tbb::flow::sender<message>& sender() = 0;
@@ -66,13 +66,13 @@ namespace meld {
     pre_reduction(registrar<declared_reductions> reg,
                   std::string name,
                   std::size_t concurrency,
-                  std::vector<std::string> preceding_filters,
+                  std::vector<std::string> predicates,
                   tbb::flow::graph& g,
                   function_t&& f,
                   InputArgs input_args) :
       name_{std::move(name)},
       concurrency_{concurrency},
-      preceding_filters_{std::move(preceding_filters)},
+      predicates_{std::move(predicates)},
       graph_{g},
       ft_{std::move(f)},
       input_args_{std::move(input_args)},
@@ -124,7 +124,7 @@ namespace meld {
       }
       return std::make_unique<total_reduction<decltype(init)>>(std::move(name_),
                                                                concurrency_,
-                                                               std::move(preceding_filters_),
+                                                               std::move(predicates_),
                                                                graph_,
                                                                std::move(ft_),
                                                                std::move(init),
@@ -136,7 +136,7 @@ namespace meld {
 
     std::string name_;
     std::size_t concurrency_;
-    std::vector<std::string> preceding_filters_;
+    std::vector<std::string> predicates_;
     tbb::flow::graph& graph_;
     function_t ft_;
     InputArgs input_args_;
@@ -155,7 +155,7 @@ namespace meld {
   public:
     total_reduction(std::string name,
                     std::size_t concurrency,
-                    std::vector<std::string> preceding_filters,
+                    std::vector<std::string> predicates,
                     tbb::flow::graph& g,
                     function_t&& f,
                     InitTuple initializer,
@@ -163,7 +163,7 @@ namespace meld {
                     std::array<specified_label, N> product_labels,
                     std::array<std::string, M> output,
                     std::string reduction_interval) :
-      declared_reduction{std::move(name), std::move(preceding_filters)},
+      declared_reduction{std::move(name), std::move(predicates)},
       initializer_{std::move(initializer)},
       product_labels_{std::move(product_labels)},
       input_{std::move(input)},

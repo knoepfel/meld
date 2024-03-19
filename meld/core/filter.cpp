@@ -1,4 +1,4 @@
-#include "meld/core/filter/result_collector.hpp"
+#include "meld/core/filter.hpp"
 #include "meld/core/declared_output.hpp"
 #include "meld/core/products_consumer.hpp"
 
@@ -8,9 +8,9 @@ using namespace meld;
 using namespace oneapi::tbb;
 
 namespace meld {
-  result_collector::result_collector(flow::graph& g, products_consumer& consumer) :
-    filter_collector_base{g},
-    decisions_{static_cast<unsigned int>(consumer.filtered_by().size())},
+  filter::filter(flow::graph& g, products_consumer& consumer) :
+    filter_base{g},
+    decisions_{static_cast<unsigned int>(consumer.when().size())},
     data_{consumer.input()},
     indexer_{g},
     filter_{g, flow::unlimited, [this](tag_t const& t) { return execute(t); }},
@@ -22,9 +22,9 @@ namespace meld {
                        output_ports_type{filter_});
   }
 
-  result_collector::result_collector(flow::graph& g, declared_output& output) :
-    filter_collector_base{g},
-    decisions_{static_cast<unsigned int>(output.filtered_by().size())},
+  filter::filter(flow::graph& g, declared_output& output) :
+    filter_base{g},
+    decisions_{static_cast<unsigned int>(output.when().size())},
     data_{data_map::for_output},
     indexer_{g},
     filter_{g, flow::unlimited, [this](tag_t const& t) { return execute(t); }},
@@ -36,7 +36,7 @@ namespace meld {
                        output_ports_type{filter_});
   }
 
-  flow::continue_msg result_collector::execute(tag_t const& t)
+  flow::continue_msg filter::execute(tag_t const& t)
   {
     // FIXME: This implementation is horrible!  Because there are two data structures that
     //        have to work together.
@@ -55,7 +55,7 @@ namespace meld {
       }
     }
     else {
-      auto const& result = t.cast_to<filter_result>();
+      auto const& result = t.cast_to<predicate_result>();
       decisions_.update(result);
       eom = result.eom;
       msg_id = result.msg_id;

@@ -7,14 +7,14 @@
 namespace meld {
   class consumer {
   public:
-    consumer(std::string name, std::vector<std::string> preceding_filters);
+    consumer(std::string name, std::vector<std::string> predicates);
 
     std::string const& name() const noexcept;
-    std::vector<std::string> const& filtered_by() const noexcept;
+    std::vector<std::string> const& when() const noexcept;
 
   private:
     std::string name_;
-    std::vector<std::string> preceding_filters_;
+    std::vector<std::string> predicates_;
   };
 }
 

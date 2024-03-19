@@ -110,13 +110,10 @@ TEST_CASE("Hierarchical nodes", "[graph]")
     return store;
   }};
 
-  g.with("get_the_time", strtime, concurrency::unlimited)
-    .filtered_by()
-    .transform("time")
-    .to("strtime");
+  g.with("get_the_time", strtime, concurrency::unlimited).when().transform("time").to("strtime");
   g.with(square, concurrency::unlimited).transform("number").to("squared_number");
   g.with(add, concurrency::unlimited)
-    .filtered_by()
+    .when()
     .reduce("squared_number")
     .for_each("run")
     .to("added_data")
@@ -125,7 +122,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
   g.with(scale, concurrency::unlimited).transform("added_data").to("result");
   g.with(print_result, concurrency::unlimited).monitor("result", "strtime");
 
-  g.make<test::products_for_output>().output_with(&test::products_for_output::save).filtered_by();
+  g.make<test::products_for_output>().output_with(&test::products_for_output::save).when();
 
   g.execute("hierarchical_nodes_t.gv");
 

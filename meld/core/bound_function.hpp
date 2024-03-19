@@ -4,8 +4,8 @@
 #include "meld/concurrency.hpp"
 #include "meld/configuration.hpp"
 #include "meld/core/concepts.hpp"
-#include "meld/core/declared_filter.hpp"
 #include "meld/core/declared_monitor.hpp"
+#include "meld/core/declared_predicate.hpp"
 #include "meld/core/declared_reduction.hpp"
 #include "meld/core/declared_transform.hpp"
 #include "meld/core/node_catalog.hpp"
@@ -46,17 +46,17 @@ namespace meld {
     {
     }
 
-    auto filter(std::array<specified_label, N> input_args)
-      requires is_filter_like<FT>
+    auto evaluate(std::array<specified_label, N> input_args)
+      requires is_predicate_like<FT>
     {
       auto inputs = form_input_arguments<input_parameter_types>(name_, std::move(input_args));
-      return pre_filter{nodes_.register_filter(errors_),
-                        std::move(name_),
-                        concurrency_.value,
-                        node_options_t::release_preceding_filters(),
-                        graph_,
-                        delegate(obj_, ft_),
-                        std::move(inputs)};
+      return pre_predicate{nodes_.register_predicate(errors_),
+                           std::move(name_),
+                           concurrency_.value,
+                           node_options_t::release_predicates(),
+                           graph_,
+                           delegate(obj_, ft_),
+                           std::move(inputs)};
     }
 
     auto monitor(std::array<specified_label, N> input_args)
@@ -66,7 +66,7 @@ namespace meld {
       return pre_monitor{nodes_.register_monitor(errors_),
                          std::move(name_),
                          concurrency_.value,
-                         node_options_t::release_preceding_filters(),
+                         node_options_t::release_predicates(),
                          graph_,
                          delegate(obj_, ft_),
                          std::move(inputs)};
@@ -79,7 +79,7 @@ namespace meld {
       return pre_transform{nodes_.register_transform(errors_),
                            std::move(name_),
                            concurrency_.value,
-                           node_options_t::release_preceding_filters(),
+                           node_options_t::release_predicates(),
                            graph_,
                            delegate(obj_, ft_),
                            std::move(inputs)};
@@ -93,18 +93,18 @@ namespace meld {
       return pre_reduction{nodes_.register_reduction(errors_),
                            std::move(name_),
                            concurrency_.value,
-                           node_options_t::release_preceding_filters(),
+                           node_options_t::release_predicates(),
                            graph_,
                            delegate(obj_, ft_),
                            std::move(inputs)};
     }
 
-    auto filter(label_compatible auto... input_args)
+    auto evaluate(label_compatible auto... input_args)
     {
       static_assert(N == sizeof...(input_args),
                     "The number of function parameters is not the same as the number of specified "
                     "input arguments.");
-      return filter({specified_label{std::forward<decltype(input_args)>(input_args)}...});
+      return evaluate({specified_label{std::forward<decltype(input_args)>(input_args)}...});
     }
 
     auto monitor(label_compatible auto... input_args)

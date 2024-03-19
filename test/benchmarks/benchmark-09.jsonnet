@@ -16,7 +16,7 @@
     },
     d: {
       plugin: 'read_index',
-      filtered_by: ['even_filter:accept_even_numbers'],
+      when: ['even_filter:accept_even_numbers'],
       consumes: 'b',
     },
   },

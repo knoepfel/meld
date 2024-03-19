@@ -28,7 +28,7 @@ namespace meld {
   public:
     declared_output(std::string name,
                     std::size_t concurrency,
-                    std::vector<std::string> preceding_filters,
+                    std::vector<std::string> predicates,
                     tbb::flow::graph& g,
                     detail::output_function_t&& ft);
 
@@ -66,7 +66,7 @@ namespace meld {
     {
       return std::make_unique<declared_output>(std::move(name_),
                                                concurrency_.value,
-                                               node_options_t::release_preceding_filters(),
+                                               node_options_t::release_predicates(),
                                                graph_,
                                                std::move(ft_));
     }

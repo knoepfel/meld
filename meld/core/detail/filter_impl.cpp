@@ -1,4 +1,4 @@
-#include "meld/core/filter/filter_impl.hpp"
+#include "meld/core/detail/filter_impl.hpp"
 
 #include <string>
 
@@ -9,7 +9,7 @@ namespace {
 namespace meld {
   decision_map::decision_map(unsigned int total_decisions) : total_decisions_{total_decisions} {}
 
-  void decision_map::update(filter_result result)
+  void decision_map::update(predicate_result result)
   {
     decltype(results_)::accessor a;
     results_.insert(a, result.msg_id);

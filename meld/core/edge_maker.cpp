@@ -6,10 +6,7 @@ namespace {
   std::string const default_fontsize{"12"};
 
 #define DOT_ATTRIBUTE(name)                                                                        \
-  inline std::string name(std::string const& str)                                                  \
-  {                                                                                                \
-    return #name "=" + str;                                                                        \
-  }
+  inline std::string name(std::string const& str) { return #name "=" + str; }
 
   DOT_ATTRIBUTE(arrowtail)
   DOT_ATTRIBUTE(color)
@@ -57,9 +54,9 @@ namespace meld {
     os << "  " << quoted(node_name) << attributes_str(shape(node_shape)) << ";\n";
   }
 
-  void edge_maker::dot_filter_edge(std::ostream& os,
-                                   std::string const& source_node,
-                                   std::string const& target_node)
+  void edge_maker::dot_predicate_edge(std::ostream& os,
+                                      std::string const& source_node,
+                                      std::string const& target_node)
   {
     os << "  " << quoted(source_node) << " -> " << quoted(target_node)
        << attributes_str(color("red")) << ";\n";

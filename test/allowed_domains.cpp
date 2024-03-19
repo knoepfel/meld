@@ -1,14 +1,8 @@
-#include "meld/core/filter/filter_impl.hpp"
-#include "meld/core/filter/result_collector.hpp"
 #include "meld/core/framework_graph.hpp"
-#include "meld/core/message.hpp"
-#include "meld/model/level_hierarchy.hpp"
+#include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
 
 #include "catch2/catch_all.hpp"
-#include "oneapi/tbb/concurrent_hash_map.h"
-#include "oneapi/tbb/concurrent_vector.h"
-#include "oneapi/tbb/flow_graph.h"
 
 using namespace meld;
 using namespace oneapi::tbb;

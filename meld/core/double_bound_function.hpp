@@ -4,8 +4,8 @@
 #include "meld/concurrency.hpp"
 #include "meld/configuration.hpp"
 #include "meld/core/concepts.hpp"
-#include "meld/core/declared_filter.hpp"
 #include "meld/core/declared_monitor.hpp"
+#include "meld/core/declared_predicate.hpp"
 #include "meld/core/declared_transform.hpp"
 #include "meld/core/input_arguments.hpp"
 #include "meld/core/node_catalog.hpp"
@@ -58,7 +58,7 @@ namespace meld {
         nodes_.register_splitter(errors_),
         std::move(name_),
         concurrency_,
-        node_options_t::release_preceding_filters(),
+        node_options_t::release_predicates(),
         graph_,
         std::move(predicate_),
         std::move(unfold_),

@@ -4,7 +4,7 @@
 #include "meld/core/declared_output.hpp"
 #include "meld/core/declared_splitter.hpp"
 #include "meld/core/dot_attributes.hpp"
-#include "meld/core/filter/result_collector.hpp"
+#include "meld/core/filter.hpp"
 #include "meld/core/multiplexer.hpp"
 
 #include <fstream>
@@ -49,7 +49,7 @@ namespace meld {
     template <typename... Args>
     void operator()(tbb::flow::input_node<message>& source,
                     multiplexer& multi,
-                    std::map<std::string, result_collector>& filter_collectors,
+                    std::map<std::string, filter>& filters,
                     consumers<Args>... cons);
 
   private:
@@ -60,8 +60,7 @@ namespace meld {
     void record_attributes(T& consumers);
 
     template <typename T>
-    multiplexer::head_ports_t edges(std::map<std::string, result_collector>& filter_collectors,
-                                    T& consumers);
+    multiplexer::head_ports_t edges(std::map<std::string, filter>& filters, T& consumers);
 
     static void dot_prolog(std::ostream& os);
     static void dot_epilog(std::ostream& os);
@@ -69,9 +68,9 @@ namespace meld {
     static void dot_node_declaration(std::ostream& os,
                                      std::string const& node_name,
                                      std::string const& node_shape);
-    static void dot_filter_edge(std::ostream& os,
-                                std::string const& source_node,
-                                std::string const& target_node);
+    static void dot_predicate_edge(std::ostream& os,
+                                   std::string const& source_node,
+                                   std::string const& target_node);
     static void dot_multiplexing_edge(std::ostream& os,
                                       std::string const& source_node,
                                       std::string const& target_node,
@@ -127,8 +126,7 @@ namespace meld {
   }
 
   template <typename T>
-  multiplexer::head_ports_t edge_maker::edges(
-    std::map<std::string, result_collector>& filter_collectors, T& consumers)
+  multiplexer::head_ports_t edge_maker::edges(std::map<std::string, filter>& filters, T& consumers)
   {
     using namespace dot;
     multiplexer::head_ports_t result;
@@ -139,13 +137,13 @@ namespace meld {
       }
 
       tbb::flow::receiver<message>* collector = nullptr;
-      if (auto coll_it = filter_collectors.find(node_name); coll_it != cend(filter_collectors)) {
+      if (auto coll_it = filters.find(node_name); coll_it != cend(filters)) {
         collector = &coll_it->second.data_port();
       }
 
       if (fout_) {
-        for (auto const& filter_name : node->filtered_by()) {
-          dot_filter_edge(*fout_, filter_name, node_name);
+        for (auto const& predicate_name : node->when()) {
+          dot_predicate_edge(*fout_, predicate_name, node_name);
         }
       }
 
@@ -175,7 +173,7 @@ namespace meld {
   template <typename... Args>
   void edge_maker::operator()(tbb::flow::input_node<message>& source,
                               multiplexer& multi,
-                              std::map<std::string, result_collector>& filter_collectors,
+                              std::map<std::string, filter>& filters,
                               consumers<Args>... cons)
   {
     (record_attributes(cons), ...);
@@ -210,7 +208,7 @@ namespace meld {
 
     // Create normal edges
     multiplexer::head_ports_t head_ports;
-    (head_ports.merge(edges(filter_collectors, cons)), ...);
+    (head_ports.merge(edges(filters, cons)), ...);
 
     // Create head nodes for splitters
     auto get_consumed_products = [](auto const& cons, auto& products) {

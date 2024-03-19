@@ -36,7 +36,7 @@ namespace meld {
 
   class declared_transform : public products_consumer {
   public:
-    declared_transform(std::string name, std::vector<std::string> preceding_filters);
+    declared_transform(std::string name, std::vector<std::string> predicates);
     virtual ~declared_transform();
 
     virtual tbb::flow::sender<message>& sender() = 0;
@@ -62,13 +62,13 @@ namespace meld {
     pre_transform(registrar<declared_transforms> reg,
                   std::string name,
                   std::size_t concurrency,
-                  std::vector<std::string> preceding_filters,
+                  std::vector<std::string> predicates,
                   tbb::flow::graph& g,
                   function_t&& f,
                   InputArgs input_args) :
       name_{std::move(name)},
       concurrency_{concurrency},
-      preceding_filters_{std::move(preceding_filters)},
+      predicates_{std::move(predicates)},
       graph_{g},
       ft_{std::move(f)},
       input_args_{std::move(input_args)},
@@ -112,7 +112,7 @@ namespace meld {
     {
       return std::make_unique<total_transform<M>>(std::move(name_),
                                                   concurrency_,
-                                                  std::move(preceding_filters_),
+                                                  std::move(predicates_),
                                                   graph_,
                                                   std::move(ft_),
                                                   std::move(input_args_),
@@ -122,7 +122,7 @@ namespace meld {
 
     std::string name_;
     std::size_t concurrency_;
-    std::vector<std::string> preceding_filters_;
+    std::vector<std::string> predicates_;
     tbb::flow::graph& graph_;
     function_t ft_;
     InputArgs input_args_;
@@ -144,13 +144,13 @@ namespace meld {
   public:
     total_transform(std::string name,
                     std::size_t concurrency,
-                    std::vector<std::string> preceding_filters,
+                    std::vector<std::string> predicates,
                     tbb::flow::graph& g,
                     function_t&& f,
                     InputArgs input,
                     std::array<specified_label, N> product_labels,
                     std::array<std::string, M> output) :
-      declared_transform{std::move(name), std::move(preceding_filters)},
+      declared_transform{std::move(name), std::move(predicates)},
       product_labels_{std::move(product_labels)},
       input_{std::move(input)},
       output_{std::move(output)},
