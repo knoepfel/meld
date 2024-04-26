@@ -57,11 +57,9 @@ namespace meld {
     template <typename... Ts>
     void add_all(std::array<std::string, sizeof...(Ts)> names, std::tuple<Ts...> ts)
     {
-      [ this, &names ]<std::size_t... Is>(auto const& ts, std::index_sequence<Is...>)
-      {
+      [this, &names]<std::size_t... Is>(auto const& ts, std::index_sequence<Is...>) {
         (this->add(names[Is], std::get<Is>(ts)), ...);
-      }
-      (ts, std::index_sequence_for<Ts...>{});
+      }(ts, std::index_sequence_for<Ts...>{});
     }
 
     template <typename T>

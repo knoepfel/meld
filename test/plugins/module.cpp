@@ -10,7 +10,5 @@ using namespace meld;
 DEFINE_MODULE(m)
 {
   m.with(test::add, concurrency::unlimited).transform("i", "j").to("sum");
-  m.with(
-     "verify", [](int actual) { assert(actual == 0); }, concurrency::unlimited)
-    .monitor("sum");
+  m.with("verify", [](int actual) { assert(actual == 0); }, concurrency::unlimited).monitor("sum");
 }

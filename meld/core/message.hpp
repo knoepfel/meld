@@ -65,12 +65,10 @@ namespace meld {
       return {&join};
     }
     else {
-      return [&join]<std::size_t... Is>(std::index_sequence<Is...>)
-        ->std::vector<tbb::flow::receiver<message>*>
-      {
+      return [&join]<std::size_t... Is>(
+               std::index_sequence<Is...>) -> std::vector<tbb::flow::receiver<message>*> {
         return {&input_port<Is>(join)...};
-      }
-      (std::make_index_sequence<N>{});
+      }(std::make_index_sequence<N>{});
     }
   }
 

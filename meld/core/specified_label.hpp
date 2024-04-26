@@ -28,10 +28,8 @@ namespace meld {
 
   template <typename T>
   concept label_compatible = requires(T t) {
-                               {
-                                 specified_label{t}
-                               };
-                             };
+    { specified_label{t} };
+  };
 }
 
 #endif /* meld_core_specified_label_hpp */
