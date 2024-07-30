@@ -19,3 +19,5 @@ target_include_directories(meld_model_int INTERFACE
 target_link_libraries(meld_model_int INTERFACE meld_model spdlog::spdlog TBB::tbb)
 
 add_library(meld::model ALIAS meld_model_int)
+
+install(TARGETS meld_model)

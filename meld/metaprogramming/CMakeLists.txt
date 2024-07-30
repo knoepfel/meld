@@ -19,3 +19,5 @@ target_include_directories(meld_metaprogramming_int INTERFACE
 target_link_libraries(meld_metaprogramming_int INTERFACE meld_metaprogramming)
 
 add_library(meld::metaprogramming ALIAS meld_metaprogramming_int)
+
+install(TARGETS meld_metaprogramming)

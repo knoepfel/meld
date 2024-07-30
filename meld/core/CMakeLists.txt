@@ -46,3 +46,5 @@ target_link_libraries(meld_core_int
   TBB::tbb)
 
 add_library(meld::core ALIAS meld_core_int)
+
+install(TARGETS meld_core)

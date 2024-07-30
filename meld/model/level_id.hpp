@@ -35,7 +35,6 @@ namespace meld {
     std::string to_string() const;
     std::string to_string_this_level() const;
 
-    friend struct fmt::formatter<level_id>;
     friend std::ostream& operator<<(std::ostream& os, level_id const& id);
 
   private:

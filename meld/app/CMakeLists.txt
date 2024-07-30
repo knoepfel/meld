@@ -11,3 +11,5 @@ target_compile_definitions(run_meld PRIVATE BOOST_DLL_USE_STD_FS)
 
 add_executable(meld meld.cpp)
 target_link_libraries(meld PRIVATE Boost::json Boost::program_options run_meld meld::core jsonnet::lib)
+
+install(TARGETS run_meld meld)

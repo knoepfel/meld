@@ -10,3 +10,5 @@ target_include_directories(meld_utilities_int INTERFACE
 target_link_libraries(meld_utilities_int INTERFACE meld_utilities spdlog::spdlog)
 
 add_library(meld::utilities ALIAS meld_utilities_int)
+
+install(TARGETS meld_utilities)

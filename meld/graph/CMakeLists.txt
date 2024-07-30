@@ -12,3 +12,5 @@ target_include_directories(meld_graph_int INTERFACE
 target_link_libraries(meld_graph_int INTERFACE meld_graph TBB::tbb)
 
 add_library(meld::graph ALIAS meld_graph_int)
+
+install(TARGETS meld_graph)
