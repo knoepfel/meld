@@ -1,8 +1,8 @@
 add_library(module MODULE module.cpp)
-target_link_libraries(module PRIVATE Boost::json meld::module)
+target_link_libraries(module PRIVATE meld::module)
 
 add_library(output MODULE output.cpp)
-target_link_libraries(output PRIVATE Boost::json meld::module)
+target_link_libraries(output PRIVATE meld::module)
 
 add_library(source MODULE source.cpp)
 target_link_libraries(source PRIVATE Boost::json meld::core)

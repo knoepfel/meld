@@ -99,6 +99,30 @@ namespace meld {
                            std::move(inputs)};
     }
 
+    template <label_compatible L>
+    auto evaluate(std::array<L, N> input_args)
+    {
+      return evaluate(to_labels(input_args));
+    }
+
+    template <label_compatible L>
+    auto monitor(std::array<L, N> input_args)
+    {
+      return monitor(to_labels(input_args));
+    }
+
+    template <label_compatible L>
+    auto transform(std::array<L, N> input_args)
+    {
+      return transform(to_labels(input_args));
+    }
+
+    template <label_compatible L>
+    auto reduce(std::array<L, N> input_args)
+    {
+      return reduce(to_labels(input_args));
+    }
+
     auto evaluate(label_compatible auto... input_args)
     {
       static_assert(N == sizeof...(input_args),

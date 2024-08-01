@@ -1,6 +1,8 @@
 #ifndef meld_core_specified_label_hpp
 #define meld_core_specified_label_hpp
 
+#include <algorithm>
+#include <array>
 #include <iosfwd>
 #include <memory>
 #include <string>
@@ -28,8 +30,20 @@ namespace meld {
 
   template <typename T>
   concept label_compatible = requires(T t) {
-    { specified_label{t} };
+    {
+      specified_label{t}
+    };
   };
+
+  template <label_compatible T, std::size_t N>
+  auto to_labels(std::array<T, N> const& like_labels)
+  {
+    std::array<specified_label, N> labels;
+    std::ranges::transform(
+      like_labels, labels.begin(), [](T const& t) { return specified_label{t}; });
+    return labels;
+  }
+
 }
 
 #endif /* meld_core_specified_label_hpp */
