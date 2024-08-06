@@ -66,7 +66,7 @@ TEST_CASE("Testing domains", "[data model]")
   g.with("se", check_two_ids).monitor("id"_in("subrun"), "id").for_each("event");
   g.with("rs", check_two_ids).monitor("id"_in("run"), "id").for_each("subrun");
   g.with("rse", check_three_ids).monitor("id"_in("run"), "id"_in("subrun"), "id").for_each("event");
-  g.execute("allowed_domains_t.gv");
+  g.execute("allowed_domains_t");
 
   CHECK(g.execution_counts("se") == 1ull);
   CHECK(g.execution_counts("rs") == 1ull);

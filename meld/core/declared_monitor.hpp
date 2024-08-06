@@ -175,10 +175,7 @@ namespace meld {
 
     std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
-    std::span<specified_label const, std::dynamic_extent> input() const override
-    {
-      return product_labels_;
-    }
+    specified_labels input() const override { return product_labels_; }
 
     bool needs_new(product_store_const_ptr const& store, accessor& a)
     {

@@ -4,6 +4,8 @@
 #include "meld/core/declared_output.hpp"
 #include "meld/core/declared_splitter.hpp"
 #include "meld/core/dot_attributes.hpp"
+#include "meld/core/dot_data_graph.hpp"
+#include "meld/core/dot_function_graph.hpp"
 #include "meld/core/filter.hpp"
 #include "meld/core/multiplexer.hpp"
 
@@ -19,6 +21,11 @@
 #include <vector>
 
 namespace meld {
+
+  template <typename T>
+  concept supports_output = requires(T t) {
+    { t->output() };
+  };
 
   template <typename T>
   struct consumers {
@@ -37,14 +44,7 @@ namespace meld {
   class edge_maker {
   public:
     template <typename... Args>
-    edge_maker(std::string const& filename, declared_outputs& outputs, Args&... args);
-
-    ~edge_maker()
-    {
-      if (fout_) {
-        dot_epilog(*fout_);
-      }
-    }
+    edge_maker(std::string const& file_prefix, declared_outputs& outputs, Args&... args);
 
     template <typename... Args>
     void operator()(tbb::flow::input_node<message>& source,
@@ -62,29 +62,14 @@ namespace meld {
     template <typename T>
     multiplexer::head_ports_t edges(std::map<std::string, filter>& filters, T& consumers);
 
-    static void dot_prolog(std::ostream& os);
-    static void dot_epilog(std::ostream& os);
+    struct dot_files {
+      std::ofstream function_graph;
+      std::ofstream pre_data_graph;
+      std::ofstream post_data_graph;
+    };
+    static std::unique_ptr<dot_files> maybe_graph_files(std::string const& filename);
 
-    static void dot_node_declaration(std::ostream& os,
-                                     std::string const& node_name,
-                                     std::string const& node_shape);
-    static void dot_predicate_edge(std::ostream& os,
-                                   std::string const& source_node,
-                                   std::string const& target_node);
-    static void dot_multiplexing_edge(std::ostream& os,
-                                      std::string const& source_node,
-                                      std::string const& target_node,
-                                      dot::attributes attrs);
-    static void dot_normal_edge(std::ostream& os,
-                                std::string const& source_node,
-                                std::string const& target_node,
-                                dot::attributes attrs);
-    static void dot_output_edge(std::ostream& os,
-                                std::string const& source_node,
-                                std::string const& target_node,
-                                dot::attributes attrs);
-
-    std::unique_ptr<std::ofstream> fout_{nullptr};
+    std::unique_ptr<dot_files> graph_files_;
     std::map<product_name_t, multiplexer::named_output_port> producers_;
     declared_outputs& outputs_;
     std::map<std::string, dot::attributes> attributes_;
@@ -93,12 +78,13 @@ namespace meld {
   // =============================================================================
   // Implementation
   template <typename... Args>
-  edge_maker::edge_maker(std::string const& filename, declared_outputs& outputs, Args&... args) :
-    fout_{empty(filename) ? nullptr : std::make_unique<std::ofstream>(filename)}, outputs_{outputs}
+  edge_maker::edge_maker(std::string const& file_prefix, declared_outputs& outputs, Args&... args) :
+    graph_files_{maybe_graph_files(file_prefix)}, outputs_{outputs}
   {
     (producers_.merge(producing_nodes(args)), ...);
-    if (fout_) {
-      dot_prolog(*fout_);
+    if (graph_files_) {
+      dot::function_graph::prolog(graph_files_->function_graph);
+      dot::data_graph::prolog(graph_files_->pre_data_graph);
     }
   }
 
@@ -132,8 +118,9 @@ namespace meld {
     multiplexer::head_ports_t result;
     auto const& [data, attributes] = consumers;
     for (auto& [node_name, node] : data) {
-      if (fout_) {
-        dot_node_declaration(*fout_, node_name, attributes.shape);
+      if (graph_files_) {
+        dot::function_graph::node_declaration(
+          graph_files_->function_graph, node_name, attributes.shape);
       }
 
       tbb::flow::receiver<message>* collector = nullptr;
@@ -141,9 +128,10 @@ namespace meld {
         collector = &coll_it->second.data_port();
       }
 
-      if (fout_) {
+      if (graph_files_) {
         for (auto const& predicate_name : node->when()) {
-          dot_predicate_edge(*fout_, predicate_name, node_name);
+          dot::function_graph::predicate_edge(
+            graph_files_->function_graph, predicate_name, node_name);
         }
       }
 
@@ -158,12 +146,52 @@ namespace meld {
 
         auto const& [sender_node, sender_name] = std::tie(it->second, it->second.node_name);
         make_edge(*sender_node.port, *input_port);
-        if (fout_) {
+        if (graph_files_) {
           auto const& src_attributes = attributes_.at(sender_name);
-          dot_normal_edge(*fout_,
-                          sender_name,
-                          node_name,
-                          {.arrowtail = src_attributes.arrowtail, .label = product_label.name});
+          dot::function_graph::normal_edge(
+            graph_files_->function_graph,
+            sender_name,
+            node_name,
+            {.arrowtail = src_attributes.arrowtail, .label = product_label.name});
+        }
+      }
+
+      if constexpr (supports_output<decltype(node)>) {
+        if (graph_files_) {
+          // Data-graph nodes
+          std::string source_name{};
+          if (node->input().size() > 1ull) {
+            auto zip_node_name = dot::data_graph::zip_node(node->input());
+            for (auto const& product_label : node->input()) {
+              dot::data_graph::zip_edge(
+                graph_files_->pre_data_graph, product_label.name, zip_node_name);
+            }
+            source_name = std::move(zip_node_name);
+            dot::data_graph::node_declaration(
+              graph_files_->pre_data_graph, source_name, {.fontcolor = "gray"});
+          }
+          else {
+            source_name = node->input().begin()->name;
+          }
+
+          std::string target_name{};
+          if (node->output().size() > 1ull) {
+            auto unzip_node_name = dot::data_graph::unzip_node(node->output());
+            for (auto const& product_name : node->output()) {
+              dot::data_graph::node_declaration(graph_files_->pre_data_graph, product_name);
+              dot::data_graph::zip_edge(
+                graph_files_->pre_data_graph, unzip_node_name, product_name);
+            }
+            target_name = std::move(unzip_node_name);
+            dot::data_graph::node_declaration(
+              graph_files_->pre_data_graph, target_name, {.fontcolor = "#a9a9a9"});
+          }
+          else {
+            target_name = *node->output().begin();
+          }
+
+          dot::data_graph::normal_edge(
+            graph_files_->pre_data_graph, source_name, target_name, {.label = node->name()});
         }
       }
     }
@@ -185,23 +213,28 @@ namespace meld {
 
     for (auto const& [name, output_node] : outputs_) {
       make_edge(source, output_node->port());
-      if (fout_) {
-        dot_node_declaration(*fout_, name, "cylinder");
-        dot_output_edge(*fout_, "Source", name, {});
+      if (graph_files_) {
+        dot::function_graph::node_declaration(graph_files_->function_graph, name, "cylinder");
+        dot::function_graph::output_edge(graph_files_->function_graph, "Source", name, {});
       }
       for (auto const& [_, named_port] : producers_) {
         make_edge(*named_port.to_output, output_node->port());
-        if (fout_) {
+        if (graph_files_) {
           auto const& src_attributes = attributes_.at(named_port.node_name);
-          dot_output_edge(
-            *fout_, named_port.node_name, name, {.arrowtail = src_attributes.arrowtail});
+          dot::function_graph::output_edge(graph_files_->function_graph,
+                                           named_port.node_name,
+                                           name,
+                                           {.arrowtail = src_attributes.arrowtail});
         }
       }
       for (auto const& [splitter_name, splitter] : splitters.data) {
         make_edge(splitter->to_output(), output_node->port());
-        if (fout_) {
+        if (graph_files_) {
           auto const& src_attributes = attributes_.at(splitter_name);
-          dot_output_edge(*fout_, splitter_name, name, {.arrowtail = src_attributes.arrowtail});
+          dot::function_graph::output_edge(graph_files_->function_graph,
+                                           splitter_name,
+                                           name,
+                                           {.arrowtail = src_attributes.arrowtail});
         }
       }
     }
@@ -234,8 +267,9 @@ namespace meld {
               continue;
             }
             heads[node_name].push_back(port);
-            if (fout_) {
-              dot_multiplexing_edge(*fout_, name, node_name, {.label = product_name});
+            if (graph_files_) {
+              dot::function_graph::multiplexing_edge(
+                graph_files_->function_graph, name, node_name, {.label = product_name});
             }
           }
         }
@@ -250,16 +284,23 @@ namespace meld {
       }
     }
 
-    if (fout_) {
+    if (graph_files_) {
       for (auto const& [node_name, ports] : head_ports) {
         for (auto const& head_port : ports) {
-          dot_multiplexing_edge(
-            *fout_, "Multiplexer", node_name, {.label = head_port.product_label.to_string()});
+          dot::function_graph::multiplexing_edge(graph_files_->function_graph,
+                                                 "Multiplexer",
+                                                 node_name,
+                                                 {.label = head_port.product_label.to_string()});
         }
       }
     }
 
     multi.finalize(std::move(head_ports));
+
+    if (graph_files_) {
+      dot::function_graph::epilog(graph_files_->function_graph);
+      dot::data_graph::epilog(graph_files_->pre_data_graph);
+    }
   }
 }
 

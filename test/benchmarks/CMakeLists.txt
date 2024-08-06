@@ -40,7 +40,7 @@ foreach(I IN ITEMS 01 02 03 04 05 06 07 08 09)
   file(MAKE_DIRECTORY ${TEST_DIR})
   add_test(NAME ${test_name}
            COMMAND meld -c ${CMAKE_CURRENT_SOURCE_DIR}/benchmark-${I}.jsonnet
-           -g benchmark-${I}.gv
+           -g benchmark-${I}
            WORKING_DIRECTORY ${TEST_DIR})
   set_tests_properties(${test_name} PROPERTIES ENVIRONMENT MELD_PLUGIN_PATH=${CMAKE_CURRENT_BINARY_DIR})
   dot_test(benchmark-${I})

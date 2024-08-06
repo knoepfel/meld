@@ -208,10 +208,7 @@ namespace meld {
 
     tbb::flow::sender<message>& sender() override { return output_port<0>(transform_); }
     tbb::flow::sender<message>& to_output() override { return output_port<1>(transform_); }
-    std::span<specified_label const, std::dynamic_extent> input() const override
-    {
-      return product_labels_;
-    }
+    specified_labels input() const override { return product_labels_; }
     std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
 
     bool needs_new(product_store_const_ptr const& store,

@@ -231,10 +231,7 @@ namespace meld {
 
     tbb::flow::sender<message>& sender() override { return output_port<0ull>(reduction_); }
     tbb::flow::sender<message>& to_output() override { return sender(); }
-    std::span<specified_label const, std::dynamic_extent> input() const override
-    {
-      return product_labels_;
-    }
+    specified_labels input() const override { return product_labels_; }
     std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
 
     template <std::size_t... Is>

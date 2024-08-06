@@ -102,7 +102,7 @@ TEST_CASE("Two predicates", "[filtering]")
     .monitor("num")
     .for_each("event");
 
-  g.execute("two_independent_predicates_t.gv");
+  g.execute("two_independent_predicates_t");
 }
 
 TEST_CASE("Two predicates in series", "[filtering]")
@@ -115,7 +115,7 @@ TEST_CASE("Two predicates in series", "[filtering]")
     .when("odds_only")
     .monitor("num");
 
-  g.execute("two_predicates_in_series_t.gv");
+  g.execute("two_predicates_in_series_t");
 }
 
 TEST_CASE("Two predicates in parallel", "[filtering]")
@@ -128,7 +128,7 @@ TEST_CASE("Two predicates in parallel", "[filtering]")
     .when("odds_only", "evens_only")
     .monitor("num");
 
-  g.execute("two_predicates_in_parallel_t.gv");
+  g.execute("two_predicates_in_parallel_t");
 }
 
 TEST_CASE("Three predicates in parallel", "[filtering]")
@@ -157,7 +157,7 @@ TEST_CASE("Three predicates in parallel", "[filtering]")
     .when(predicate_names)
     .monitor("num");
 
-  g.execute("three_predicates_in_parallel_t.gv");
+  g.execute("three_predicates_in_parallel_t");
 }
 
 TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filtering]")
@@ -175,5 +175,5 @@ TEST_CASE("Two predicates in parallel (each with multiple arguments)", "[filteri
     .when("odds_only")
     .monitor("other_num", "num"); // <= Note input order
 
-  g.execute("two_predicates_in_parallel_multiarg_t.gv");
+  g.execute("two_predicates_in_parallel_multiarg_t");
 }

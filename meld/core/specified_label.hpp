@@ -5,6 +5,7 @@
 #include <array>
 #include <iosfwd>
 #include <memory>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -19,6 +20,9 @@ namespace meld {
     std::string to_string() const;
   };
 
+  using specified_labels = std::span<specified_label const, std::dynamic_extent>;
+  using output_strings = std::span<std::string const, std::dynamic_extent>;
+
   inline auto& to_name(specified_label const& label) { return label.name; }
   inline auto& to_domain(specified_label& label) { return label.domain; }
 
@@ -30,9 +34,7 @@ namespace meld {
 
   template <typename T>
   concept label_compatible = requires(T t) {
-    {
-      specified_label{t}
-    };
+    { specified_label{t} };
   };
 
   template <label_compatible T, std::size_t N>

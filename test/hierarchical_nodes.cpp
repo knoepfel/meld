@@ -124,7 +124,7 @@ TEST_CASE("Hierarchical nodes", "[graph]")
 
   g.make<test::products_for_output>().output_with(&test::products_for_output::save).when();
 
-  g.execute("hierarchical_nodes_t.gv");
+  g.execute("hierarchical_nodes_t");
 
   CHECK(g.execution_counts("square") == index_limit * number_limit);
   CHECK(g.execution_counts("add") == index_limit * number_limit);
