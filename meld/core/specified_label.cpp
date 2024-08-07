@@ -28,10 +28,23 @@ namespace meld {
   std::string specified_label::to_string() const
   {
     if (domain.empty()) {
-      return fmt::format("{} ϵ (any)", name);
+      return fmt::format("{} ϵ (any)", name.full());
     }
-    return fmt::format("{} ϵ {}", name, domain);
+    return fmt::format("{} ϵ {}", name.full(), domain);
   }
+
+  specified_label specified_label::create(char const* c) { return create(std::string{c}); }
+
+  specified_label specified_label::create(std::string const& s)
+  {
+    auto pos = s.find("/");
+    if (pos == std::string::npos) {
+      return {qualified_name{s}};
+    }
+    return {qualified_name{s.substr(0, pos), s.substr(pos + 1)}};
+  }
+
+  specified_label specified_label::create(specified_label l) { return l; }
 
   specified_label operator""_in(char const* name, std::size_t length)
   {

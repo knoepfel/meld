@@ -55,9 +55,10 @@ namespace meld {
                              int max_parallelism = oneapi::tbb::info::default_concurrency());
     ~framework_graph();
 
-    void execute(std::string const& dot_file_name = {});
+    void execute(std::string const& dot_prefix = {});
 
     std::size_t execution_counts(std::string const& node_name) const;
+    std::size_t product_counts(std::string const& node_name) const;
 
     graph_proxy<void_tag> proxy(configuration const& config)
     {
@@ -89,7 +90,8 @@ namespace meld {
 
   private:
     void run();
-    void finalize(std::string const& dot_file_name);
+    void finalize(std::string const& dot_file_prefix);
+    void post_data_graph(std::string const& dot_file_prefix);
 
     product_store_ptr accept(product_store_ptr store);
     void drain();

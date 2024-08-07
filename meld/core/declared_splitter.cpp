@@ -30,7 +30,7 @@ namespace meld {
     return result;
   }
 
-  declared_splitter::declared_splitter(std::string name, std::vector<std::string> predicates) :
+  declared_splitter::declared_splitter(qualified_name name, std::vector<std::string> predicates) :
     products_consumer{std::move(name), std::move(predicates)}
   {
   }

@@ -13,11 +13,14 @@
 #include "meld/model/handle.hpp"
 #include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
+#include "meld/model/qualified_name.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
+#include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
 #include "spdlog/spdlog.h"
 
+#include <algorithm>
 #include <array>
 #include <concepts>
 #include <cstddef>
@@ -36,12 +39,13 @@ namespace meld {
 
   class declared_transform : public products_consumer {
   public:
-    declared_transform(std::string name, std::vector<std::string> predicates);
+    declared_transform(qualified_name name, std::vector<std::string> predicates);
     virtual ~declared_transform();
 
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual std::span<std::string const, std::dynamic_extent> output() const = 0;
+    virtual qualified_names output() const = 0;
+    virtual std::size_t product_count() const = 0;
   };
 
   using declared_transform_ptr = std::unique_ptr<declared_transform>;
@@ -60,7 +64,7 @@ namespace meld {
 
   public:
     pre_transform(registrar<declared_transforms> reg,
-                  std::string name,
+                  qualified_name name,
                   std::size_t concurrency,
                   std::vector<std::string> predicates,
                   tbb::flow::graph& g,
@@ -94,7 +98,10 @@ namespace meld {
         M == Msize,
         "The number of function parameters is not the same as the number of returned output "
         "objects.");
-      reg_.set([this, outputs = std::move(output_keys)] { return create(std::move(outputs)); });
+
+      std::array<qualified_name, Msize> outputs;
+      std::ranges::transform(output_keys, outputs.begin(), to_qualified_name{name_.module()});
+      reg_.set([this, out = std::move(outputs)] { return create(std::move(out)); });
       return *this;
     }
 
@@ -108,7 +115,7 @@ namespace meld {
     }
 
   private:
-    declared_transform_ptr create(std::array<std::string, M> outputs)
+    declared_transform_ptr create(std::array<qualified_name, M> outputs)
     {
       return std::make_unique<total_transform<M>>(std::move(name_),
                                                   concurrency_,
@@ -120,7 +127,7 @@ namespace meld {
                                                   std::move(outputs));
     }
 
-    std::string name_;
+    qualified_name name_;
     std::size_t concurrency_;
     std::vector<std::string> predicates_;
     tbb::flow::graph& graph_;
@@ -142,14 +149,14 @@ namespace meld {
     using const_accessor = stores_t::const_accessor;
 
   public:
-    total_transform(std::string name,
+    total_transform(qualified_name name,
                     std::size_t concurrency,
                     std::vector<std::string> predicates,
                     tbb::flow::graph& g,
                     function_t&& f,
                     InputArgs input,
                     std::array<specified_label, N> product_labels,
-                    std::array<std::string, M> output) :
+                    std::array<qualified_name, M> output) :
       declared_transform{std::move(name), std::move(predicates)},
       product_labels_{std::move(product_labels)},
       input_{std::move(input)},
@@ -163,14 +170,15 @@ namespace meld {
           if (store->is_flush()) {
             flag_accessor fa;
             flag_for(store->id()->hash(), fa).flush_received(msg.original_id);
-            // spdlog::debug("Transform {} sending flush message {}/{}", this->name(), message_id, msg.original_id);
             stay_in_graph.try_put(msg);
           }
           else if (accessor a; needs_new(store, message_eom, message_id, stay_in_graph, a)) {
             auto result = call(ft, messages, std::make_index_sequence<N>{});
+            ++calls_;
+            ++product_count_[store->id()->level_hash()];
             products new_products;
             new_products.add_all(output_, result);
-            a->second = store->make_continuation(this->name(), std::move(new_products));
+            a->second = store->make_continuation(this->full_name(), std::move(new_products));
 
             message const new_msg{a->second, msg.eom, message_id};
             stay_in_graph.try_put(new_msg);
@@ -191,7 +199,7 @@ namespace meld {
     ~total_transform()
     {
       if (stores_.size() > 0ull) {
-        spdlog::warn("Transform {} has {} cached stores.", name(), stores_.size());
+        spdlog::warn("Transform {} has {} cached stores.", full_name(), stores_.size());
       }
       for (auto const& [hash, store] : stores_) {
         spdlog::debug(" => ID: {} (hash: {})", store->id()->to_string(), hash);
@@ -209,7 +217,7 @@ namespace meld {
     tbb::flow::sender<message>& sender() override { return output_port<0>(transform_); }
     tbb::flow::sender<message>& to_output() override { return output_port<1>(transform_); }
     specified_labels input() const override { return product_labels_; }
-    std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
+    qualified_names output() const override { return output_; }
 
     bool needs_new(product_store_const_ptr const& store,
                    end_of_message_ptr const& eom,
@@ -238,19 +246,27 @@ namespace meld {
     template <std::size_t... Is>
     auto call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
     {
-      ++calls_;
       return std::invoke(ft, std::get<Is>(input_).retrieve(messages)...);
     }
 
     std::size_t num_calls() const final { return calls_.load(); }
+    std::size_t product_count() const final
+    {
+      std::size_t result{};
+      for (auto const& [_, count] : product_count_) {
+        result += count.load();
+      }
+      return result;
+    }
 
     std::array<specified_label, N> product_labels_;
     InputArgs input_;
-    std::array<std::string, M> output_;
+    std::array<qualified_name, M> output_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<2u>> transform_;
     stores_t stores_;
     std::atomic<std::size_t> calls_;
+    tbb::concurrent_unordered_map<std::size_t, std::atomic<std::size_t>> product_count_;
   };
 
 }

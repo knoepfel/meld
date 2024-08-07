@@ -14,6 +14,7 @@
 #include "meld/model/handle.hpp"
 #include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
+#include "meld/model/qualified_name.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
 #include "oneapi/tbb/flow_graph.h"
@@ -36,12 +37,13 @@
 namespace meld {
   class declared_reduction : public products_consumer {
   public:
-    declared_reduction(std::string name, std::vector<std::string> predicates);
+    declared_reduction(qualified_name name, std::vector<std::string> predicates);
     virtual ~declared_reduction();
 
     virtual tbb::flow::sender<message>& sender() = 0;
     virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual std::span<std::string const, std::dynamic_extent> output() const = 0;
+    virtual qualified_names output() const = 0;
+    virtual std::size_t product_count() const = 0;
   };
 
   using declared_reduction_ptr = std::unique_ptr<declared_reduction>;
@@ -64,7 +66,7 @@ namespace meld {
 
   public:
     pre_reduction(registrar<declared_reductions> reg,
-                  std::string name,
+                  qualified_name name,
                   std::size_t concurrency,
                   std::vector<std::string> predicates,
                   tbb::flow::graph& g,
@@ -88,7 +90,7 @@ namespace meld {
         M == Msize,
         "The number of function parameters is not the same as the number of returned output "
         "objects.");
-      output_keys_ = std::move(output_keys);
+      std::ranges::transform(output_keys, output_names_.begin(), to_qualified_name{name_.module()});
       reg_.set([this] { return create(std::make_tuple()); });
       return *this;
     }
@@ -130,11 +132,11 @@ namespace meld {
                                                                std::move(init),
                                                                std::move(input_args_),
                                                                std::move(product_labels_),
-                                                               std::move(output_keys_),
+                                                               std::move(output_names_),
                                                                std::move(reduction_interval_));
     }
 
-    std::string name_;
+    qualified_name name_;
     std::size_t concurrency_;
     std::vector<std::string> predicates_;
     tbb::flow::graph& graph_;
@@ -142,7 +144,7 @@ namespace meld {
     InputArgs input_args_;
     std::array<specified_label, N> product_labels_;
     std::string reduction_interval_{level_id::base().level_name()};
-    std::array<std::string, M> output_keys_;
+    std::array<qualified_name, M> output_names_;
     registrar<declared_reductions> reg_;
   };
 
@@ -153,7 +155,7 @@ namespace meld {
     private count_stores {
 
   public:
-    total_reduction(std::string name,
+    total_reduction(qualified_name name,
                     std::size_t concurrency,
                     std::vector<std::string> predicates,
                     tbb::flow::graph& g,
@@ -161,7 +163,7 @@ namespace meld {
                     InitTuple initializer,
                     InputArgs input,
                     std::array<specified_label, N> product_labels,
-                    std::array<std::string, M> output,
+                    std::array<qualified_name, M> output,
                     std::string reduction_interval) :
       declared_reduction{std::move(name), std::move(predicates)},
       initializer_{std::move(initializer)},
@@ -210,8 +212,9 @@ namespace meld {
           bool const has_counter = counter_for(id_for_counter->hash(), cca);
 
           if (has_counter && cca->second->is_flush()) {
-            auto parent = reduction_store->make_continuation(this->name());
+            auto parent = reduction_store->make_continuation(this->full_name());
             commit_(*parent);
+            ++product_count_;
             // FIXME: This msg.eom value may be wrong!
             get<0>(outputs).try_put({parent, msg.eom, counter.original_message_id()});
             erase_counter(cca);
@@ -232,7 +235,7 @@ namespace meld {
     tbb::flow::sender<message>& sender() override { return output_port<0ull>(reduction_); }
     tbb::flow::sender<message>& to_output() override { return sender(); }
     specified_labels input() const override { return product_labels_; }
-    std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
+    qualified_names output() const override { return output_; }
 
     template <std::size_t... Is>
     void call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)
@@ -253,6 +256,7 @@ namespace meld {
     }
 
     std::size_t num_calls() const final { return calls_.load(); }
+    std::size_t product_count() const final { return product_count_.load(); }
 
     template <size_t... Is>
     auto initialized_object(InitTuple&& tuple, std::index_sequence<Is...>) const
@@ -265,10 +269,10 @@ namespace meld {
     {
       auto& result = results_.at(*store.id());
       if constexpr (requires { send(*result); }) {
-        store.add_product(output()[0], send(*result));
+        store.add_product(output()[0].full(), send(*result));
       }
       else {
-        store.add_product(output()[0], std::move(*result));
+        store.add_product(output()[0].full(), std::move(*result));
       }
       // Reclaim some memory; it would be better to erase the entire entry from the map,
       // but that is not thread-safe.
@@ -278,12 +282,13 @@ namespace meld {
     InitTuple initializer_;
     std::array<specified_label, N> product_labels_;
     InputArgs input_;
-    std::array<std::string, M> output_;
+    std::array<qualified_name, M> output_;
     std::string reduction_interval_;
     join_or_none_t<N> join_;
     tbb::flow::multifunction_node<messages_t<N>, messages_t<1>> reduction_;
     tbb::concurrent_unordered_map<level_id, std::unique_ptr<R>> results_;
     std::atomic<std::size_t> calls_;
+    std::atomic<std::size_t> product_count_;
   };
 }
 

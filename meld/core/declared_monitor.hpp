@@ -13,6 +13,7 @@
 #include "meld/model/handle.hpp"
 #include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
+#include "meld/model/qualified_name.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
@@ -37,7 +38,7 @@ namespace meld {
 
   class declared_monitor : public products_consumer {
   public:
-    declared_monitor(std::string name, std::vector<std::string> predicates);
+    declared_monitor(qualified_name name, std::vector<std::string> predicates);
     virtual ~declared_monitor();
   };
 
@@ -54,7 +55,7 @@ namespace meld {
 
   public:
     pre_monitor(registrar<declared_monitors> reg,
-                std::string name,
+                qualified_name name,
                 std::size_t concurrency,
                 std::vector<std::string> predicates,
                 tbb::flow::graph& g,
@@ -93,7 +94,7 @@ namespace meld {
                                                 std::move(input_args_),
                                                 std::move(product_labels_));
     }
-    std::string name_;
+    qualified_name name_;
     std::size_t concurrency_;
     std::vector<std::string> predicates_;
     tbb::flow::graph& graph_;
@@ -114,7 +115,7 @@ namespace meld {
     using accessor = stores_t::accessor;
 
   public:
-    complete_monitor(std::string name,
+    complete_monitor(qualified_name name,
                      std::size_t concurrency,
                      std::vector<std::string> predicates,
                      tbb::flow::graph& g,
@@ -131,11 +132,6 @@ namespace meld {
                  messages_t<N> const& messages) -> oneapi::tbb::flow::continue_msg {
                  auto const& msg = most_derived(messages);
                  auto const& [store, message_id] = std::tie(msg.store, msg.id);
-                 // meld::stage const st{store->is_flush() ? meld::stage::flush : meld::stage::process};
-                 // spdlog::debug("Monitor {} received {} ({})",
-                 //               this->name(),
-                 //               store->id(),
-                 //               to_string(st));
                  if (store->is_flush()) {
                    flag_accessor ca;
                    flag_for(store->id()->hash(), ca).flush_received(message_id);
@@ -160,7 +156,7 @@ namespace meld {
     ~complete_monitor()
     {
       if (stores_.size() > 0ull) {
-        spdlog::warn("Monitor {} has {} cached stores.", name(), stores_.size());
+        spdlog::warn("Monitor {} has {} cached stores.", full_name(), stores_.size());
       }
       for (auto const& [id, _] : stores_) {
         spdlog::debug(" => ID: {}", id);

@@ -13,6 +13,7 @@
 #include "meld/model/handle.hpp"
 #include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
+#include "meld/model/qualified_name.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/concurrent_hash_map.h"
@@ -58,12 +59,13 @@ namespace meld {
 
   class declared_splitter : public products_consumer {
   public:
-    declared_splitter(std::string name, std::vector<std::string> predicates);
+    declared_splitter(qualified_name name, std::vector<std::string> predicates);
     virtual ~declared_splitter();
 
     virtual tbb::flow::sender<message>& to_output() = 0;
-    virtual std::span<std::string const, std::dynamic_extent> output() const = 0;
+    virtual qualified_names output() const = 0;
     virtual void finalize(multiplexer::head_ports_t head_ports) = 0;
+    virtual std::size_t product_count() const = 0;
   };
 
   using declared_splitter_ptr = std::unique_ptr<declared_splitter>;
@@ -80,7 +82,7 @@ namespace meld {
 
   public:
     partial_splitter(registrar<declared_splitters> reg,
-                     std::string name,
+                     qualified_name name,
                      std::size_t concurrency,
                      std::vector<std::string> predicates,
                      tbb::flow::graph& g,
@@ -102,7 +104,9 @@ namespace meld {
     template <std::size_t M>
     auto& into(std::array<std::string, M> output_products)
     {
-      reg_.set([this, outputs = std::move(output_products)] { return create(std::move(outputs)); });
+      std::array<qualified_name, M> outputs;
+      std::ranges::transform(output_products, outputs.begin(), to_qualified_name{name_.module()});
+      reg_.set([this, out = std::move(outputs)] { return create(std::move(out)); });
       return *this;
     }
 
@@ -119,7 +123,7 @@ namespace meld {
 
   private:
     template <std::size_t M>
-    declared_splitter_ptr create(std::array<std::string, M> outputs)
+    declared_splitter_ptr create(std::array<qualified_name, M> outputs)
     {
       return std::make_unique<complete_splitter<M>>(std::move(name_),
                                                     concurrency_,
@@ -133,7 +137,7 @@ namespace meld {
                                                     std::move(new_level_name_));
     }
 
-    std::string name_;
+    qualified_name name_;
     std::size_t concurrency_;
     std::vector<std::string> predicates_;
     tbb::flow::graph& graph_;
@@ -157,7 +161,7 @@ namespace meld {
     using const_accessor = stores_t::const_accessor;
 
   public:
-    complete_splitter(std::string name,
+    complete_splitter(qualified_name name,
                       std::size_t concurrency,
                       std::vector<std::string> predicates,
                       tbb::flow::graph& g,
@@ -165,7 +169,7 @@ namespace meld {
                       Unfold&& unfold,
                       InputArgs input,
                       std::array<specified_label, N> product_labels,
-                      std::array<std::string, M> output_products,
+                      std::array<qualified_name, M> output_products,
                       std::string new_level_name) :
       declared_splitter{std::move(name), std::move(predicates)},
       product_labels_{std::move(product_labels)},
@@ -186,7 +190,7 @@ namespace meld {
                   }
                   else if (accessor a; stores_.insert(a, store->id()->hash())) {
                     std::size_t const original_message_id{msg_counter_};
-                    generator g{msg.store, this->name(), new_level_name_};
+                    generator g{msg.store, this->full_name(), new_level_name_};
                     call(p, ufold, g, msg.eom, messages, std::make_index_sequence<N>{});
                     multiplexer_.try_put(
                       {g.flush_store(), msg.eom, ++msg_counter_, original_message_id});
@@ -209,7 +213,7 @@ namespace meld {
     ~complete_splitter()
     {
       if (stores_.size() > 0ull) {
-        spdlog::warn("Unfold {} has {} cached stores.", name(), stores_.size());
+        spdlog::warn("Unfold {} has {} cached stores.", full_name(), stores_.size());
       }
       for (auto const& [_, store] : stores_) {
         spdlog::debug(" => ID: ", store->id()->to_string());
@@ -226,7 +230,7 @@ namespace meld {
     tbb::flow::sender<message>& to_output() override { return to_output_; }
 
     specified_labels input() const override { return product_labels_; }
-    std::span<std::string const, std::dynamic_extent> output() const override { return output_; }
+    qualified_names output() const override { return output_; }
 
     void finalize(multiplexer::head_ports_t head_ports) override
     {
@@ -247,6 +251,7 @@ namespace meld {
       auto running_value = obj.initial_value();
       while (std::invoke(predicate, obj, running_value)) {
         auto [next_value, prods] = std::invoke(unfold, obj, running_value);
+        ++product_count_;
         products new_products;
         new_products.add_all(output_, prods);
         auto child = g.make_child_for(counter++, std::move(new_products));
@@ -258,10 +263,11 @@ namespace meld {
     }
 
     std::size_t num_calls() const final { return calls_.load(); }
+    std::size_t product_count() const final { return product_count_.load(); }
 
     std::array<specified_label, N> product_labels_;
     InputArgs input_;
-    std::array<std::string, M> output_;
+    std::array<qualified_name, M> output_;
     std::string new_level_name_;
     multiplexer multiplexer_;
     join_or_none_t<N> join_;
@@ -270,6 +276,7 @@ namespace meld {
     tbb::concurrent_hash_map<level_id::hash_type, product_store_ptr> stores_;
     std::atomic<std::size_t> msg_counter_{}; // Is this sufficient?  Probably not.
     std::atomic<std::size_t> calls_{};
+    std::atomic<std::size_t> product_count_{};
   };
 }
 

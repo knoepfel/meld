@@ -96,10 +96,26 @@ namespace meld {
     return 0u;
   }
 
-  void framework_graph::execute(std::string const& dot_file_name)
+  std::size_t framework_graph::product_counts(std::string const& node_name) const
   {
-    finalize(dot_file_name);
+    // FIXME: Yuck!
+    if (auto it = nodes_.reductions_.find(node_name); it != nodes_.reductions_.end()) {
+      return it->second->product_count();
+    }
+    if (auto it = nodes_.splitters_.find(node_name); it != nodes_.splitters_.end()) {
+      return it->second->product_count();
+    }
+    if (auto it = nodes_.transforms_.find(node_name); it != nodes_.transforms_.end()) {
+      return it->second->product_count();
+    }
+    return 0u;
+  }
+
+  void framework_graph::execute(std::string const& dot_file_prefix)
+  {
+    finalize(dot_file_prefix);
     run();
+    // post_data_graph(dot_file_prefix);
   }
 
   void framework_graph::run()
@@ -122,7 +138,6 @@ namespace meld {
         }
 
         auto [it, success] = result.try_emplace(name, g, *consumer);
-        // debug("Preceding predicates for ", name, ": ", predicates);
         for (auto const& predicate_name : predicates) {
           auto fit = all_predicates.find(predicate_name);
           if (fit == cend(all_predicates)) {
@@ -136,7 +151,7 @@ namespace meld {
     }
   }
 
-  void framework_graph::finalize(std::string const& dot_file_name)
+  void framework_graph::finalize(std::string const& dot_file_prefix)
   {
     if (not empty(registration_errors_)) {
       std::string error_msg{"\nConfiguration errors:\n"};
@@ -153,7 +168,7 @@ namespace meld {
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates_, nodes_.splitters_));
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates_, nodes_.transforms_));
 
-    edge_maker make_edges{dot_file_name, nodes_.outputs_, nodes_.transforms_, nodes_.reductions_};
+    edge_maker make_edges{dot_file_prefix, nodes_.outputs_, nodes_.transforms_, nodes_.reductions_};
     make_edges(src_,
                multiplexer_,
                filters_,

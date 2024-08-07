@@ -3,7 +3,7 @@ target_include_directories(timed_busy PRIVATE ${PROJECT_SOURCE_DIR})
 
 add_library(algorithm INTERFACE)
 target_include_directories(algorithm INTERFACE ${PROJECT_SOURCE_DIR})
-target_link_libraries(algorithm INTERFACE timed_busy meld::module)
+target_link_libraries(algorithm INTERFACE timed_busy meld::module spdlog::spdlog)
 
 add_library(mock_workflow_source MODULE source.cpp)
 target_link_libraries(mock_workflow_source PRIVATE timed_busy meld::module)

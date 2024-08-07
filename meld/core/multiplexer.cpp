@@ -15,16 +15,16 @@ namespace {
   {
     auto const& [product_name, domain, relation] = label;
     if (domain.empty()) {
-      return store->store_for_product(product_name);
+      return store->store_for_product(product_name.full());
     }
-    if (store->level_name() == domain and store->contains_product(product_name)) {
+    if (store->level_name() == domain and store->contains_product(product_name.full())) {
       return store;
     }
     auto parent = store->parent(domain);
     if (not parent) {
       return nullptr;
     }
-    if (parent->contains_product(product_name)) {
+    if (parent->contains_product(product_name.full())) {
       return parent;
     }
     throw std::runtime_error(

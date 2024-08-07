@@ -56,7 +56,7 @@ namespace meld {
     struct for_output_t {};
     static constexpr for_output_t for_output{};
     explicit data_map(for_output_t);
-    explicit data_map(std::span<specified_label const> product_names);
+    explicit data_map(specified_labels product_names);
 
     bool is_complete(std::size_t const msg_id) const;
 
@@ -65,7 +65,7 @@ namespace meld {
 
   private:
     stores_t stores_;
-    std::span<specified_label const> product_names_;
+    specified_labels product_names_;
     std::size_t nargs_;
   };
 }

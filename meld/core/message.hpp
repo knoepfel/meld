@@ -72,7 +72,7 @@ namespace meld {
     }
   }
 
-  std::size_t port_index_for(std::span<specified_label const> product_labels,
+  std::size_t port_index_for(specified_labels const product_labels,
                              specified_label const& product_label);
 
   template <std::size_t I, std::size_t N>
@@ -90,7 +90,7 @@ namespace meld {
 
   template <std::size_t N>
   tbb::flow::receiver<message>& receiver_for(join_or_none_t<N>& join,
-                                             std::span<specified_label const> product_labels,
+                                             specified_labels const product_labels,
                                              specified_label const& product_label)
   {
     if constexpr (N > 1ull) {

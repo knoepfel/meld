@@ -78,7 +78,7 @@ namespace meld {
     {
       if (creator_) {
         auto ptr = creator_();
-        auto name = ptr->name();
+        auto name = ptr->full_name();
         auto [_, inserted] = nodes_.try_emplace(name, std::move(ptr));
         if (not inserted) {
           errors_.push_back(fmt::format("Node with name '{}' already exists", name));

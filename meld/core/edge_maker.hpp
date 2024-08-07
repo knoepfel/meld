@@ -22,6 +22,8 @@
 
 namespace meld {
 
+  inline std::string const zip_edge{"[zip]"};
+
   template <typename T>
   concept supports_output = requires(T t) {
     { t->output() };
@@ -71,6 +73,13 @@ namespace meld {
 
     std::unique_ptr<dot_files> graph_files_;
     std::map<product_name_t, multiplexer::named_output_port> producers_;
+
+    struct target_with_edge {
+      std::string target;
+      std::string edge;
+    };
+    std::map<product_name_t, target_with_edge> data_graph_edges_;
+    std::map<product_name_t, dot::attributes> data_graph_nodes_;
     declared_outputs& outputs_;
     std::map<std::string, dot::attributes> attributes_;
   };
@@ -82,10 +91,6 @@ namespace meld {
     graph_files_{maybe_graph_files(file_prefix)}, outputs_{outputs}
   {
     (producers_.merge(producing_nodes(args)), ...);
-    if (graph_files_) {
-      dot::function_graph::prolog(graph_files_->function_graph);
-      dot::data_graph::prolog(graph_files_->pre_data_graph);
-    }
   }
 
   template <typename T>
@@ -94,9 +99,9 @@ namespace meld {
     std::map<product_name_t, multiplexer::named_output_port> result;
     for (auto const& [node_name, node] : nodes) {
       for (auto const& product_name : node->output()) {
-        if (empty(product_name))
+        if (empty(product_name.name()))
           continue;
-        result[product_name] = {node_name, &node->sender(), &node->to_output()};
+        result[product_name.full("/")] = {node_name, &node->sender(), &node->to_output()};
       }
     }
     return result;
@@ -136,8 +141,8 @@ namespace meld {
       }
 
       for (auto const& product_label : node->input()) {
-        auto it = producers_.find(product_label.name);
         auto* input_port = collector ? collector : &node->port(product_label);
+        auto it = producers_.find(product_label.name.full("/"));
         if (it == cend(producers_)) {
           // Is there a way to detect mis-specified product dependencies?
           result[node_name].push_back({product_label, input_port});
@@ -152,7 +157,7 @@ namespace meld {
             graph_files_->function_graph,
             sender_name,
             node_name,
-            {.arrowtail = src_attributes.arrowtail, .label = product_label.name});
+            {.arrowtail = src_attributes.arrowtail, .label = to_name(product_label)});
         }
       }
 
@@ -162,36 +167,52 @@ namespace meld {
           std::string source_name{};
           if (node->input().size() > 1ull) {
             auto zip_node_name = dot::data_graph::zip_node(node->input());
-            for (auto const& product_label : node->input()) {
+            for (auto const& product_name : node->input()) {
               dot::data_graph::zip_edge(
-                graph_files_->pre_data_graph, product_label.name, zip_node_name);
+                graph_files_->pre_data_graph, product_name.name.full(), zip_node_name);
+              data_graph_edges_[product_name.name.full()] = {zip_node_name, zip_edge};
+              data_graph_nodes_[product_name.name.full()];
             }
             source_name = std::move(zip_node_name);
-            dot::data_graph::node_declaration(
-              graph_files_->pre_data_graph, source_name, {.fontcolor = "gray"});
+            dot::data_graph::node_declaration(graph_files_->pre_data_graph,
+                                              source_name,
+                                              {.label = source_name, .fontcolor = "gray"});
           }
           else {
-            source_name = node->input().begin()->name;
+            auto const& name = node->input().begin()->name;
+            source_name = name.full();
+            dot::data_graph::node_declaration(
+              graph_files_->pre_data_graph, source_name, {.label = name.name()});
           }
+          data_graph_nodes_[source_name];
 
           std::string target_name{};
           if (node->output().size() > 1ull) {
             auto unzip_node_name = dot::data_graph::unzip_node(node->output());
             for (auto const& product_name : node->output()) {
-              dot::data_graph::node_declaration(graph_files_->pre_data_graph, product_name);
+              dot::data_graph::node_declaration(
+                graph_files_->pre_data_graph, product_name.full(), {.label = product_name.name()});
               dot::data_graph::zip_edge(
-                graph_files_->pre_data_graph, unzip_node_name, product_name);
+                graph_files_->pre_data_graph, unzip_node_name, product_name.full());
+              data_graph_edges_[unzip_node_name] = {product_name.full(), zip_edge};
+              data_graph_nodes_[product_name.full()];
             }
             target_name = std::move(unzip_node_name);
-            dot::data_graph::node_declaration(
-              graph_files_->pre_data_graph, target_name, {.fontcolor = "#a9a9a9"});
+            dot::data_graph::node_declaration(graph_files_->pre_data_graph,
+                                              target_name,
+                                              {.label = target_name, .fontcolor = "\"#a9a9a9\""});
           }
           else {
-            target_name = *node->output().begin();
+            auto const& name = *node->output().begin();
+            target_name = name.full();
+            dot::data_graph::node_declaration(
+              graph_files_->pre_data_graph, target_name, {.label = name.name()});
           }
+          data_graph_nodes_[target_name];
 
           dot::data_graph::normal_edge(
-            graph_files_->pre_data_graph, source_name, target_name, {.label = node->name()});
+            graph_files_->pre_data_graph, source_name, target_name, {.label = node->full_name()});
+          data_graph_edges_[source_name] = {target_name, node->full_name()};
         }
       }
     }
@@ -204,6 +225,11 @@ namespace meld {
                               std::map<std::string, filter>& filters,
                               consumers<Args>... cons)
   {
+    if (graph_files_) {
+      dot::function_graph::prolog(graph_files_->function_graph);
+      dot::data_graph::prolog(graph_files_->pre_data_graph);
+    }
+
     (record_attributes(cons), ...);
 
     make_edge(source, multi);
@@ -260,16 +286,16 @@ namespace meld {
       multiplexer::head_ports_t heads;
       for (auto const& product_name : splitter->output()) {
         // There can be multiple head nodes that require the same product.
-        remove_ports_for_products.insert(product_name);
+        remove_ports_for_products.insert(product_name.full());
         for (auto const& [node_name, ports] : head_ports) {
           for (auto const& port : ports) {
-            if (port.product_label.name != product_name) {
+            if (to_name(port.product_label) != product_name.name()) {
               continue;
             }
             heads[node_name].push_back(port);
             if (graph_files_) {
               dot::function_graph::multiplexing_edge(
-                graph_files_->function_graph, name, node_name, {.label = product_name});
+                graph_files_->function_graph, name, node_name, {.label = product_name.name()});
             }
           }
         }
@@ -280,7 +306,8 @@ namespace meld {
     // Remove head nodes claimed by splitters
     for (auto const& key : remove_ports_for_products) {
       for (auto& [_, ports] : head_ports) {
-        std::erase_if(ports, [&key](auto const& port) { return port.product_label.name == key; });
+        std::erase_if(ports,
+                      [&key](auto const& port) { return to_name(port.product_label) == key; });
       }
     }
 

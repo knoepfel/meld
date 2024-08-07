@@ -14,6 +14,7 @@
 #include "meld/model/handle.hpp"
 #include "meld/model/level_id.hpp"
 #include "meld/model/product_store.hpp"
+#include "meld/model/qualified_name.hpp"
 #include "meld/utilities/sized_tuple.hpp"
 
 #include "oneapi/tbb/concurrent_unordered_map.h"
@@ -39,7 +40,7 @@ namespace meld {
 
   class declared_predicate : public products_consumer {
   public:
-    declared_predicate(std::string name, std::vector<std::string> predicates);
+    declared_predicate(qualified_name name, std::vector<std::string> predicates);
     virtual ~declared_predicate();
 
     virtual tbb::flow::sender<predicate_result>& sender() = 0;
@@ -59,7 +60,7 @@ namespace meld {
 
   public:
     pre_predicate(registrar<declared_predicates> reg,
-                  std::string name,
+                  qualified_name name,
                   std::size_t concurrency,
                   std::vector<std::string> predicates,
                   tbb::flow::graph& g,
@@ -98,7 +99,7 @@ namespace meld {
                                                   std::move(input_args_),
                                                   std::move(product_labels_));
     }
-    std::string name_;
+    qualified_name name_;
     std::size_t concurrency_;
     std::vector<std::string> predicates_;
     tbb::flow::graph& graph_;
@@ -121,7 +122,7 @@ namespace meld {
     using const_accessor = results_t::const_accessor;
 
   public:
-    complete_predicate(std::string name,
+    complete_predicate(qualified_name name,
                        std::size_t concurrency,
                        std::vector<std::string> predicates,
                        tbb::flow::graph& g,
@@ -166,7 +167,7 @@ namespace meld {
     ~complete_predicate()
     {
       if (results_.size() > 0ull) {
-        spdlog::warn("Filter {} has {} cached results.", name(), results_.size());
+        spdlog::warn("Filter {} has {} cached results.", full_name(), results_.size());
       }
     }
 
@@ -179,10 +180,7 @@ namespace meld {
     std::vector<tbb::flow::receiver<message>*> ports() override { return input_ports<N>(join_); }
 
     tbb::flow::sender<predicate_result>& sender() override { return predicate_; }
-    std::span<specified_label const, std::dynamic_extent> input() const override
-    {
-      return product_labels_;
-    }
+    specified_labels input() const override { return product_labels_; }
 
     template <std::size_t... Is>
     bool call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)

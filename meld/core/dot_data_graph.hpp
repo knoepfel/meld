@@ -3,6 +3,7 @@
 
 #include "meld/core/dot_attributes.hpp"
 #include "meld/core/specified_label.hpp"
+#include "meld/model/qualified_name.hpp"
 
 #include <iosfwd>
 #include <string>
@@ -19,6 +20,6 @@ namespace meld::dot::data_graph {
   void zip_edge(std::ostream& os, std::string const& source_node, std::string const& target_node);
 
   std::string zip_node(specified_labels input);
-  std::string unzip_node(output_strings output);
+  std::string unzip_node(qualified_names output);
 }
 #endif /* meld_core_dot_data_graph_hpp */

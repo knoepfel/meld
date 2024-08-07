@@ -12,6 +12,7 @@
 #include "meld/core/node_options.hpp"
 #include "meld/metaprogramming/delegate.hpp"
 #include "meld/metaprogramming/type_deduction.hpp"
+#include "meld/model/qualified_name.hpp"
 
 #include <concepts>
 #include <functional>
@@ -39,7 +40,7 @@ namespace meld {
                           node_catalog& nodes,
                           std::vector<std::string>& errors) :
       node_options_t{config},
-      name_{std::move(name)},
+      name_{config ? config->get<std::string>("module_label") : "", std::move(name)},
       predicate_{std::move(predicate)},
       unfold_{std::move(unfold)},
       concurrency_{c.value},
@@ -52,7 +53,7 @@ namespace meld {
     auto split(std::array<specified_label, N> input_args)
     {
       auto processed_input_args =
-        form_input_arguments<input_parameter_types>(name_, std::move(input_args));
+        form_input_arguments<input_parameter_types>(name_.full(), std::move(input_args));
 
       return partial_splitter<Object, Predicate, Unfold, decltype(processed_input_args)>{
         nodes_.register_splitter(errors_),
@@ -74,7 +75,7 @@ namespace meld {
     }
 
   private:
-    std::string name_;
+    qualified_name name_;
     Predicate predicate_;
     Unfold unfold_;
     std::size_t concurrency_;

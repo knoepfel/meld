@@ -42,7 +42,7 @@ namespace meld {
 
   void decision_map::erase(std::size_t const msg_id) { results_.erase(msg_id); }
 
-  data_map::data_map(std::span<specified_label const> product_names) :
+  data_map::data_map(specified_labels const product_names) :
     product_names_{product_names}, nargs_{product_names_.size()}
   {
   }
@@ -66,7 +66,7 @@ namespace meld {
 
     // Fill slots in the order of the input arguments to the downstream node.
     for (std::size_t i = 0; i != nargs_; ++i) {
-      if (elem[i] or not store->contains_product(product_names_[i].name))
+      if (elem[i] or not store->contains_product(product_names_[i].name.full()))
         continue;
       elem[i] = store;
     }

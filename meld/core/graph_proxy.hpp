@@ -26,11 +26,6 @@ namespace meld {
 
   template <typename T>
   class graph_proxy {
-    auto qualified(std::string const& name)
-    {
-      return config_->get<std::string>("module_label") + ":" + name;
-    }
-
   public:
     template <typename>
     friend class graph_proxy;
@@ -53,7 +48,7 @@ namespace meld {
 
     auto with(std::string name, auto f, concurrency c = concurrency::serial)
     {
-      return glue{graph_, nodes_, bound_obj_, errors_, config_}.with(qualified(name), f, c);
+      return glue{graph_, nodes_, bound_obj_, errors_, config_}.with(name, f, c);
     }
 
     auto with(auto f, concurrency c = concurrency::serial) { return with(function_name(f), f, c); }
@@ -66,12 +61,8 @@ namespace meld {
 
     auto output_with(std::string name, is_output_like auto f, concurrency c = concurrency::serial)
     {
-      return output_creator{nodes_.register_output(errors_),
-                            config_,
-                            qualified(name),
-                            graph_,
-                            delegate(bound_obj_, f),
-                            c};
+      return output_creator{
+        nodes_.register_output(errors_), config_, name, graph_, delegate(bound_obj_, f), c};
     }
     auto output_with(is_output_like auto f, concurrency c = concurrency::serial)
     {

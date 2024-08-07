@@ -25,8 +25,8 @@ namespace meld::dot::data_graph {
 
   void node_declaration(std::ostream& os, std::string const& node_name, attributes attrs)
   {
-    os << "  " << quoted(parenthesized(node_name)) << attributes_str(fontcolor(attrs.fontcolor))
-       << ";\n";
+    os << "  " << quoted(parenthesized(node_name))
+       << attributes_str(label(parenthesized(attrs.label)), fontcolor(attrs.fontcolor)) << ";\n";
   }
 
   void normal_edge(std::ostream& os,
@@ -41,7 +41,8 @@ namespace meld::dot::data_graph {
   void zip_edge(std::ostream& os, std::string const& source_node, std::string const& zip_node)
   {
     os << "  " << quoted(parenthesized(source_node)) << " -> " << quoted(parenthesized(zip_node))
-       << attributes_str(color("#a9a9a9"), style("dotted"), fontsize(default_fontsize)) << ";\n";
+       << attributes_str(color("\"#a9a9a9\""), style("dotted"), fontsize(default_fontsize))
+       << ";\n";
   }
 
   std::string zip_node(specified_labels input)
@@ -49,25 +50,25 @@ namespace meld::dot::data_graph {
     assert(not input.empty());
     auto it = input.begin();
     auto const e = input.end();
-    std::string joined = it->name;
+    std::string joined = it->name.full();
     ++it;
     for (; it != e; ++it) {
       joined += ",";
-      joined += it->name;
+      joined += it->name.full();
     }
     return joined;
   }
 
-  std::string unzip_node(output_strings output)
+  std::string unzip_node(qualified_names output)
   {
     assert(not output.empty());
     auto it = output.begin();
     auto const e = output.end();
-    std::string joined = *it;
+    std::string joined = it->name();
     ++it;
     for (; it != e; ++it) {
       joined += ",";
-      joined += *it;
+      joined += it->name();
     }
     return joined;
   }
