@@ -9,7 +9,7 @@ local g4stage1 = import 'G4Stage1.libsonnet';
   },
   PDFastSim: {
     plugin: 'pd_fast_sim',
-    duration_usec: 69681950,
+    duration_usec: 69, #69681950,
     inputs: ['IonAndScint/SimEnergyDeposits/priorSCE'],
     outputs: ['SimPhotonLites', 'OpDetBacktrackerRecords'],
   }

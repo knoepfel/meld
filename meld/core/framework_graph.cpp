@@ -8,6 +8,7 @@
 #include "spdlog/cfg/env.h"
 
 #include <cassert>
+#include <iostream>
 
 namespace meld {
   level_sentry::level_sentry(flush_counters& counters,
@@ -168,15 +169,23 @@ namespace meld {
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates_, nodes_.splitters_));
     filters_.merge(internal_edges_for_predicates(graph_, nodes_.predicates_, nodes_.transforms_));
 
-    edge_maker make_edges{dot_file_prefix, nodes_.outputs_, nodes_.transforms_, nodes_.reductions_};
+    edge_maker make_edges{dot_file_prefix, nodes_.transforms_, nodes_.reductions_};
     make_edges(src_,
                multiplexer_,
                filters_,
+               nodes_.outputs_,
                consumers{nodes_.predicates_, {.shape = "box"}},
-               consumers{nodes_.monitors_, {.shape = "ellipse"}},
-               consumers{nodes_.reductions_, {.arrowtail = "dot", .shape = "ellipse"}},
+               consumers{nodes_.monitors_, {.shape = "box"}},
+               consumers{nodes_.reductions_, {.shape = "invtrapezium"}},
                consumers{nodes_.splitters_, {.shape = "trapezium"}},
-               consumers{nodes_.transforms_, {.shape = "ellipse"}});
+               consumers{nodes_.transforms_, {.shape = "box"}});
+
+    if (auto data_graph = make_edges.release_data_graph()) {
+      data_graph->to_file(dot_file_prefix);
+    }
+    if (auto function_graph = make_edges.release_function_graph()) {
+      function_graph->to_file(dot_file_prefix);
+    }
   }
 
   product_store_ptr framework_graph::accept(product_store_ptr store)

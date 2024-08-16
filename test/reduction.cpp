@@ -72,6 +72,7 @@ TEST_CASE("Different levels of reduction", "[graph]")
 
   g.with("run_add", add, concurrency::unlimited).reduce("number").for_each("run").to("run_sum");
   g.with("job_add", add, concurrency::unlimited).reduce("number").to("job_sum");
+
   g.with("two_layer_job_add", add, concurrency::unlimited)
     .reduce("run_sum")
     .to("two_layer_job_sum");

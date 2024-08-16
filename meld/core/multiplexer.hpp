@@ -22,11 +22,6 @@ namespace meld {
   public:
     ~multiplexer();
 
-    struct named_output_port {
-      std::string node_name;
-      tbb::flow::sender<message>* port;
-      tbb::flow::sender<message>* to_output;
-    };
     struct named_input_port {
       specified_label product_label;
       tbb::flow::receiver<message>* port;
@@ -38,6 +33,8 @@ namespace meld {
     tbb::flow::continue_msg multiplex(message const& msg);
 
     void finalize(head_ports_t head_ports);
+
+    head_ports_t const& downstream_ports() const noexcept { return head_ports_; }
 
   private:
     head_ports_t head_ports_;

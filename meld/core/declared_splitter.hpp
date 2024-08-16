@@ -66,6 +66,7 @@ namespace meld {
     virtual qualified_names output() const = 0;
     virtual void finalize(multiplexer::head_ports_t head_ports) = 0;
     virtual std::size_t product_count() const = 0;
+    virtual multiplexer::head_ports_t const& downstream_ports() const = 0;
   };
 
   using declared_splitter_ptr = std::unique_ptr<declared_splitter>;
@@ -235,6 +236,11 @@ namespace meld {
     void finalize(multiplexer::head_ports_t head_ports) override
     {
       multiplexer_.finalize(std::move(head_ports));
+    }
+
+    multiplexer::head_ports_t const& downstream_ports() const override
+    {
+      return multiplexer_.downstream_ports();
     }
 
     template <std::size_t... Is>

@@ -8,8 +8,9 @@ add_library(meld_core SHARED
   declared_splitter.cpp
   declared_transform.cpp
   detail/filter_impl.cpp
-  dot_data_graph.cpp
-  dot_function_graph.cpp
+  dot/attributes.cpp
+  dot/data_graph.cpp
+  dot/function_graph.cpp
   edge_maker.cpp
   end_of_message.cpp
   filter.cpp

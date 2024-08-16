@@ -3,14 +3,12 @@
 
 #include "meld/core/declared_output.hpp"
 #include "meld/core/declared_splitter.hpp"
-#include "meld/core/dot_attributes.hpp"
-#include "meld/core/dot_data_graph.hpp"
-#include "meld/core/dot_function_graph.hpp"
+#include "meld/core/dot/attributes.hpp"
+#include "meld/core/dot/data_graph.hpp"
+#include "meld/core/dot/function_graph.hpp"
 #include "meld/core/filter.hpp"
 #include "meld/core/multiplexer.hpp"
 
-#include <fstream>
-#include <iosfwd>
 #include <map>
 #include <memory>
 #include <ranges>
@@ -21,8 +19,6 @@
 #include <vector>
 
 namespace meld {
-
-  inline std::string const zip_edge{"[zip]"};
 
   template <typename T>
   concept supports_output = requires(T t) {
@@ -46,17 +42,27 @@ namespace meld {
   class edge_maker {
   public:
     template <typename... Args>
-    edge_maker(std::string const& file_prefix, declared_outputs& outputs, Args&... args);
+    edge_maker(std::string const& file_prefix, Args&... args);
 
     template <typename... Args>
     void operator()(tbb::flow::input_node<message>& source,
                     multiplexer& multi,
                     std::map<std::string, filter>& filters,
+                    declared_outputs& outputs,
                     consumers<Args>... cons);
 
+    auto release_data_graph() { return std::move(data_graph_); }
+    auto release_function_graph() { return std::move(function_graph_); }
+
   private:
+    struct named_output_port {
+      std::string node_name;
+      tbb::flow::sender<message>* port;
+      tbb::flow::sender<message>* to_output;
+    };
+
     template <typename T>
-    static std::map<product_name_t, multiplexer::named_output_port> producing_nodes(T& nodes);
+    static std::map<product_name_t, named_output_port> producing_nodes(T& nodes);
 
     template <typename T>
     void record_attributes(T& consumers);
@@ -64,39 +70,63 @@ namespace meld {
     template <typename T>
     multiplexer::head_ports_t edges(std::map<std::string, filter>& filters, T& consumers);
 
-    struct dot_files {
-      std::ofstream function_graph;
-      std::ofstream pre_data_graph;
-      std::ofstream post_data_graph;
-    };
-    static std::unique_ptr<dot_files> maybe_graph_files(std::string const& filename);
+    std::unique_ptr<dot::function_graph> function_graph_;
+    std::unique_ptr<dot::data_graph> data_graph_;
 
-    std::unique_ptr<dot_files> graph_files_;
-    std::map<product_name_t, multiplexer::named_output_port> producers_;
-
-    struct target_with_edge {
-      std::string target;
-      std::string edge;
-    };
-    std::map<product_name_t, target_with_edge> data_graph_edges_;
-    std::map<product_name_t, dot::attributes> data_graph_nodes_;
-    declared_outputs& outputs_;
+    std::map<product_name_t, named_output_port> producers_;
     std::map<std::string, dot::attributes> attributes_;
+
+    template <typename T>
+    void make_the_node(T& node, dot::attributes const& node_attributes)
+    {
+      if (not function_graph_) {
+        return;
+      }
+
+      auto const& node_name = node->full_name();
+      function_graph_->node(node_name, node_attributes);
+      for (auto const& predicate_name : node->when()) {
+        function_graph_->edge(predicate_name, node_name, {.color = "red"});
+      }
+
+      if constexpr (supports_output<decltype(node)>) {
+        if (data_graph_) {
+          data_graph_->add(node_name, node->input(), node->output());
+        }
+      }
+    }
+
+    template <typename Sender, typename Receiver>
+    void make_the_edge(Sender& sender,
+                       Receiver& receiver,
+                       std::string const& receiver_node_name,
+                       std::string const& product_name)
+    {
+      make_edge(*sender.port, receiver);
+      if (function_graph_) {
+        function_graph_->edge(sender.node_name,
+                              receiver_node_name,
+                              {.color = "blue",
+                               .fontsize = dot::default_fontsize,
+                               .label = dot::parenthesized(product_name)});
+      }
+    }
   };
 
   // =============================================================================
   // Implementation
   template <typename... Args>
-  edge_maker::edge_maker(std::string const& file_prefix, declared_outputs& outputs, Args&... args) :
-    graph_files_{maybe_graph_files(file_prefix)}, outputs_{outputs}
+  edge_maker::edge_maker(std::string const& file_prefix, Args&... producers) :
+    function_graph_{file_prefix.empty() ? nullptr : std::make_unique<dot::function_graph>()},
+    data_graph_{file_prefix.empty() ? nullptr : std::make_unique<dot::data_graph>()}
   {
-    (producers_.merge(producing_nodes(args)), ...);
+    (producers_.merge(producing_nodes(producers)), ...);
   }
 
   template <typename T>
-  std::map<product_name_t, multiplexer::named_output_port> edge_maker::producing_nodes(T& nodes)
+  std::map<product_name_t, edge_maker::named_output_port> edge_maker::producing_nodes(T& nodes)
   {
-    std::map<product_name_t, multiplexer::named_output_port> result;
+    std::map<product_name_t, named_output_port> result;
     for (auto const& [node_name, node] : nodes) {
       for (auto const& product_name : node->output()) {
         if (empty(product_name.name()))
@@ -111,7 +141,7 @@ namespace meld {
   void edge_maker::record_attributes(T& consumers)
   {
     auto const& [data, attributes] = consumers;
-    for (auto const& [node_name, _] : data) {
+    for (auto const& node_name : data | std::views::keys) {
       attributes_[node_name] = attributes;
     }
   }
@@ -119,101 +149,26 @@ namespace meld {
   template <typename T>
   multiplexer::head_ports_t edge_maker::edges(std::map<std::string, filter>& filters, T& consumers)
   {
-    using namespace dot;
     multiplexer::head_ports_t result;
     auto const& [data, attributes] = consumers;
     for (auto& [node_name, node] : data) {
-      if (graph_files_) {
-        dot::function_graph::node_declaration(
-          graph_files_->function_graph, node_name, attributes.shape);
-      }
-
       tbb::flow::receiver<message>* collector = nullptr;
       if (auto coll_it = filters.find(node_name); coll_it != cend(filters)) {
         collector = &coll_it->second.data_port();
       }
 
-      if (graph_files_) {
-        for (auto const& predicate_name : node->when()) {
-          dot::function_graph::predicate_edge(
-            graph_files_->function_graph, predicate_name, node_name);
-        }
-      }
+      make_the_node(node, attributes);
 
       for (auto const& product_label : node->input()) {
-        auto* input_port = collector ? collector : &node->port(product_label);
+        auto* receiver_port = collector ? collector : &node->port(product_label);
         auto it = producers_.find(product_label.name.full("/"));
         if (it == cend(producers_)) {
           // Is there a way to detect mis-specified product dependencies?
-          result[node_name].push_back({product_label, input_port});
+          result[node_name].push_back({product_label, receiver_port});
           continue;
         }
 
-        auto const& [sender_node, sender_name] = std::tie(it->second, it->second.node_name);
-        make_edge(*sender_node.port, *input_port);
-        if (graph_files_) {
-          auto const& src_attributes = attributes_.at(sender_name);
-          dot::function_graph::normal_edge(
-            graph_files_->function_graph,
-            sender_name,
-            node_name,
-            {.arrowtail = src_attributes.arrowtail, .label = to_name(product_label)});
-        }
-      }
-
-      if constexpr (supports_output<decltype(node)>) {
-        if (graph_files_) {
-          // Data-graph nodes
-          std::string source_name{};
-          if (node->input().size() > 1ull) {
-            auto zip_node_name = dot::data_graph::zip_node(node->input());
-            for (auto const& product_name : node->input()) {
-              dot::data_graph::zip_edge(
-                graph_files_->pre_data_graph, product_name.name.full(), zip_node_name);
-              data_graph_edges_[product_name.name.full()] = {zip_node_name, zip_edge};
-              data_graph_nodes_[product_name.name.full()];
-            }
-            source_name = std::move(zip_node_name);
-            dot::data_graph::node_declaration(graph_files_->pre_data_graph,
-                                              source_name,
-                                              {.label = source_name, .fontcolor = "gray"});
-          }
-          else {
-            auto const& name = node->input().begin()->name;
-            source_name = name.full();
-            dot::data_graph::node_declaration(
-              graph_files_->pre_data_graph, source_name, {.label = name.name()});
-          }
-          data_graph_nodes_[source_name];
-
-          std::string target_name{};
-          if (node->output().size() > 1ull) {
-            auto unzip_node_name = dot::data_graph::unzip_node(node->output());
-            for (auto const& product_name : node->output()) {
-              dot::data_graph::node_declaration(
-                graph_files_->pre_data_graph, product_name.full(), {.label = product_name.name()});
-              dot::data_graph::zip_edge(
-                graph_files_->pre_data_graph, unzip_node_name, product_name.full());
-              data_graph_edges_[unzip_node_name] = {product_name.full(), zip_edge};
-              data_graph_nodes_[product_name.full()];
-            }
-            target_name = std::move(unzip_node_name);
-            dot::data_graph::node_declaration(graph_files_->pre_data_graph,
-                                              target_name,
-                                              {.label = target_name, .fontcolor = "\"#a9a9a9\""});
-          }
-          else {
-            auto const& name = *node->output().begin();
-            target_name = name.full();
-            dot::data_graph::node_declaration(
-              graph_files_->pre_data_graph, target_name, {.label = name.name()});
-          }
-          data_graph_nodes_[target_name];
-
-          dot::data_graph::normal_edge(
-            graph_files_->pre_data_graph, source_name, target_name, {.label = node->full_name()});
-          data_graph_edges_[source_name] = {target_name, node->full_name()};
-        }
+        make_the_edge(it->second, *receiver_port, node_name, to_name(product_label));
       }
     }
     return result;
@@ -223,13 +178,9 @@ namespace meld {
   void edge_maker::operator()(tbb::flow::input_node<message>& source,
                               multiplexer& multi,
                               std::map<std::string, filter>& filters,
+                              declared_outputs& outputs,
                               consumers<Args>... cons)
   {
-    if (graph_files_) {
-      dot::function_graph::prolog(graph_files_->function_graph);
-      dot::data_graph::prolog(graph_files_->pre_data_graph);
-    }
-
     (record_attributes(cons), ...);
 
     make_edge(source, multi);
@@ -237,30 +188,22 @@ namespace meld {
     // Create edges to outputs
     auto& splitters = std::get<consumers<declared_splitters>&>(std::tie(cons...));
 
-    for (auto const& [name, output_node] : outputs_) {
+    for (auto const& [output_name, output_node] : outputs) {
       make_edge(source, output_node->port());
-      if (graph_files_) {
-        dot::function_graph::node_declaration(graph_files_->function_graph, name, "cylinder");
-        dot::function_graph::output_edge(graph_files_->function_graph, "Source", name, {});
+      if (function_graph_) {
+        function_graph_->node(output_name, {.shape = "cylinder"});
+        function_graph_->edge("Source", output_name, {.color = "gray"});
       }
-      for (auto const& [_, named_port] : producers_) {
+      for (auto const& named_port : producers_ | std::views::values) {
         make_edge(*named_port.to_output, output_node->port());
-        if (graph_files_) {
-          auto const& src_attributes = attributes_.at(named_port.node_name);
-          dot::function_graph::output_edge(graph_files_->function_graph,
-                                           named_port.node_name,
-                                           name,
-                                           {.arrowtail = src_attributes.arrowtail});
+        if (function_graph_) {
+          function_graph_->edge(named_port.node_name, output_name, {.color = "gray"});
         }
       }
       for (auto const& [splitter_name, splitter] : splitters.data) {
         make_edge(splitter->to_output(), output_node->port());
-        if (graph_files_) {
-          auto const& src_attributes = attributes_.at(splitter_name);
-          dot::function_graph::output_edge(graph_files_->function_graph,
-                                           splitter_name,
-                                           name,
-                                           {.arrowtail = src_attributes.arrowtail});
+        if (function_graph_) {
+          function_graph_->edge(splitter_name, output_name, {.color = "gray"});
         }
       }
     }
@@ -293,10 +236,6 @@ namespace meld {
               continue;
             }
             heads[node_name].push_back(port);
-            if (graph_files_) {
-              dot::function_graph::multiplexing_edge(
-                graph_files_->function_graph, name, node_name, {.label = product_name.name()});
-            }
           }
         }
       }
@@ -305,28 +244,24 @@ namespace meld {
 
     // Remove head nodes claimed by splitters
     for (auto const& key : remove_ports_for_products) {
-      for (auto& [_, ports] : head_ports) {
+      for (auto& ports : head_ports | std::views::values) {
         std::erase_if(ports,
                       [&key](auto const& port) { return to_name(port.product_label) == key; });
       }
     }
 
-    if (graph_files_) {
-      for (auto const& [node_name, ports] : head_ports) {
-        for (auto const& head_port : ports) {
-          dot::function_graph::multiplexing_edge(graph_files_->function_graph,
-                                                 "Multiplexer",
-                                                 node_name,
-                                                 {.label = head_port.product_label.to_string()});
-        }
-      }
-    }
-
     multi.finalize(std::move(head_ports));
 
-    if (graph_files_) {
-      dot::function_graph::epilog(graph_files_->function_graph);
-      dot::data_graph::epilog(graph_files_->pre_data_graph);
+    if (function_graph_) {
+      for (auto const& [name, splitter] : splitters.data) {
+        for (auto const& [node_name, ports] : splitter->downstream_ports()) {
+          function_graph_->edges_for(name, node_name, ports);
+        }
+      }
+
+      for (auto const& [node_name, ports] : multi.downstream_ports()) {
+        function_graph_->edges_for("Source", node_name, ports);
+      }
     }
   }
 }

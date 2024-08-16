@@ -28,7 +28,7 @@ namespace meld {
   std::string specified_label::to_string() const
   {
     if (domain.empty()) {
-      return fmt::format("{} ϵ (any)", name.full());
+      return name.full();
     }
     return fmt::format("{} ϵ {}", name.full(), domain);
   }
