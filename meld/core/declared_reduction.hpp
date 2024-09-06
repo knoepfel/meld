@@ -195,26 +195,22 @@ namespace meld {
           auto const& reduction_store =
             store->is_flush() ? store : store->parent(reduction_interval_);
           assert(reduction_store);
-          auto const& id_for_counter = reduction_store->id();
+          auto const& id_hash_for_counter = reduction_store->id()->hash();
 
-          counter_accessor ca;
-          auto& counter = counter_for(id_for_counter->hash(), ca);
           if (store->is_flush()) {
-            counter.set_flush_value(store, original_message_id);
+            counter_for(id_hash_for_counter).set_flush_value(store, original_message_id);
           }
           else {
             call(ft, messages, std::make_index_sequence<N>{});
-            counter.increment(store->id()->level_hash());
+            counter_for(id_hash_for_counter).increment(store->id()->level_hash());
           }
-          ca.release();
 
-          if (const_counter_accessor cca; counter_for(id_for_counter->hash(), cca).is_complete()) {
+          if (auto count = done_with(id_hash_for_counter)) {
             auto parent = reduction_store->make_continuation(this->full_name());
             commit_(*parent);
             ++product_count_;
             // FIXME: This msg.eom value may be wrong!
-            get<0>(outputs).try_put({parent, msg.eom, counter.original_message_id()});
-            erase_counter(cca);
+            get<0>(outputs).try_put({parent, msg.eom, count->original_message_id()});
           }
         }}
     {

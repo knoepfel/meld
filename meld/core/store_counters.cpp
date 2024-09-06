@@ -21,17 +21,19 @@ namespace meld {
 
   store_flag& detect_flush_flag::flag_for(level_id::hash_type const hash)
   {
-    flag_accessor ca;
-    flags_.emplace(ca, hash, std::make_unique<store_flag>());
-    return *ca->second;
+    flag_accessor fa;
+    flags_.emplace(fa, hash, std::make_unique<store_flag>());
+    return *fa->second;
   }
 
-  bool detect_flush_flag::flag_for(level_id::hash_type const hash, const_flag_accessor& ca) const
+  bool detect_flush_flag::done_with(level_id::hash_type const hash)
   {
-    return flags_.find(ca, hash);
+    if (const_flag_accessor fa; flags_.find(fa, hash) && fa->second->is_complete()) {
+      flags_.erase(fa);
+      return true;
+    }
+    return false;
   }
-
-  void detect_flush_flag::erase_flag(const_flag_accessor& ca) { flags_.erase(ca); }
 
   // =====================================================================================
 
@@ -86,22 +88,26 @@ namespace meld {
 
   unsigned int store_counter::original_message_id() const noexcept { return original_message_id_; }
 
-  store_counter& count_stores::counter_for(level_id::hash_type const hash, counter_accessor& ca)
+  store_counter& count_stores::counter_for(level_id::hash_type const hash)
   {
+    counter_accessor ca;
     if (!counters_.find(ca, hash)) {
       counters_.emplace(ca, hash, std::make_unique<store_counter>());
     }
     return *ca->second;
   }
 
-  store_counter& count_stores::counter_for(level_id::hash_type const hash,
-                                           const_counter_accessor& cca)
+  std::unique_ptr<store_counter> count_stores::done_with(level_id::hash_type const hash)
   {
     // Must be called after an insertion has already been performed
-    bool const found [[maybe_unused]] = counters_.find(cca, hash);
+    counter_accessor ca;
+    bool const found [[maybe_unused]] = counters_.find(ca, hash);
     assert(found);
-    return *cca->second;
+    if (ca->second->is_complete()) {
+      std::unique_ptr<store_counter> result{std::move(ca->second)};
+      counters_.erase(ca);
+      return result;
+    }
+    return nullptr;
   }
-
-  void count_stores::erase_counter(const_counter_accessor& ca) { counters_.erase(ca); }
 }

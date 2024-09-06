@@ -151,10 +151,8 @@ namespace meld {
                      flag_for(store->id()->hash()).mark_as_processed();
                    }
 
-                   auto const id_hash = store->id()->hash();
-                   if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_complete()) {
+                   if (auto const id_hash = store->id()->hash(); done_with(id_hash)) {
                      results_.erase(id_hash);
-                     erase_flag(ca);
                    }
                    return result;
                  }}

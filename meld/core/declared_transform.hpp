@@ -194,10 +194,9 @@ namespace meld {
               stay_in_graph.try_put({a->second, msg.eom, message_id});
             }
           }
-          auto const id_hash = store->id()->hash();
-          if (const_flag_accessor fa; flag_for(id_hash, fa) && fa->second->is_complete()) {
+
+          if (auto const id_hash = store->id()->hash(); done_with(id_hash)) {
             stores_.erase(id_hash);
-            erase_flag(fa);
           }
         }}
     {

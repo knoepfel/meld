@@ -28,24 +28,21 @@ namespace meld {
   };
 
   class detect_flush_flag {
-    using flags_t = tbb::concurrent_hash_map<level_id::hash_type, std::unique_ptr<store_flag>>;
-
   protected:
-    using flag_accessor = flags_t::accessor;
-    using const_flag_accessor = flags_t::const_accessor;
     store_flag& flag_for(level_id::hash_type hash);
-    bool flag_for(level_id::hash_type hash, const_flag_accessor& ca) const;
-    void erase_flag(const_flag_accessor& ca);
+    bool done_with(level_id::hash_type hash);
 
   private:
+    using flags_t = tbb::concurrent_hash_map<level_id::hash_type, std::unique_ptr<store_flag>>;
+    using flag_accessor = flags_t::accessor;
+    using const_flag_accessor = flags_t::const_accessor;
+
     flags_t flags_;
   };
 
   // =========================================================================
 
   class store_counter {
-    using counts_t2 = tbb::concurrent_unordered_map<level_id::hash_type, std::atomic<std::size_t>>;
-
   public:
     void set_flush_value(product_store_const_ptr const& ptr, std::size_t original_message_id);
     void increment(level_id::hash_type level_hash);
@@ -53,6 +50,8 @@ namespace meld {
     unsigned int original_message_id() const noexcept;
 
   private:
+    using counts_t2 = tbb::concurrent_unordered_map<level_id::hash_type, std::atomic<std::size_t>>;
+
     counts_t2 counts_{};
 #ifdef __cpp_lib_atomic_shared_ptr
     std::atomic<flush_counts_ptr> flush_counts_{nullptr};
@@ -64,17 +63,15 @@ namespace meld {
   };
 
   class count_stores {
-    using counters_t =
-      tbb::concurrent_hash_map<level_id::hash_type, std::unique_ptr<store_counter>>;
-
   protected:
-    using counter_accessor = counters_t::accessor;
-    using const_counter_accessor = counters_t::const_accessor;
-    store_counter& counter_for(level_id::hash_type hash, counter_accessor& ca);
-    store_counter& counter_for(level_id::hash_type hash, const_counter_accessor& cca);
-    void erase_counter(const_counter_accessor& ca);
+    store_counter& counter_for(level_id::hash_type hash);
+    std::unique_ptr<store_counter> done_with(level_id::hash_type hash);
 
   private:
+    using counters_t =
+      tbb::concurrent_hash_map<level_id::hash_type, std::unique_ptr<store_counter>>;
+    using counter_accessor = counters_t::accessor;
+
     counters_t counters_;
   };
 }
