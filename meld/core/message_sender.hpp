@@ -32,4 +32,4 @@ namespace meld {
 
 }
 
-#endif /* meld_core_message_sender_hpp */
+#endif // meld_core_message_sender_hpp

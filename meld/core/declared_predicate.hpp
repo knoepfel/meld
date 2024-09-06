@@ -78,11 +78,11 @@ namespace meld {
       reg_.set([this] { return create(); });
     }
 
-    auto& for_each(std::string const& domain)
+    auto& for_each(std::string const& family)
     {
-      for (auto& allowed_domain : product_labels_ | std::views::transform(to_domain)) {
-        if (empty(allowed_domain)) {
-          allowed_domain = domain;
+      for (auto& allowed_family : product_labels_ | std::views::transform(to_family)) {
+        if (empty(allowed_family)) {
+          allowed_family = family;
         }
       }
       return *this;
@@ -151,8 +151,8 @@ namespace meld {
                      flag_for(store->id()->hash()).mark_as_processed();
                    }
 
-                   if (auto const id_hash = store->id()->hash(); done_with(id_hash)) {
-                     results_.erase(id_hash);
+                   if (done_with(store)) {
+                     results_.erase(store->id()->hash());
                    }
                    return result;
                  }}
@@ -197,4 +197,4 @@ namespace meld {
 
 }
 
-#endif /* meld_core_declared_predicate_hpp */
+#endif // meld_core_declared_predicate_hpp

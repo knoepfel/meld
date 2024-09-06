@@ -22,4 +22,4 @@ namespace meld::test {
 
 }
 
-#endif /* test_products_for_output_hpp */
+#endif // test_products_for_output_hpp

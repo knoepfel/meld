@@ -49,4 +49,4 @@ namespace meld::detail {
 
 #define DEFINE_SOURCE(source) BOOST_DLL_ALIAS(meld::detail::create_next<source>, create_source)
 
-#endif /* meld_source_hpp */
+#endif // meld_source_hpp

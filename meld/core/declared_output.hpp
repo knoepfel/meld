@@ -80,4 +80,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_declared_output_hpp */
+#endif // meld_core_declared_output_hpp

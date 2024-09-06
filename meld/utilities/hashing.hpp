@@ -16,4 +16,4 @@ namespace meld {
   }
 }
 
-#endif /* meld_utilities_hashing_hpp */
+#endif // meld_utilities_hashing_hpp

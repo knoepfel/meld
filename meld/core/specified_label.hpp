@@ -14,9 +14,9 @@
 namespace meld {
   struct specified_label {
     qualified_name name;
-    std::string domain;
+    std::string family;
     std::shared_ptr<specified_label> relation;
-    specified_label operator()(std::string domain) &&;
+    specified_label operator()(std::string family) &&;
     specified_label related_to(std::string relation) &&;
     specified_label related_to(specified_label relation) &&;
     std::string to_string() const;
@@ -29,7 +29,7 @@ namespace meld {
   using specified_labels = std::span<specified_label const, std::dynamic_extent>;
 
   inline auto& to_name(specified_label const& label) { return label.name.name(); }
-  inline auto& to_domain(specified_label& label) { return label.domain; }
+  inline auto& to_family(specified_label& label) { return label.family; }
 
   specified_label operator""_in(char const* str, std::size_t);
   bool operator==(specified_label const& a, specified_label const& b);
@@ -53,4 +53,4 @@ namespace meld {
 
 }
 
-#endif /* meld_core_specified_label_hpp */
+#endif // meld_core_specified_label_hpp

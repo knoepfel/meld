@@ -22,4 +22,4 @@ namespace meld {
   }
 }
 
-#endif /* meld_core_reduction_send_hpp */
+#endif // meld_core_reduction_send_hpp

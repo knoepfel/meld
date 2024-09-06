@@ -30,7 +30,7 @@ namespace meld {
   class detect_flush_flag {
   protected:
     store_flag& flag_for(level_id::hash_type hash);
-    bool done_with(level_id::hash_type hash);
+    bool done_with(product_store_const_ptr const& store);
 
   private:
     using flags_t = tbb::concurrent_hash_map<level_id::hash_type, std::unique_ptr<store_flag>>;
@@ -76,4 +76,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_store_counters_hpp */
+#endif // meld_core_store_counters_hpp

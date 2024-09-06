@@ -39,4 +39,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_node_catalog_hpp */
+#endif // meld_core_node_catalog_hpp

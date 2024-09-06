@@ -11,4 +11,4 @@ namespace meld {
            int max_parallelism);
 }
 
-#endif /* meld_app_run_hpp */
+#endif // meld_app_run_hpp

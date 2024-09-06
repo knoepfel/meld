@@ -14,4 +14,4 @@ namespace meld {
   }
 }
 
-#endif /* meld_metaprogramming_to_array_hpp */
+#endif // meld_metaprogramming_to_array_hpp

@@ -122,4 +122,4 @@ namespace refl {
 #pragma GCC diagnostic pop
 #endif
 
-#endif /* meld_metaprogramming_detail_ctor_reflect_types_hpp */
+#endif // meld_metaprogramming_detail_ctor_reflect_types_hpp

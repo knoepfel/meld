@@ -40,4 +40,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_model_qualified_name_hpp */
+#endif // meld_model_qualified_name_hpp

@@ -33,4 +33,4 @@ namespace meld {
   using concatenated_tuples = decltype(std::tuple_cat(std::declval<T>()...));
 }
 
-#endif /* meld_utilities_sized_tuple_hpp */
+#endif // meld_utilities_sized_tuple_hpp

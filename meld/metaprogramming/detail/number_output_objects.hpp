@@ -61,4 +61,4 @@ namespace meld::detail {
     number_types_not_void<R>();
 }
 
-#endif /* meld_metaprogramming_detail_number_output_objects_hpp */
+#endif // meld_metaprogramming_detail_number_output_objects_hpp

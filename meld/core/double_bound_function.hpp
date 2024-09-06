@@ -85,4 +85,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_double_bound_function_hpp */
+#endif // meld_core_double_bound_function_hpp

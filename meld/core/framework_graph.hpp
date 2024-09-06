@@ -124,4 +124,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_framework_graph_hpp */
+#endif // meld_core_framework_graph_hpp

@@ -30,4 +30,4 @@ namespace simb {
 
 #undef DATA_PRODUCT
 
-#endif /* test_mock_workflow_types_hpp */
+#endif // test_mock_workflow_types_hpp

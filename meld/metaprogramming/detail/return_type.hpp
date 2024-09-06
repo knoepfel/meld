@@ -28,4 +28,4 @@ namespace meld::detail {
   auto return_type_impl(T&&) -> decltype(return_type_impl(&T::operator()));
 }
 
-#endif /* meld_metaprogramming_detail_return_type_hpp */
+#endif // meld_metaprogramming_detail_return_type_hpp

@@ -27,4 +27,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_utilities_thread_counter_hpp */
+#endif // meld_utilities_thread_counter_hpp

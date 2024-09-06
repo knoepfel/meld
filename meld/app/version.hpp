@@ -4,4 +4,4 @@
 namespace meld {
   char const* version();
 }
-#endif /* meld_app_version_hpp */
+#endif // meld_app_version_hpp

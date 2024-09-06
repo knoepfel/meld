@@ -53,4 +53,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_graph_serializer_node_hpp */
+#endif // meld_graph_serializer_node_hpp

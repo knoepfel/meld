@@ -61,4 +61,4 @@ namespace meld {
   }
 }
 
-#endif /* meld_core_input_arguments_hpp */
+#endif // meld_core_input_arguments_hpp

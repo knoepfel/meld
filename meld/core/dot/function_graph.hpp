@@ -36,4 +36,4 @@ namespace meld::dot {
     std::vector<function_edge> edges_;
   };
 }
-#endif /* meld_core_dot_function_graph_hpp */
+#endif // meld_core_dot_function_graph_hpp

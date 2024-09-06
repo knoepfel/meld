@@ -38,4 +38,4 @@ namespace meld {
 
 }
 
-#endif /* meld_configuration_hpp */
+#endif // meld_configuration_hpp

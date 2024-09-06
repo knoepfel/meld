@@ -73,4 +73,4 @@ namespace meld {
   // clang-format on
 }
 
-#endif /* meld_core_concepts_hpp */
+#endif // meld_core_concepts_hpp

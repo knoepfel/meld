@@ -17,7 +17,7 @@ namespace meld {
   using end_of_message_ptr = std::shared_ptr<end_of_message>;
 }
 
-#endif /* meld_core_fwd_hpp */
+#endif // meld_core_fwd_hpp
 
 // Local Variables:
 // mode: c++

@@ -116,7 +116,7 @@ namespace meld {
       return into(std::array<std::string, sizeof...(ts)>{std::forward<decltype(ts)>(ts)...});
     }
 
-    auto& within_domain(std::string new_level_name)
+    auto& within_family(std::string new_level_name)
     {
       new_level_name_ = std::move(new_level_name);
       return *this;
@@ -197,8 +197,8 @@ namespace meld {
                     flag_for(store->id()->hash()).mark_as_processed();
                   }
 
-                  if (auto const id_hash = store->id()->hash(); done_with(id_hash)) {
-                    stores_.erase(id_hash);
+                  if (done_with(store)) {
+                    stores_.erase(store->id()->hash());
                   }
                   return {};
                 }},
@@ -281,4 +281,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_declared_splitter_hpp */
+#endif // meld_core_declared_splitter_hpp

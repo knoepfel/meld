@@ -88,4 +88,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_graph_proxy_hpp */
+#endif // meld_core_graph_proxy_hpp

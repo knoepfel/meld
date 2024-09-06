@@ -33,4 +33,4 @@ namespace meld {
   }
 }
 
-#endif /* meld_metaprogramming_delegate_hpp */
+#endif // meld_metaprogramming_delegate_hpp

@@ -5,4 +5,4 @@ namespace test {
   constexpr int add(int i, int j) { return i + j; }
 }
 
-#endif /* test_plugins_add_hpp */
+#endif // test_plugins_add_hpp

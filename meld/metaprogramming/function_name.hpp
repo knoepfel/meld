@@ -74,4 +74,4 @@ namespace meld {
   }
 }
 
-#endif /* meld_metaprogramming_function_name_hpp */
+#endif // meld_metaprogramming_function_name_hpp

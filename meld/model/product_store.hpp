@@ -135,4 +135,4 @@ namespace meld {
   }
 }
 
-#endif /* meld_model_product_store_hpp */
+#endif // meld_model_product_store_hpp

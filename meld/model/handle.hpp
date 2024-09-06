@@ -107,4 +107,4 @@ namespace meld {
   using handle_for = typename handle_<T>::type;
 }
 
-#endif /* meld_model_handle_hpp */
+#endif // meld_model_handle_hpp

@@ -79,4 +79,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_graph_serial_node_hpp */
+#endif // meld_graph_serial_node_hpp

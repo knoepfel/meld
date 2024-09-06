@@ -35,7 +35,7 @@ namespace meld {
   };
 }
 
-#endif /* meld_model_product_matcher_hpp */
+#endif // meld_model_product_matcher_hpp
 
 // Local Variables:
 // mode: c++

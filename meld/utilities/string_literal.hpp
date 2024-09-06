@@ -28,4 +28,4 @@ namespace meld {
   concept are_unique = detail::unique<Resources...>();
 }
 
-#endif /* meld_utilities_string_literal_hpp */
+#endif // meld_utilities_string_literal_hpp

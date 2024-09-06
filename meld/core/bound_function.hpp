@@ -174,4 +174,4 @@ namespace meld {
     -> bound_function<T, FT>;
 }
 
-#endif /* meld_core_bound_function_hpp */
+#endif // meld_core_bound_function_hpp

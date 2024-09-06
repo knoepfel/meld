@@ -14,4 +14,4 @@ namespace test {
   };
 }
 
-#endif /* test_benchmarks_fibonacci_numbers_hpp */
+#endif // test_benchmarks_fibonacci_numbers_hpp

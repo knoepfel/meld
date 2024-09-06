@@ -95,4 +95,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_glue_hpp */
+#endif // meld_core_glue_hpp

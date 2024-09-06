@@ -94,4 +94,4 @@ namespace meld {
 
 }
 
-#endif /* meld_core_registrar_hpp */
+#endif // meld_core_registrar_hpp

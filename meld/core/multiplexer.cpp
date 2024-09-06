@@ -13,14 +13,14 @@ namespace {
   meld::product_store_const_ptr store_for(meld::product_store_const_ptr store,
                                           meld::specified_label const& label)
   {
-    auto const& [product_name, domain, relation] = label;
-    if (domain.empty()) {
+    auto const& [product_name, family, relation] = label;
+    if (family.empty()) {
       return store->store_for_product(product_name.full());
     }
-    if (store->level_name() == domain and store->contains_product(product_name.full())) {
+    if (store->level_name() == family and store->contains_product(product_name.full())) {
       return store;
     }
-    auto parent = store->parent(domain);
+    auto parent = store->parent(family);
     if (not parent) {
       return nullptr;
     }
@@ -52,8 +52,8 @@ namespace {
         continue;
       }
 
-      if (auto const& allowed_domain = product_label.domain; not allowed_domain.empty()) {
-        if (store_to_send->level_name() != allowed_domain) {
+      if (auto const& allowed_family = product_label.family; not allowed_family.empty()) {
+        if (store_to_send->level_name() != allowed_family) {
           continue;
         }
       }

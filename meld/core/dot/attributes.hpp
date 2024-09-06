@@ -19,4 +19,4 @@ namespace meld::dot {
   std::string parenthesized(std::string const& n);
 }
 
-#endif /* meld_core_dot_attributes_hpp */
+#endif // meld_core_dot_attributes_hpp

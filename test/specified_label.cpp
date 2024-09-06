@@ -16,11 +16,11 @@ TEST_CASE("Only name in label", "[data model]")
   specified_label label{"product"};
   CHECK(label == "product"_in);
 
-  // Empty domain string is interpreted as a wildcard--i.e. any domain.
+  // Empty family string is interpreted as a wildcard--i.e. any family.
   CHECK(label == "product"_in(""));
 }
 
-TEST_CASE("Label with domain", "[data model]")
+TEST_CASE("Label with family", "[data model]")
 {
   specified_label label{"product", {"event"}};
   CHECK(label == "product"_in("event"));

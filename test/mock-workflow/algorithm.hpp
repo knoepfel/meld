@@ -75,4 +75,4 @@ namespace meld::test {
   }
 }
 
-#endif /* test_mock_workflow_algorithm_hpp */
+#endif // test_mock_workflow_algorithm_hpp

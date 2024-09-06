@@ -31,4 +31,4 @@ namespace meld::dot {
     std::vector<product_node> nodes_;
   };
 }
-#endif /* meld_core_dot_data_graph_hpp */
+#endif // meld_core_dot_data_graph_hpp

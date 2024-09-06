@@ -33,4 +33,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_products_consumer_hpp */
+#endif // meld_core_products_consumer_hpp

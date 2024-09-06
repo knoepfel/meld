@@ -59,14 +59,14 @@ namespace {
   }
 }
 
-TEST_CASE("Testing domains", "[data model]")
+TEST_CASE("Testing families", "[data model]")
 {
   source src;
   framework_graph g{[&src](cached_product_stores& stores) mutable { return src.next(stores); }, 1};
   g.with("se", check_two_ids).monitor("id"_in("subrun"), "id").for_each("event");
   g.with("rs", check_two_ids).monitor("id"_in("run"), "id").for_each("subrun");
   g.with("rse", check_three_ids).monitor("id"_in("run"), "id"_in("subrun"), "id").for_each("event");
-  g.execute("allowed_domains_t");
+  g.execute("allowed_families_t");
 
   CHECK(g.execution_counts("se") == 1ull);
   CHECK(g.execution_counts("rs") == 1ull);

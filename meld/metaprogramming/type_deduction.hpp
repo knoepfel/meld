@@ -61,4 +61,4 @@ namespace meld {
   struct is_non_const_lvalue_reference<T const&> : std::false_type {};
 }
 
-#endif /* meld_metaprogramming_type_deduction_hpp */
+#endif // meld_metaprogramming_type_deduction_hpp

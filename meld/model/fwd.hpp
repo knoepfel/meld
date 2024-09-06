@@ -16,4 +16,4 @@ namespace meld {
   enum class stage { process, flush };
 }
 
-#endif /* meld_model_fwd_hpp */
+#endif // meld_model_fwd_hpp

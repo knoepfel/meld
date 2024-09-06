@@ -70,4 +70,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_detail_filter_impl_hpp */
+#endif // meld_core_detail_filter_impl_hpp

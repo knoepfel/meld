@@ -45,4 +45,4 @@ namespace meld {
 
 }
 
-#endif /* meld_core_multiplexer_hpp */
+#endif // meld_core_multiplexer_hpp

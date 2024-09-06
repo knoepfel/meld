@@ -29,4 +29,4 @@ namespace meld::detail {
   auto parameter_types_impl(T&&) -> decltype(parameter_types_impl(&T::operator()));
 }
 
-#endif /* meld_metaprogramming_detail_parameter_types_hpp */
+#endif // meld_metaprogramming_detail_parameter_types_hpp

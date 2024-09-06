@@ -73,4 +73,4 @@ namespace test {
   };
 }
 
-#endif /* test_cached_execution_source_hpp */
+#endif // test_cached_execution_source_hpp

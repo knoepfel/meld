@@ -22,4 +22,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_consumer_hpp */
+#endif // meld_core_consumer_hpp

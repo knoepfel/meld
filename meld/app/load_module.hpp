@@ -13,4 +13,4 @@ namespace meld {
   detail::next_store_t load_source(boost::json::object const& config);
 }
 
-#endif /* meld_app_load_module_hpp */
+#endif // meld_app_load_module_hpp

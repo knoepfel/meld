@@ -21,4 +21,4 @@ namespace meld::detail {
   }
 }
 
-#endif /* meld_core_detail_port_names_hpp */
+#endif // meld_core_detail_port_names_hpp

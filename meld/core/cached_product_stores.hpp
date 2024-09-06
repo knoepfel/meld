@@ -38,4 +38,4 @@ namespace meld {
 
 }
 
-#endif /* meld_core_cached_product_stores_hpp */
+#endif // meld_core_cached_product_stores_hpp

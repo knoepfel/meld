@@ -26,9 +26,10 @@ namespace meld {
     return *fa->second;
   }
 
-  bool detect_flush_flag::done_with(level_id::hash_type const hash)
+  bool detect_flush_flag::done_with(product_store_const_ptr const& store)
   {
-    if (const_flag_accessor fa; flags_.find(fa, hash) && fa->second->is_complete()) {
+    auto const h = store->id()->hash();
+    if (const_flag_accessor fa; flags_.find(fa, h) && fa->second->is_complete()) {
       flags_.erase(fa);
       return true;
     }

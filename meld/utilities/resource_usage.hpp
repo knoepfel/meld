@@ -20,4 +20,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_utilities_resource_usage_hpp */
+#endif // meld_utilities_resource_usage_hpp

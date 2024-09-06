@@ -38,4 +38,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_filter_hpp */
+#endif // meld_core_filter_hpp

@@ -29,4 +29,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_concurrency_hpp */
+#endif // meld_concurrency_hpp

@@ -23,4 +23,4 @@ namespace meld {
   using namespace std::chrono_literals;
 }
 
-#endif /* meld_utilities_sleep_for_hpp */
+#endif // meld_utilities_sleep_for_hpp

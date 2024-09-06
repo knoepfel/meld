@@ -68,4 +68,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_model_level_counter_hpp */
+#endif // meld_model_level_counter_hpp

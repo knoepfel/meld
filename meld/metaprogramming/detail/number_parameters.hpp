@@ -37,4 +37,4 @@ namespace meld::detail {
   constexpr std::size_t number_parameters_impl<R(Args...) noexcept> = sizeof...(Args);
 }
 
-#endif /* meld_metaprogramming_detail_number_parameters_hpp */
+#endif // meld_metaprogramming_detail_number_parameters_hpp

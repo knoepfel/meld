@@ -50,4 +50,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_node_options_hpp */
+#endif // meld_core_node_options_hpp

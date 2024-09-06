@@ -205,12 +205,12 @@ namespace meld {
             counter_for(id_hash_for_counter).increment(store->id()->level_hash());
           }
 
-          if (auto count = done_with(id_hash_for_counter)) {
+          if (auto counter = done_with(id_hash_for_counter)) {
             auto parent = reduction_store->make_continuation(this->full_name());
             commit_(*parent);
             ++product_count_;
             // FIXME: This msg.eom value may be wrong!
-            get<0>(outputs).try_put({parent, msg.eom, count->original_message_id()});
+            get<0>(outputs).try_put({parent, msg.eom, counter->original_message_id()});
           }
         }}
     {
@@ -285,4 +285,4 @@ namespace meld {
   };
 }
 
-#endif /* meld_core_declared_reduction_hpp */
+#endif // meld_core_declared_reduction_hpp

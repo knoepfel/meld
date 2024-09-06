@@ -266,4 +266,4 @@ namespace meld {
   }
 }
 
-#endif /* meld_core_edge_maker_hpp */
+#endif // meld_core_edge_maker_hpp

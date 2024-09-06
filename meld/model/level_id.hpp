@@ -61,4 +61,4 @@ namespace std {
   };
 }
 
-#endif /* meld_model_level_id_hpp */
+#endif // meld_model_level_id_hpp

@@ -110,7 +110,7 @@ TEST_CASE("Splitting the processing", "[graph]")
   g.with<iota>(&iota::predicate, &iota::unfold, concurrency::unlimited)
     .split("max_number")
     .into("new_number")
-    .within_domain("lower1");
+    .within_family("lower1");
   g.with(add, concurrency::unlimited).reduce("new_number").for_each("event").to("sum1");
   g.with(check_sum, concurrency::unlimited).monitor("sum1");
 
@@ -118,7 +118,7 @@ TEST_CASE("Splitting the processing", "[graph]")
      &iterate_through::predicate, &iterate_through::unfold, concurrency::unlimited)
     .split("ten_numbers")
     .into("each_number")
-    .within_domain("lower2");
+    .within_family("lower2");
   g.with(add_numbers, concurrency::unlimited).reduce("each_number").for_each("event").to("sum2");
   g.with(check_sum_same, concurrency::unlimited).monitor("sum2");
 

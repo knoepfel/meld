@@ -6,4 +6,4 @@ namespace meld::detail {
   concept has_call_operator = requires { &T::operator(); };
 }
 
-#endif /* meld_metaprogramming_detail_basic_concepts_hpp */
+#endif // meld_metaprogramming_detail_basic_concepts_hpp

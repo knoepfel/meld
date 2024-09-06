@@ -24,4 +24,4 @@ namespace meld {
 
 }
 
-#endif /* meld_core_end_of_message_hpp */
+#endif // meld_core_end_of_message_hpp

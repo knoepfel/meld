@@ -26,4 +26,4 @@ namespace meld::detail {
   BOOST_DLL_ALIAS(create, create_module)                                                           \
   SELECT_SIGNATURE(__VA_ARGS__)
 
-#endif /* meld_module_hpp */
+#endif // meld_module_hpp

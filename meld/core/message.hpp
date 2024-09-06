@@ -111,4 +111,4 @@ namespace meld {
 
 }
 
-#endif /* meld_core_message_hpp */
+#endif // meld_core_message_hpp

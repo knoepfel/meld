@@ -7,30 +7,30 @@
 #include <tuple>
 
 namespace meld {
-  specified_label specified_label::operator()(std::string domain) &&
+  specified_label specified_label::operator()(std::string family) &&
   {
-    return {std::move(name), std::move(domain)};
+    return {std::move(name), std::move(family)};
   }
 
   specified_label specified_label::related_to(std::string relation) &&
   {
     return {std::move(name),
-            std::move(domain),
+            std::move(family),
             std::make_shared<specified_label>(specified_label{relation})};
   }
 
   specified_label specified_label::related_to(specified_label relation) &&
   {
     return {
-      std::move(name), std::move(domain), std::make_shared<specified_label>(std::move(relation))};
+      std::move(name), std::move(family), std::make_shared<specified_label>(std::move(relation))};
   }
 
   std::string specified_label::to_string() const
   {
-    if (domain.empty()) {
+    if (family.empty()) {
       return name.full();
     }
-    return fmt::format("{} ϵ {}", name.full(), domain);
+    return fmt::format("{} ϵ {}", name.full(), family);
   }
 
   specified_label specified_label::create(char const* c) { return create(std::string{c}); }
@@ -56,14 +56,14 @@ namespace meld {
 
   bool operator==(specified_label const& a, specified_label const& b)
   {
-    return std::tie(a.name, a.domain) == std::tie(b.name, b.domain);
+    return std::tie(a.name, a.family) == std::tie(b.name, b.family);
   }
 
   bool operator!=(specified_label const& a, specified_label const& b) { return !(a == b); }
 
   bool operator<(specified_label const& a, specified_label const& b)
   {
-    return std::tie(a.name, a.domain) < std::tie(b.name, b.domain);
+    return std::tie(a.name, a.family) < std::tie(b.name, b.family);
   }
 
   std::ostream& operator<<(std::ostream& os, specified_label const& label)
