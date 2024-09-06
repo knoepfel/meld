@@ -133,17 +133,15 @@ namespace meld {
                  auto const& msg = most_derived(messages);
                  auto const& [store, message_id] = std::tie(msg.store, msg.id);
                  if (store->is_flush()) {
-                   flag_accessor ca;
-                   flag_for(store->id()->hash(), ca).flush_received(message_id);
+                   flag_for(store->id()->hash()).flush_received(message_id);
                  }
                  else if (accessor a; needs_new(store, a)) {
                    call(ft, messages, std::make_index_sequence<N>{});
                    a->second = true;
-                   flag_accessor ca;
-                   flag_for(store->id()->hash(), ca).mark_as_processed();
+                   flag_for(store->id()->hash()).mark_as_processed();
                  }
                  auto const id_hash = store->id()->hash();
-                 if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_flush()) {
+                 if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_complete()) {
                    erase_flag(ca);
                    stores_.erase(id_hash);
                  }

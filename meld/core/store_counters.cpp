@@ -3,6 +3,8 @@
 
 #include "spdlog/spdlog.h"
 
+#include <cassert>
+
 namespace meld {
 
   void store_flag::flush_received(std::size_t const original_message_id)
@@ -11,20 +13,16 @@ namespace meld {
     original_message_id_ = original_message_id;
   }
 
-  bool store_flag::is_flush(level_id const* /*id*/) noexcept
-  {
-    return processed_ and flush_received_;
-  }
+  bool store_flag::is_complete() const noexcept { return processed_ and flush_received_; }
 
   void store_flag::mark_as_processed() noexcept { processed_ = true; }
 
   unsigned int store_flag::original_message_id() const noexcept { return original_message_id_; }
 
-  store_flag& detect_flush_flag::flag_for(level_id::hash_type const hash, flag_accessor& ca)
+  store_flag& detect_flush_flag::flag_for(level_id::hash_type const hash)
   {
-    if (!flags_.find(ca, hash)) {
-      flags_.emplace(ca, hash, std::make_unique<store_flag>());
-    }
+    flag_accessor ca;
+    flags_.emplace(ca, hash, std::make_unique<store_flag>());
     return *ca->second;
   }
 
@@ -54,7 +52,7 @@ namespace meld {
 
   void store_counter::increment(level_id::hash_type const level_hash) { ++counts_[level_hash]; }
 
-  bool store_counter::is_flush()
+  bool store_counter::is_complete()
   {
     if (!ready_to_flush_) {
       return false;
@@ -96,9 +94,13 @@ namespace meld {
     return *ca->second;
   }
 
-  bool count_stores::counter_for(level_id::hash_type const hash, const_counter_accessor& ca) const
+  store_counter& count_stores::counter_for(level_id::hash_type const hash,
+                                           const_counter_accessor& cca)
   {
-    return counters_.find(ca, hash);
+    // Must be called after an insertion has already been performed
+    bool const found [[maybe_unused]] = counters_.find(cca, hash);
+    assert(found);
+    return *cca->second;
   }
 
   void count_stores::erase_counter(const_counter_accessor& ca) { counters_.erase(ca); }

@@ -1,6 +1,9 @@
 #ifndef meld_core_declared_transform_hpp
 #define meld_core_declared_transform_hpp
 
+// FIXME: Add comments explaining the process.  For each implementation, explain what part
+//        of the process a given section of code is addressing.
+
 #include "meld/core/concepts.hpp"
 #include "meld/core/detail/port_names.hpp"
 #include "meld/core/fwd.hpp"
@@ -168,26 +171,31 @@ namespace meld {
           auto const& [store, message_eom, message_id] = std::tie(msg.store, msg.eom, msg.id);
           auto& [stay_in_graph, to_output] = output;
           if (store->is_flush()) {
-            flag_accessor fa;
-            flag_for(store->id()->hash(), fa).flush_received(msg.original_id);
+            flag_for(store->id()->hash()).flush_received(msg.original_id);
             stay_in_graph.try_put(msg);
+            to_output.try_put(msg);
           }
-          else if (accessor a; needs_new(store, message_eom, message_id, stay_in_graph, a)) {
-            auto result = call(ft, messages, std::make_index_sequence<N>{});
-            ++calls_;
-            ++product_count_[store->id()->level_hash()];
-            products new_products;
-            new_products.add_all(output_, result);
-            a->second = store->make_continuation(this->full_name(), std::move(new_products));
+          else {
+            accessor a;
+            if (stores_.insert(a, store->id()->hash())) {
+              auto result = call(ft, messages, std::make_index_sequence<N>{});
+              ++calls_;
+              ++product_count_[store->id()->level_hash()];
+              products new_products;
+              new_products.add_all(output_, std::move(result));
+              a->second = store->make_continuation(this->full_name(), std::move(new_products));
 
-            message const new_msg{a->second, msg.eom, message_id};
-            stay_in_graph.try_put(new_msg);
-            to_output.try_put(new_msg);
-            flag_accessor fa;
-            flag_for(store->id()->hash(), fa).mark_as_processed();
+              message const new_msg{a->second, msg.eom, message_id};
+              stay_in_graph.try_put(new_msg);
+              to_output.try_put(new_msg);
+              flag_for(store->id()->hash()).mark_as_processed();
+            }
+            else {
+              stay_in_graph.try_put({a->second, msg.eom, message_id});
+            }
           }
           auto const id_hash = store->id()->hash();
-          if (const_flag_accessor fa; flag_for(id_hash, fa) && fa->second->is_flush()) {
+          if (const_flag_accessor fa; flag_for(id_hash, fa) && fa->second->is_complete()) {
             stores_.erase(id_hash);
             erase_flag(fa);
           }
@@ -218,30 +226,6 @@ namespace meld {
     tbb::flow::sender<message>& to_output() override { return output_port<1>(transform_); }
     specified_labels input() const override { return product_labels_; }
     qualified_names output() const override { return output_; }
-
-    bool needs_new(product_store_const_ptr const& store,
-                   end_of_message_ptr const& eom,
-                   std::size_t message_id,
-                   auto& stay_in_graph,
-                   accessor& a)
-    {
-      if (store->is_flush()) {
-        stay_in_graph.try_put({store, eom, message_id});
-        return false;
-      }
-
-      if (const_accessor cached; stores_.find(cached, store->id()->hash())) {
-        stay_in_graph.try_put({cached->second, eom, message_id});
-        return false;
-      }
-
-      bool const new_insert = stores_.insert(a, store->id()->hash());
-      if (!new_insert) {
-        stay_in_graph.try_put({a->second, eom, message_id});
-        return false;
-      }
-      return true;
-    }
 
     template <std::size_t... Is>
     auto call(function_t const& ft, messages_t<N> const& messages, std::index_sequence<Is...>)

@@ -208,10 +208,7 @@ namespace meld {
           }
           ca.release();
 
-          const_counter_accessor cca;
-          bool const has_counter = counter_for(id_for_counter->hash(), cca);
-
-          if (has_counter && cca->second->is_flush()) {
+          if (const_counter_accessor cca; counter_for(id_for_counter->hash(), cca).is_complete()) {
             auto parent = reduction_store->make_continuation(this->full_name());
             commit_(*parent);
             ++product_count_;

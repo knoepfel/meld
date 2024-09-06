@@ -186,8 +186,7 @@ namespace meld {
                   auto const& msg = most_derived(messages);
                   auto const& store = msg.store;
                   if (store->is_flush()) {
-                    flag_accessor ca;
-                    flag_for(store->id()->hash(), ca).flush_received(msg.id);
+                    flag_for(store->id()->hash()).flush_received(msg.id);
                   }
                   else if (accessor a; stores_.insert(a, store->id()->hash())) {
                     std::size_t const original_message_id{msg_counter_};
@@ -195,12 +194,11 @@ namespace meld {
                     call(p, ufold, g, msg.eom, messages, std::make_index_sequence<N>{});
                     multiplexer_.try_put(
                       {g.flush_store(), msg.eom, ++msg_counter_, original_message_id});
-                    flag_accessor ca;
-                    flag_for(store->id()->hash(), ca).mark_as_processed();
+                    flag_for(store->id()->hash()).mark_as_processed();
                   }
 
                   auto const id_hash = store->id()->hash();
-                  if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_flush()) {
+                  if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_complete()) {
                     stores_.erase(id_hash);
                     erase_flag(ca);
                   }
@@ -209,6 +207,7 @@ namespace meld {
       to_output_{g}
     {
       make_edge(join_, splitter_);
+      make_edge(to_output_, multiplexer_);
     }
 
     ~complete_splitter()
@@ -261,9 +260,7 @@ namespace meld {
         products new_products;
         new_products.add_all(output_, prods);
         auto child = g.make_child_for(counter++, std::move(new_products));
-        message const msg{child, eom->make_child(child->id()), ++msg_counter_};
-        to_output_.try_put(msg);
-        multiplexer_.try_put(msg);
+        to_output_.try_put({child, eom->make_child(child->id()), ++msg_counter_});
         running_value = next_value;
       }
     }

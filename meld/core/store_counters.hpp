@@ -17,7 +17,7 @@ namespace meld {
   class store_flag {
   public:
     void flush_received(std::size_t original_message_id);
-    bool is_flush(level_id const* id = nullptr) noexcept;
+    bool is_complete() const noexcept;
     void mark_as_processed() noexcept;
     unsigned int original_message_id() const noexcept;
 
@@ -33,7 +33,7 @@ namespace meld {
   protected:
     using flag_accessor = flags_t::accessor;
     using const_flag_accessor = flags_t::const_accessor;
-    store_flag& flag_for(level_id::hash_type hash, flag_accessor& ca);
+    store_flag& flag_for(level_id::hash_type hash);
     bool flag_for(level_id::hash_type hash, const_flag_accessor& ca) const;
     void erase_flag(const_flag_accessor& ca);
 
@@ -49,7 +49,7 @@ namespace meld {
   public:
     void set_flush_value(product_store_const_ptr const& ptr, std::size_t original_message_id);
     void increment(level_id::hash_type level_hash);
-    bool is_flush();
+    bool is_complete();
     unsigned int original_message_id() const noexcept;
 
   private:
@@ -71,7 +71,7 @@ namespace meld {
     using counter_accessor = counters_t::accessor;
     using const_counter_accessor = counters_t::const_accessor;
     store_counter& counter_for(level_id::hash_type hash, counter_accessor& ca);
-    bool counter_for(level_id::hash_type hash, const_counter_accessor& ca) const;
+    store_counter& counter_for(level_id::hash_type hash, const_counter_accessor& cca);
     void erase_counter(const_counter_accessor& ca);
 
   private:

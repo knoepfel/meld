@@ -140,8 +140,7 @@ namespace meld {
                    auto const& [store, message_id] = std::tie(msg.store, msg.id);
                    predicate_result result{};
                    if (store->is_flush()) {
-                     flag_accessor ca;
-                     flag_for(store->id()->hash(), ca).flush_received(message_id);
+                     flag_for(store->id()->hash()).flush_received(message_id);
                    }
                    else if (const_accessor a; results_.find(a, store->id()->hash())) {
                      result = {msg.eom, message_id, a->second.result};
@@ -149,12 +148,11 @@ namespace meld {
                    else if (accessor a; results_.insert(a, store->id()->hash())) {
                      bool const rc = call(ft, messages, std::make_index_sequence<N>{});
                      result = a->second = {msg.eom, message_id, rc};
-                     flag_accessor ca;
-                     flag_for(store->id()->hash(), ca).mark_as_processed();
+                     flag_for(store->id()->hash()).mark_as_processed();
                    }
 
                    auto const id_hash = store->id()->hash();
-                   if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_flush()) {
+                   if (const_flag_accessor ca; flag_for(id_hash, ca) && ca->second->is_complete()) {
                      results_.erase(id_hash);
                      erase_flag(ca);
                    }
